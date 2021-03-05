@@ -37,7 +37,7 @@
 				<Attr N="Priority" V="50"/>
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.500000,0.500000}"/>
-				<Attr N="Color" V="{0.2, 0.4, 0.0, 1.0}"/>
+				<Attr N="Color" V="{0.5, 0.7, 0.4, 1.0}"/>
 			</Inst>
 		</Inst>
 	</Inst>
