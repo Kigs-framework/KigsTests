@@ -18,11 +18,33 @@ public:
 	void initFromXML(XMLBase* xml);
 
 	std::string getContentType(const std::string name);
+	std::string getPartName(const std::string contenttype);
 
 	XMLBase* createXML();
 
 	friend class XLSXDocument;
 };
+
+class XLSXSharedStrings
+{
+protected:
+	std::vector<std::string>	mSharedStrings;
+public:
+	XLSXSharedStrings() {};
+	~XLSXSharedStrings() {};
+
+	void initFromXML(XMLBase* xml);
+
+	std::string getString(u32 i)
+	{
+		return mSharedStrings[i];
+	}
+
+	XMLBase* createXML();
+
+	friend class XLSXDocument;
+};
+
 
 class XLSXRelationships
 {
@@ -46,6 +68,29 @@ public:
 	XLSXRelationships() {};
 	~XLSXRelationships() {};
 
+	std::string	getTarget(const std::string& id)
+	{
+		auto f = mRelations.find(id);
+		if (f != mRelations.end())
+		{
+			return (*f).second.mTarget;
+		}
+		return "";
+	}
+
+	std::string	getTargetFromType(const std::string& t)
+	{
+		for(auto f : mRelations)
+		{
+			auto found = f.second.mType.find(t);
+			if (found != std::string::npos)
+			{
+				return f.second.mTarget;
+			}
+		}
+		return "";
+	}
+
 	void initFromXML(XMLBase* xml);
 
 	XMLBase* createXML();
@@ -59,10 +104,27 @@ protected:
 	std::vector<XLSXSheet*>						mSheets;
 	XLSXContentType								mContentType;
 	std::map<std::string, XLSXRelationships>	mRels;
+	XLSXSharedStrings							mSharedStrings;
+
+	void		initWorkbook(const std::string& name);
+	void		initSharedStrings(const std::string& name);
+	XLSXSheet* initSheet(const std::string& file, std::string name, int id);
+
+	static XLSXSheet	mBadSheet;
+
 public:
 
 	XLSXDocument();
 	~XLSXDocument();
+
+	XLSXSheet& operator[](u32 i)
+	{
+		if (mSheets.size() > i)
+		{
+			return *(mSheets[i]);
+		}
+		return mBadSheet;
+	}
 
 	virtual bool	open(const std::string& filename) override;
 };

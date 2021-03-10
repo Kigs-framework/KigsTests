@@ -44,6 +44,10 @@ XMLArchiveHierarchy* XMLArchiveFolder::getFile(const std::string& n)
 	size_t foundpos = n.find("/");
 	if(foundpos != std::string::npos)
 	{
+		if (foundpos == 0) // if first char is "/" just remove it
+		{
+			return getFile(n.substr(1));
+		}
 		std::string foldername = n.substr(0, foundpos);
 		XMLArchiveFolder* folder = findFolder(foldername);
 		if (!folder)
