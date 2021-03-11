@@ -65,11 +65,11 @@ void XLSXSheet::initFromXML(XMLBase* xml)
 
 										if (type && (type->getString() == "s"))
 										{
-											currentR[ci] = CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
+											currentR[ci] = mSharedStrings->getString(val->getInt()); //CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
 										}
 										else
 										{
-											currentR[ci] = CoreItemSP::getCoreValue(val->getInt());
+											currentR[ci] = val->getInt(); //CoreItemSP::getCoreValue();
 										}
 									}
 								}
@@ -82,29 +82,7 @@ void XLSXSheet::initFromXML(XMLBase* xml)
 	}
 }
 
-void	CellName::interpretStringName()
-{
-	std::string col = getCol();
-	std::string row = getRow();
-	
-	mIndexes[0] = XLSXSheet::getColIndex(col);
-	mIndexes[1] = XLSXSheet::getRowIndex(row);
-}
 
-void	CellName::setIndex(const v2i& i)
-{
-	mIndexes = i;
-	mName = XLSXSheet::getCellName(i[0], i[1]);
-}
-
-std::string CellName::getCol()
-{
-	return XLSXSheet::getColName(mName);
-}
-std::string	CellName::getRow()
-{
-	return XLSXSheet::getRowName(mName);
-}
 
 XMLBase* XLSXSheet::createXML()
 {
@@ -133,9 +111,13 @@ std::string	XLSXSheet::getCellName(u32 col, u32 row)
 }
 
 // index starting from 0
-u32	XLSXSheet::getColIndex(const std::string& colname)
+s32	XLSXSheet::getColIndex(const std::string& colname)
 {
-	u32 index=0;
+	if (colname.length() == 0)
+	{
+		return -1;
+	}
+	s32 index=0;
 	u32 pos = 0;
 	while (pos < colname.size())
 	{
@@ -146,9 +128,9 @@ u32	XLSXSheet::getColIndex(const std::string& colname)
 }
 
 // index starting from 0
-u32	XLSXSheet::getRowIndex(const std::string& rowname)
+s32	XLSXSheet::getRowIndex(const std::string& rowname)
 {
-	u32 index=std::stoi(rowname);
+	s32 index=std::stoi(rowname);
 	index--;
 	return index;
 }
@@ -204,8 +186,18 @@ std::string	XLSXSheet::getRowName(const std::string& cellname)
 			pos++;
 			continue;
 		}
-		rowName += cellname[pos];
+		if ((cellname[pos] >= '0') && (cellname[pos] <= '9'))
+		{
+			rowName += cellname[pos];
+		}
+		else // malformed
+		{
+			rowName = "";
+			break;
+		}
 		pos++;
 	}
 	return rowName;
 }
+
+

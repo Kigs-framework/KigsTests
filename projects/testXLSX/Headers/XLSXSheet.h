@@ -3,94 +3,8 @@
 #include <string>
 #include "XML.h"
 #include "CoreItem.h"
-
-class CellName
-{
-protected:
-	std::string	mName;
-	v2i			mIndexes;
-
-	void	interpretStringName();
-
-public:
-	CellName() {};
-	CellName(const std::string& n) : mName(n)
-	{
-		interpretStringName();
-	};
-	~CellName() {};
-
-	void	setName(const std::string& n)
-	{
-		mName = n;
-		interpretStringName();
-	}
-
-	void	setIndex(const v2i& i);
-
-	std::string getCol();
-	std::string	getRow();
-
-	// index starting at 0
-	u32			getColIndex()
-	{
-		return mIndexes[0];
-	}
-
-
-	// index starting at 0
-	u32			getRowIndex()
-	{
-		return mIndexes[1];
-	}
-
-	const std::string& getName()
-	{
-		return mName;
-	}
-
-private:
-
-};
-
-
-class XLSXCell : public CoreItemSP
-{
-protected:
-	CellName	mName;
-	friend class XLSXSheet;
-public:
-
-	XLSXCell(const std::string& name) : CoreItemSP(), mName(name) {};
-
-	XLSXCell() : CoreItemSP(), mName() {};
-
-	XLSXCell& operator=(const CoreItemSP& other)
-	{
-		CoreItemSP::operator=(other);
-		return *this;
-	}
-
-};
-
-class XLSXSheet;
-
-class XLSXRow : public std::vector<XLSXCell>
-{
-protected:
-	u32			mIndex = 0;
-	XLSXSheet*	mSheet = nullptr;
-
-	friend class XLSXSheet;
-
-public:
-
-	XLSXRow() : std::vector<XLSXCell>() {};
-
-
-};
-
-class XLSXSharedStrings;
+#include "XLSXCellRowCol.h"
+#include "XLSXElementRef.h"
 
 class XLSXSheet
 {
@@ -109,6 +23,11 @@ public:
 	XLSXSheet(const std::string& name, s32 id,XLSXSharedStrings* sharedstrings) : mName(name), mSheedID(id), mSharedStrings(sharedstrings) {};
 	~XLSXSheet() {};
 
+	const std::string& getName()
+	{
+		return mName;
+	}
+
 	void initFromXML(XMLBase* xml);
 	XMLBase* createXML();
 
@@ -121,12 +40,63 @@ public:
 		return v2i(0, 0);
 	}
 
-	//XLSXPosRef& operator[](const std::string& col);
+	size_t	getRowCount()
+	{
+		return mRows.size();
+	}
+	size_t	getColCount()
+	{
+		if (mRows.size())
+		{
+			return mRows[0].size();
+		}
+		return 0;
+	}
+
+	XLSXRow* getRow(u32 i)
+	{
+		if (i < mRows.size())
+		{
+			return &mRows[i];
+		}
+		return nullptr;
+	}
+
+	XLSXCol getCol(u32 i)
+	{
+		XLSXCol result(this,-1);
+		if (mRows.size())
+		{
+			if (i < mRows[0].size())
+			{
+				result.mIndex = i;
+			}
+		}
+		return result;
+	}
+
+	XLSXCell* getCell(v2i pos)
+	{
+		if ((pos.y >= 0) && (pos.y < mRows.size()))
+		{
+			if ((pos.x >= 0) && (pos.x < mRows[0].size()))
+			{
+				return &mRows[pos.y][pos.x];
+			}
+		}
+		return nullptr;
+	}
+
+	XLSXElementRef operator[](const std::string& name)
+	{
+		XLSXElementRef result(name, this);
+		return result;
+	}
 
 	static	std::string	getCellName(u32 col, u32 row);
-	static	u32	getColIndex(const std::string& colname);
+	static	s32	getColIndex(const std::string& colname);
 	static	std::string	getColName(const std::string& cellname);
-	static	u32	getRowIndex(const std::string& rowname);
+	static	s32	getRowIndex(const std::string& rowname);
 	static	std::string	getRowName(const std::string& cellname);
 
 	static  v2i	getCellPos(const std::string& cellname);
@@ -134,19 +104,3 @@ public:
 	static  std::pair<v2i, v2i>	getRange(const std::string& rangename);
 };
 
-// just a reference to the good column in sheet
-class XLSXCol
-{
-protected:
-
-	u32			mIndex = 0;
-	XLSXSheet* mSheet = nullptr;
-	friend class XLSXSheet;
-
-public:
-	XLSXCol()
-	{
-
-	}
-
-};

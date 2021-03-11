@@ -4,6 +4,7 @@
 #include <map>
 #include "XLSXSheet.h"
 #include "XMLArchiveManager.h"
+#include "XLSXElementRef.h"
 
 class XLSXContentType
 {
@@ -110,21 +111,33 @@ protected:
 	void		initSharedStrings(const std::string& name);
 	XLSXSheet* initSheet(const std::string& file, std::string name, int id);
 
-	static XLSXSheet	mBadSheet;
-
 public:
 
 	XLSXDocument();
 	~XLSXDocument();
 
-	XLSXSheet& operator[](u32 i)
+	// return ref on sheet
+	XLSXElementRef operator[](u32 i)
 	{
 		if (mSheets.size() > i)
 		{
-			return *(mSheets[i]);
+			return XLSXElementRef(mSheets[i]);
 		}
-		return mBadSheet;
+		return XLSXElementRef();
 	}
+
+	XLSXElementRef operator[](const std::string n)
+	{
+		for(auto s: mSheets)
+		{
+			if(s->getName() == n)
+				return XLSXElementRef(s);
+		}
+		return XLSXElementRef();
+	}
+
+	std::vector<XLSXElementRef>	find(const std::string& content,bool exactmatch=false);
+	std::vector<XLSXElementRef>	find(int val);
 
 	virtual bool	open(const std::string& filename) override;
 };

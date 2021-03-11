@@ -2,6 +2,8 @@
 #include <FilePathManager.h>
 #include <NotificationCenter.h>
 #include "XLSXDocument.h"
+#include <iostream>
+#include <regex>
 
 using namespace std;
 IMPLEMENT_CLASS_INFO(testXLSX);
@@ -29,7 +31,39 @@ void	testXLSX::ProtectedInit()
 
 	if (doc.open("tst.xlsx"))
 	{
+		std::string test = *doc[0]["L6"];
 
+		// get sheet 0, then line 15, then cell K (on line 15)
+		test = *doc[0]["15"]["K"];
+
+		// get cell i26 on sheet 1
+		auto cell = doc[1]["I26"];
+		
+		// then get full row
+		auto row = cell.row();
+
+		// iterate row and get content of each cell
+		for (auto c : row)
+		{
+			test = c;
+		}
+
+		// get col and ierate
+		auto col = cell.col();
+		for (auto c : col)
+		{
+			test = c;
+		}
+
+		std::vector<XLSXElementRef> search = doc.find("NEXT-BIM");
+		search = doc.find(450);
+
+	/*	const std::string fnames[] = { "foo.txt", "bar.txt", "baz.dat", "zoidberg" };
+		const std::regex txt_regex("[a-z]+\\.txt");
+
+		for (const auto& fname : fnames) {
+			std::cout << fname << ": " << std::regex_match(fname, txt_regex) << '\n';
+		}*/
 	}
 
 }

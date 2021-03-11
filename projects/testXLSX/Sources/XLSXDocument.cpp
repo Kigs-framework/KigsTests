@@ -3,8 +3,6 @@
 #include "ModuleFileManager.h"
 #include "miniz.h"
 
-XLSXSheet	XLSXDocument::mBadSheet;
-
 XLSXDocument::XLSXDocument() : XMLArchiveManager()
 {
 
@@ -172,6 +170,38 @@ bool	XLSXDocument::open(const std::string& filename)
 	return false;
 }
 
+std::vector<XLSXElementRef>	XLSXDocument::find(const std::string& content, bool exactmatch)
+{
+	std::vector<XLSXElementRef> result;
+
+	// search all sheets
+	for (size_t i = 0; i < mSheets.size(); i++)
+	{
+		auto s = (*this)[i];
+		auto resultSheet = s.find(content, exactmatch);
+		result.insert(result.end(), resultSheet.begin(), resultSheet.end());
+	}
+
+	return result;
+}
+
+std::vector<XLSXElementRef>	XLSXDocument::find(int content)
+{
+	std::vector<XLSXElementRef> result;
+
+	// search all sheets
+	for (size_t i = 0; i < mSheets.size(); i++)
+	{
+		auto s = (*this)[i];
+		auto resultSheet = s.find(content);
+		result.insert(result.end(), resultSheet.begin(), resultSheet.end());
+	}
+
+	return result;
+}
+
+
+
 // content type
 
 void XLSXContentType::initFromXML(XMLBase* xml)
@@ -293,3 +323,4 @@ void  XLSXSharedStrings::initFromXML(XMLBase* xml)
 		}
 	}
 }
+
