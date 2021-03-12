@@ -21,8 +21,6 @@ public:
 	std::string getContentType(const std::string name);
 	std::string getPartName(const std::string contenttype);
 
-	XMLBase* createXML();
-
 	friend class XLSXDocument;
 };
 
@@ -30,6 +28,37 @@ class XLSXSharedStrings
 {
 protected:
 	std::vector<std::string>	mSharedStrings;
+	std::map<std::string, u32>	mStringIndex;
+	u32							mCountAccess = 0;
+	friend class XLSXDocument;
+	friend class XLSXSheet;
+
+	u32			getIndex(const std::string& s)
+	{
+		mCountAccess++;
+		u32 result = 0;
+		auto f = mStringIndex.find(s);
+		if (f == mStringIndex.end())
+		{
+			mSharedStrings.push_back(s);
+			result = mSharedStrings.size() - 1;
+			mStringIndex[s] = result;
+		}
+		else
+		{
+			result = (*f).second;
+		}
+		return result;
+	}
+
+	void reset()
+	{
+		mSharedStrings.clear();
+		mStringIndex.clear();
+		mCountAccess = 0;
+	}
+	void updateXML(XMLBase* toUpdate);
+
 public:
 	XLSXSharedStrings() {};
 	~XLSXSharedStrings() {};
@@ -40,12 +69,7 @@ public:
 	{
 		return mSharedStrings[i];
 	}
-
-	XMLBase* createXML();
-
-	friend class XLSXDocument;
 };
-
 
 class XLSXRelationships
 {
@@ -109,12 +133,16 @@ protected:
 
 	void		initWorkbook(const std::string& name);
 	void		initSharedStrings(const std::string& name);
-	XLSXSheet* initSheet(const std::string& file, std::string name, int id);
+	XLSXSheet*	initSheet(const std::string& file, std::string name, int id);
+
+	// create folder hierarchy
+
+	void		createFolderHierarchy();
 
 public:
 
 	XLSXDocument();
-	~XLSXDocument();
+	virtual ~XLSXDocument();
 
 	// return ref on sheet
 	XLSXElementRef operator[](u32 i)
@@ -140,4 +168,12 @@ public:
 	std::vector<XLSXElementRef>	find(int val);
 
 	virtual bool	open(const std::string& filename) override;
+
+	// create empty document
+	void	initEmpty();
+
+	// add one sheet
+	void addSheet(std::string n = "");
+
+	virtual CoreRawBuffer* save() override;
 };

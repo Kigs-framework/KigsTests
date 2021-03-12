@@ -1,6 +1,8 @@
 #include "XLSXElementRef.h"
 #include "XLSXSheet.h"
 
+XLSXCell XLSXElementRef::mBadCell;
+
 void	CellName::interpretStringName()
 {
 	std::string col = getCol();
@@ -119,7 +121,7 @@ XLSXElementRef	XLSXElementRef::col() const
 	return result;
 }
 
-XLSXCell	XLSXElementRef::operator*() const
+XLSXCell&	XLSXElementRef::operator*() const
 {
 	XLSXCell* result = mCell;
 	if ((mITPos >= 0) && !result)
@@ -133,7 +135,8 @@ XLSXCell	XLSXElementRef::operator*() const
 	}
 	if (result)
 		return *result;
-	return XLSXCell();
+
+	return mBadCell;
 }
 
 XLSXElementRef	XLSXElementRef::begin() const

@@ -4,6 +4,7 @@
 #include "XML.h"
 #include "CoreRawBuffer.h"
 
+// base class for file or folder in the archive
 class XMLArchiveHierarchy
 {
 protected:
@@ -11,9 +12,10 @@ protected:
 	bool					mIsFolder=false;
 	XMLArchiveHierarchy*	mParent = nullptr;
 public:
-	XMLArchiveHierarchy(const std::string& n, XMLArchiveHierarchy* p) : mFileName(n), mParent(p){};
-	~XMLArchiveHierarchy() {};
+	XMLArchiveHierarchy(const std::string_view& n, XMLArchiveHierarchy* p) : mFileName(n), mParent(p){};
+	virtual~XMLArchiveHierarchy() {};
 
+	// get file name with or without fullpath
 	std::string getName(bool fullpath=false)
 	{
 		std::string result = mFileName;
@@ -32,6 +34,7 @@ public:
 		return result;
 	}
 
+	// get file path only
 	std::string getPath()
 	{
 		std::string result = "";
@@ -53,6 +56,7 @@ public:
 		return result;
 	}
 
+	// get file extension (without '.')
 	std::string getExtension()
 	{
 		size_t foundext = mFileName.rfind(".");
@@ -63,24 +67,30 @@ public:
 		return "";
 	}
 
+	// return true for folders
 	bool	isFolder()
 	{
 		return mIsFolder;
 	}
 };
 
+// class managing folder in the archive
 class XMLArchiveFolder : public XMLArchiveHierarchy
 {
 protected:
 	std::vector< XMLArchiveHierarchy* > mSons; 
 public:
-	XMLArchiveFolder(const std::string& n, XMLArchiveHierarchy*p) : XMLArchiveHierarchy(n,p) {
+	XMLArchiveFolder(const std::string_view& n, XMLArchiveFolder*p) : XMLArchiveHierarchy(n,p) {
 		mIsFolder = true;
+		if(p)
+			p->addSon(this);
 	}
-	~XMLArchiveFolder()
+	virtual ~XMLArchiveFolder()
 	{
 		clear();
 	}
+
+	// return son folder (not recursive)
 	XMLArchiveFolder* findFolder(const std::string& n)
 	{
 		for (auto& f : mSons)
@@ -93,6 +103,7 @@ public:
 		return nullptr;
 	}
 
+	// add son (file or folder) to this folder
 	void	addSon(XMLArchiveHierarchy* s)
 	{
 		// check if not already there
@@ -110,6 +121,7 @@ public:
 		mSons.push_back(s);
 	}
 
+	// clear all sons
 	void clear()
 	{
 		for (auto& f : mSons)
@@ -119,32 +131,53 @@ public:
 		mSons.clear();
 	}
 
+	// get file given filename with relative path
 	XMLArchiveHierarchy* getFile(const std::string& n);
 
+	// return son file & folder count 
 	u32 getFileCount()
 	{
 		return mSons.size();
 	}
+
+	// get file or folder at given index
 	XMLArchiveHierarchy* getFile(u32 n)
 	{
-		return mSons[n];
+		if(n< mSons.size())
+			return mSons[n];
+		return nullptr;
 	}
-
 
 };
 
+// class managing a file in the archive
 class XMLArchiveFile : public XMLArchiveHierarchy
 {
 protected:
 	
+	// only one of this pointer should be available
+	// as the file is an XML file or another data file
 	XMLBase*			mXMLData = nullptr;
 	CoreRawBuffer*		mRawData = nullptr;
 
 public:
-	XMLArchiveFile(const std::string& n,XMLArchiveHierarchy* p) : XMLArchiveHierarchy(n,p) {};
-	XMLArchiveFile(const std::string& n,CoreRawBuffer* buf, XMLArchiveHierarchy* p) : XMLArchiveHierarchy(n,p), mRawData(buf){};
+	XMLArchiveFile(const std::string& n, XMLArchiveFolder* p) : XMLArchiveHierarchy(n, p) {
+		p->addSon(this);
+	};
+	XMLArchiveFile(const std::string& n,CoreRawBuffer* buf, XMLArchiveFolder* p) : XMLArchiveHierarchy(n,p), mRawData(buf){
+		p->addSon(this);
+	};
+	// init file with an XML string
+	XMLArchiveFile(const std::string& n, const std::string& xmlstring, XMLArchiveFolder* p) : XMLArchiveHierarchy(n, p)
+	{
+		mRawData = new CoreRawBuffer();
+		mRawData->SetBuffer(nullptr, xmlstring.length(), true);
+		memcpy(mRawData->buffer(), xmlstring.c_str(), xmlstring.length());
+		p->addSon(this);
+		interpretAsXML();
+	}
 
-	~XMLArchiveFile()
+	virtual ~XMLArchiveFile()
 	{
 		if (mXMLData)
 		{
@@ -158,13 +191,16 @@ public:
 		}
 	}
 
+	// if mRawData is available, try to interpret content as XML and set mXMLData
 	bool	interpretAsXML();
 
+	// return mXMLData if available
 	XMLBase* getXML()
 	{
 		return mXMLData;
 	}
 
+	// return mRawData if available
 	CoreRawBuffer* getRawBuffer()
 	{
 		return mRawData;
@@ -172,18 +208,23 @@ public:
 
 };
 
+// manage an xml archive ( Office Open XML, BCF ... )
 class XMLArchiveManager
 {
 protected:
+	// root folder
 	XMLArchiveFolder	mRoot = { "",nullptr };
 
 	// update folder hierarchy and return folder where the file should be
 	XMLArchiveFolder*	updateFolderHierarchy(const std::string& path);
 
+	// return filename for a given path+filename
 	std::string getFilename(const std::string& fullpath);
 
 
 public:
+
+	// iterator on file hierarchy
 	class XMLArchiveIterator
 	{
 	protected:
@@ -286,8 +327,9 @@ public:
 
 
 	XMLArchiveManager();
-	~XMLArchiveManager();
+	virtual ~XMLArchiveManager();
 
+	// return iterator on first file in hierarchy
 	XMLArchiveIterator	begin()
 	{
 		XMLArchiveIterator result;
@@ -302,6 +344,7 @@ public:
 		}
 		return result;
 	}
+	// end iterator
 	XMLArchiveIterator	end()
 	{
 		XMLArchiveIterator result;
@@ -310,9 +353,13 @@ public:
 		return result;
 	}
 
+	// open xml archive and init 
 	virtual bool	open(const std::string& filename);
 
-	CoreRawBuffer*	save();
+	// create a binary buffer from current XMLArchiveManager
+	// so it can be saved directly as a XML Archive file
+	virtual CoreRawBuffer*	save();
 
+	// clear everything
 	void	clear();
 };

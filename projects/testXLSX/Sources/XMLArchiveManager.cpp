@@ -1,6 +1,7 @@
 #include "XMLArchiveManager.h"
 #include "ModuleFileManager.h"
 #include "miniz.h"
+#include "XMLWriterFile.h"
 
 XMLArchiveManager::XMLArchiveManager()
 {
@@ -26,7 +27,6 @@ XMLArchiveFolder*	XMLArchiveManager::updateFolderHierarchy(const std::string& pa
 		if (!folder)
 		{
 			folder = new XMLArchiveFolder(foldername,current);
-			current->addSon(folder);
 		}
 
 		current = folder;
@@ -124,8 +124,6 @@ bool	XMLArchiveManager::open(const std::string& filename)
 						{
 							toAdd->interpretAsXML();
 						}
-
-						folder->addSon(toAdd);
 					}
 				}
 			}
@@ -160,10 +158,53 @@ void	XMLArchiveManager::clear()
 // create an archive to be saved as a file (
 CoreRawBuffer* XMLArchiveManager::save()
 {
-/*	mz_bool status;
+	mz_bool status;
 	mz_zip_archive zip = {};
-	if (status = mz_zip_writer_init_heap(&zip, 0, 0); !status) co_return false;
-	*/
-	// TODO
-	return nullptr;
+	if (status = mz_zip_writer_init_heap(&zip, 0, 0); !status) return nullptr;
+	
+	for (auto f : *this)
+	{
+		if (!f->isFolder()) // add only file to zip
+		{
+			XMLArchiveFile* _file = static_cast<XMLArchiveFile*>(f);
+			if (_file->getXML())
+			{
+				XML* _xml = static_cast<XML*>(_file->getXML());
+				std::string xml_file_string;
+				XMLWriterFile::WriteString(*_xml, xml_file_string);
+				if (status = mz_zip_writer_add_mem(&zip, _file->getName(true).c_str(), xml_file_string.c_str(), xml_file_string.size(), MZ_BEST_SPEED); !status)
+				{
+					mz_zip_writer_end(&zip);
+					return nullptr;
+				}
+
+			}
+			else // not xml, export rawdata
+			{
+				CoreRawBuffer* _rdata= _file->getRawBuffer();
+				if (status = mz_zip_writer_add_mem(&zip, _file->getName(true).c_str(), (u8*)_rdata->buffer(), _rdata->size(), MZ_BEST_SPEED); !status)
+				{
+					mz_zip_writer_end(&zip);
+					return nullptr;
+				}
+
+			}
+		}
+	}
+
+	void* buf = nullptr;
+	size_t bufsize = 0;
+
+	if (status = mz_zip_writer_finalize_heap_archive(&zip, &buf, &bufsize); !status)
+	{
+		mz_zip_writer_end(&zip);
+		return nullptr;
+	}
+
+	CoreRawBuffer* result = new CoreRawBuffer();
+	result->SetBuffer(nullptr, bufsize, true); // alloc buffer
+	memcpy(result->buffer(), buf, bufsize);
+	free(buf);
+	mz_zip_writer_end(&zip);
+	return result;
 }

@@ -31,12 +31,27 @@ public:
 
 	XLSXElementRef operator[](const std::string& name)const;
 
-	XLSXCell		operator*() const;
+	XLSXCell&		operator*() const;
 
 	// if referencing a cell or a row, return row containing the cell (or row itself)
 	XLSXElementRef	row() const;
 	// if referencing a cell or a col, return col containing the cell (or col itself)
 	XLSXElementRef	col() const;
+	// get sheet reference
+	XLSXElementRef sheet() const
+	{
+		return XLSXElementRef(mSheet);
+	}
+
+	operator XLSXSheet* ()
+	{
+		return mSheet;
+	}
+
+	operator XLSXCell*()
+	{
+		return mCell;
+	}
 
 	// if this ref a row or column, 
 	XLSXElementRef	begin() const;
@@ -78,4 +93,5 @@ public:
 	std::vector<XLSXElementRef>	find(const std::string& content,bool exactmatch=false);
 	std::vector<XLSXElementRef>	find(int content);
 
+	static XLSXCell mBadCell;
 };

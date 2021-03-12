@@ -3,6 +3,7 @@
 
 void XLSXSheet::initFromXML(XMLBase* xml)
 {
+	mBaseXML = xml;
 	mRows.clear();
 
 	XMLNodeBase* worksheet = xml->getRoot();
@@ -12,24 +13,8 @@ void XLSXSheet::initFromXML(XMLBase* xml)
 		if (dimension)
 		{
 			auto ref = dimension->getAttribute("ref");
-			std::string dimstr = ref->getString();
-			auto range = XLSXSheet::getRange(dimstr);
-			mRows.resize(range.second[1]+1);
-			int rindex = 0;
-			for (auto& r : mRows)
-			{
-				r.resize(range.second[0] + 1);
-				r.mIndex = rindex;
-				r.mSheet = this;
-				
-				int cindex = 0;
-				for (auto& c : r)
-				{
-					c.mName.setIndex({ cindex,rindex });
-					++cindex;
-				}
-				++rindex;
-			}
+			std::string dimstr = ref->getString();	
+			setRange(dimstr);
 		}
 		// now get values
 		XMLNodeBase* sheetData = worksheet->getChildElement("sheetData");
@@ -40,55 +25,125 @@ void XLSXSheet::initFromXML(XMLBase* xml)
 				XMLNodeBase* e = sheetData->getChildElement(i);
 				if (e->getName() == "row")
 				{
-					auto rindex = e->getAttribute("r");
-					int rowIndex = rindex->getInt();
-					rowIndex--;
-					if (rowIndex < mRows.size())
+					for (u32 ci = 0; ci < e->getChildCount(); ci++)
 					{
-						XLSXRow& currentR = mRows[rowIndex];
-						for (u32 ci = 0; ci < e->getChildCount(); ci++)
+						XMLNodeBase* ce = e->getChildElement(ci);
+						if (ce && ce->getChildCount())
 						{
-							XMLNodeBase* ce = e->getChildElement(ci);
-							if (ce && ce->getChildCount())
+							XMLNodeBase* val = ce->getChildElement(0);
+							if (val->getChildCount())
 							{
-								XMLNodeBase* val = ce->getChildElement(0);
-								if (val->getChildCount())
-								{
-									val=val->getChildElement(0);
-								}
-								auto cellname = ce->getAttribute("r");
-								if (cellname)
-								{
-									if (cellname->getString() == currentR[ci].mName.getName())
-									{
-										auto type = ce->getAttribute("t");
+								val = val->getChildElement(0);
+							}
+							auto cellname = ce->getAttribute("r");
+							if (cellname)
+							{
+								std::string strcellname = cellname->getString();
 
-										if (type && (type->getString() == "s"))
-										{
-											currentR[ci] = mSharedStrings->getString(val->getInt()); //CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
-										}
-										else
-										{
-											currentR[ci] = val->getInt(); //CoreItemSP::getCoreValue();
-										}
-									}
+								auto cell = (*this)[strcellname];
+
+								auto type = ce->getAttribute("t");
+
+								if (type && (type->getString() == "s"))
+								{
+									*cell = mSharedStrings->getString(val->getInt()); //CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
 								}
+								else
+								{
+									*cell = val->getInt(); //CoreItemSP::getCoreValue();
+								}
+
 							}
 						}
 					}
 				}
+				
 			}
 		}
 	}
 }
 
-
-
-XMLBase* XLSXSheet::createXML()
+void XLSXSheet::updateXML(XMLBase* xml)
 {
-	// TODO
-	return nullptr;
+	XMLNodeBase* worksheet = xml->getRoot();
+	if (worksheet)
+	{
+		XMLNodeBase* dimension = worksheet->getChildElement("dimension");
+		if (dimension)
+		{
+			XMLAttribute* ref = static_cast<XMLAttribute*>(dimension->getAttribute("ref"));
+			std::string dimstr = "A1:" + getCellName(mRows[0].size() - 1, mRows.size() - 1);
+			ref->setString(dimstr);
+		}
+		XMLNodeBase* sheetData = worksheet->getChildElement("sheetData");
+		if (sheetData)
+		{
+			/*for (u32 i = 0; i < sheetData->getChildCount(); i++)
+			{
+				XMLNodeBase* e = sheetData->getChildElement(i);
+				if (e->getName() == "row")
+				{
+					for (u32 ci = 0; ci < e->getChildCount(); ci++)
+					{
+						XMLNodeBase* ce = e->getChildElement(ci);
+						if (ce && ce->getChildCount())
+						{
+							XMLNodeBase* val = ce->getChildElement(0);
+							if (val->getChildCount())
+							{
+								val = val->getChildElement(0);
+							}
+							auto cellname = ce->getAttribute("r");
+							if (cellname)
+							{
+								std::string strcellname = cellname->getString();
+
+								auto cell = (*this)[strcellname];
+
+								auto type = ce->getAttribute("t");
+
+								if (type && (type->getString() == "s"))
+								{
+									*cell = mSharedStrings->getString(val->getInt()); //CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
+								}
+								else
+								{
+									*cell = val->getInt(); //CoreItemSP::getCoreValue();
+								}
+
+							}
+						}
+					}
+				}
+
+			}*/
+		}
+	}
 }
+
+
+void	XLSXSheet::setRange(const std::string& range)
+{
+	auto rangesize = XLSXSheet::getRange(range);
+	mRows.resize(rangesize.second[1] + 1);
+	int rindex = 0;
+	for (auto& r : mRows)
+	{
+		r.resize(rangesize.second[0] + 1);
+		r.mIndex = rindex;
+		r.mSheet = this;
+
+		int cindex = 0;
+		for (auto& c : r)
+		{
+			c.mName.setIndex({ cindex,rindex });
+			++cindex;
+		}
+		++rindex;
+	}
+}
+
+
 
 // index starting at 0
 std::string	XLSXSheet::getCellName(u32 col, u32 row)
@@ -130,8 +185,12 @@ s32	XLSXSheet::getColIndex(const std::string& colname)
 // index starting from 0
 s32	XLSXSheet::getRowIndex(const std::string& rowname)
 {
-	s32 index=std::stoi(rowname);
-	index--;
+	s32 index = -1;
+	if (rowname.length())
+	{
+		index = std::stoi(rowname);
+		index--;
+	}
 	return index;
 }
 
@@ -140,11 +199,15 @@ std::pair<v2i, v2i>	XLSXSheet::getRange(const std::string& rangename)
 	std::pair<v2i, v2i> result;
 	v2i min(0,0);
 	v2i max(0,0);
-	size_t found = rangename.find(":");
+	size_t found = rangename.find(":"); // is this a range
 	if (found != std::string::npos)
 	{
 		min=XLSXSheet::getCellPos(rangename.substr(0, found));
 		max=XLSXSheet::getCellPos(rangename.substr(found+1));
+	}
+	else
+	{
+		max = min = XLSXSheet::getCellPos(rangename);
 	}
 	result.first = min;
 	result.second = max;

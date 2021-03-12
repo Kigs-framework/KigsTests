@@ -1,6 +1,7 @@
-#include <testXLSX.h>
-#include <FilePathManager.h>
-#include <NotificationCenter.h>
+#include "testXLSX.h"
+#include "FilePathManager.h"
+#include "NotificationCenter.h"
+#include "ModuleFileManager.h"
 #include "XLSXDocument.h"
 #include <iostream>
 #include <regex>
@@ -28,9 +29,30 @@ void	testXLSX::ProtectedInit()
 	DataDrivenBaseApplication::ProtectedInit();
 
 	XLSXDocument	doc;
+	doc.initEmpty();
+	doc.addSheet("Waaarrrzaaa");
+	doc.addSheet("blop");
 
+	auto s1 = doc[0]; // get first sheet
+	XLSXSheet* sheet = s1.sheet();
+	sheet->setRange("A1:C3");
+
+	CoreRawBuffer* saved = doc.save();
+	if (saved)
+	{
+		ModuleFileManager::SaveFile("export.xlsx", (u8*)saved->buffer(), saved->size());
+		saved->Destroy();
+	}
+
+
+	/*
+	// XLSX doc
+	XLSXDocument	doc;
+
+	// open it
 	if (doc.open("tst.xlsx"))
 	{
+		// get value as string of the cell L6 of sheet 0 
 		std::string test = *doc[0]["L6"];
 
 		// get sheet 0, then line 15, then cell K (on line 15)
@@ -55,8 +77,20 @@ void	testXLSX::ProtectedInit()
 			test = c;
 		}
 
+		// get all cells with a value containing "NEXT-BIM" 
 		std::vector<XLSXElementRef> search = doc.find("NEXT-BIM");
+		// get all cells with a value of 450
 		search = doc.find(450);
+
+		// get the archive
+		CoreRawBuffer* saved = doc.save();
+		if (saved)
+		{
+			ModuleFileManager::SaveFile("export.xlsx", (u8*)saved->buffer(), saved->size());
+			saved->Destroy();
+		}
+	}
+	*/
 
 	/*	const std::string fnames[] = { "foo.txt", "bar.txt", "baz.dat", "zoidberg" };
 		const std::regex txt_regex("[a-z]+\\.txt");
@@ -64,8 +98,6 @@ void	testXLSX::ProtectedInit()
 		for (const auto& fname : fnames) {
 			std::cout << fname << ": " << std::regex_match(fname, txt_regex) << '\n';
 		}*/
-	}
-
 }
 
 void	testXLSX::ProtectedUpdate()

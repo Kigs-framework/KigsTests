@@ -3,6 +3,117 @@
 #include "ModuleFileManager.h"
 #include "miniz.h"
 
+// default data
+const char* DefaultContentTypeXML= R"===(
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="png" ContentType="image/png"/>
+<Default Extension="jpeg" ContentType="image/jpeg"/>
+<Override PartName="/_rels/.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+<Override PartName="/xl/_rels/workbook.xml.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>
+)===";
+
+const char* DefaultContentTypeSheet = R"===(application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml)===";
+
+
+const char* DefaultRels = R"===(
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officedocument/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>
+)===";
+
+const char* DefaultDocPropsApp = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+<Template>
+</Template>
+<TotalTime>0</TotalTime>
+<Application>KigsFramework</Application>
+</Properties>
+)===";
+
+const char* DefaultDocPropsCore = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<dcterms:created xsi:type="dcterms:W3CDTF">2021-03-12T12:11:44Z</dcterms:created>
+<dc:creator>
+</dc:creator>
+<dc:description></dc:description>
+<dc:language>fr-FR</dc:language>
+<cp:lastModifiedBy></cp:lastModifiedBy>
+<cp:revision>0</cp:revision>
+<dc:subject></dc:subject>
+<dc:title></dc:title>
+</cp:coreProperties>
+)===";
+
+
+const char* DefaultStyleXml = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="General"/></numFmts><fonts count="4"><font><sz val="10"/><name val="Arial"/><family val="2"/></font><font><sz val="10"/><name val="Arial"/><family val="0"/></font><font><sz val="10"/><name val="Arial"/><family val="0"/></font><font><sz val="10"/><name val="Arial"/><family val="0"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border diagonalUp="false" diagonalDown="false"><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="20"><xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="true" applyAlignment="true" applyProtection="true"><alignment horizontal="general" vertical="bottom" textRotation="0" wrapText="false" indent="0" shrinkToFit="false"/><protection locked="true" hidden="false"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="43" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="41" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="44" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="42" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf><xf numFmtId="9" fontId="1" fillId="0" borderId="0" applyFont="true" applyBorder="false" applyAlignment="false" applyProtection="false"></xf></cellStyleXfs><cellXfs count="1"><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="false" applyBorder="false" applyAlignment="false" applyProtection="false"><alignment horizontal="general" vertical="bottom" textRotation="0" wrapText="false" indent="0" shrinkToFit="false"/><protection locked="true" hidden="false"/></xf></cellXfs><cellStyles count="6"><cellStyle name="Normal" xfId="0" builtinId="0"/><cellStyle name="Comma" xfId="15" builtinId="3"/><cellStyle name="Comma [0]" xfId="16" builtinId="6"/><cellStyle name="Currency" xfId="17" builtinId="4"/><cellStyle name="Currency [0]" xfId="18" builtinId="7"/><cellStyle name="Percent" xfId="19" builtinId="5"/></cellStyles></styleSheet>
+)===";
+
+const char* DefaultWorkbookXml = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<fileVersion appName="Calc"/>
+<workbookPr backupFile="false" showObjects="all" dateCompatibility="false"/>
+<workbookProtection/>
+<bookViews>
+<workbookView showHorizontalScroll="true" showVerticalScroll="true" showSheetTabs="true" xWindow="0" yWindow="0" windowWidth="16384" windowHeight="8192" tabRatio="500" firstSheet="0" activeTab="0"/>
+</bookViews>
+<sheets>
+</sheets>
+<calcPr iterateCount="100" refMode="A1" iterate="false" iterateDelta="0.001"/>
+<extLst>
+<ext xmlns:loext="http://schemas.libreoffice.org/" uri="{7626C862-2A13-11E5-B345-FEFF819CDC9F}">
+<loext:extCalcPr stringRefSyntax="CalcA1"/>
+</ext>
+</extLst>
+</workbook>
+)===";
+
+const char* DefaultWorkbookRelsXml = R"===(
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>
+)===";
+
+const char* DefaultEmptySheetXml = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+<sheetPr filterMode="false">
+<pageSetUpPr fitToPage="false"/>
+</sheetPr>
+<dimension ref="A1"/>
+<sheetViews>
+<sheetView showFormulas="false" showGridLines="true" showRowColHeaders="true" showZeros="true" rightToLeft="false" tabSelected="true" showOutlineSymbols="true" defaultGridColor="true" view="normal" topLeftCell="A1" colorId="64" zoomScale="100" zoomScaleNormal="100" zoomScalePageLayoutView="100" workbookViewId="0">
+<selection pane="topLeft" activeCell="A1" activeCellId="0" sqref="A1"/>
+</sheetView>
+</sheetViews>
+<sheetFormatPr defaultColWidth="11.53515625" defaultRowHeight="12.8" zeroHeight="false" outlineLevelRow="0" outlineLevelCol="0"></sheetFormatPr>
+<sheetData/>
+<printOptions headings="false" gridLines="false" gridLinesSet="true" horizontalCentered="false" verticalCentered="false"/>
+<pageMargins left="0.7875" right="0.7875" top="1.05277777777778" bottom="1.05277777777778" header="0.7875" footer="0.7875"/>
+<pageSetup paperSize="9" scale="100" firstPageNumber="1" fitToWidth="1" fitToHeight="1" pageOrder="downThenOver" orientation="portrait" blackAndWhite="false" draft="false" cellComments="none" useFirstPageNumber="true" horizontalDpi="300" verticalDpi="300" copies="1"/>
+<headerFooter differentFirst="false" differentOddEven="false">
+<oddHeader>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12&amp;A</oddHeader>
+<oddFooter>&amp;C&amp;&quot;Times New Roman,Regular&quot;&amp;12Page &amp;P</oddFooter>
+</headerFooter>
+</worksheet>
+)===";
+
 XLSXDocument::XLSXDocument() : XMLArchiveManager()
 {
 
@@ -10,7 +121,11 @@ XLSXDocument::XLSXDocument() : XMLArchiveManager()
 
 XLSXDocument::~XLSXDocument()
 {
-	
+	for (auto s : mSheets)
+	{
+		delete(s);
+	}
+	mSheets.clear();
 }
 
 XLSXSheet* XLSXDocument::initSheet(const std::string& file, std::string name, int id)
@@ -81,9 +196,6 @@ void	XLSXDocument::initWorkbook(const std::string& name)
 							{
 								mSheets.push_back(sheet);
 							}
-
-							
-
 						}
 					}
 				}
@@ -100,6 +212,36 @@ void	XLSXDocument::initWorkbook(const std::string& name)
 
 		}
 	}
+}
+
+void		XLSXDocument::createFolderHierarchy()
+{
+	
+	// create folder & files hierarchy
+	new XMLArchiveFile("[Content_Types].xml", DefaultContentTypeXML, &mRoot);
+
+	XMLArchiveFolder* _rels = new XMLArchiveFolder("_rels", &mRoot);
+	new XMLArchiveFile(".rels", DefaultRels, _rels);
+
+	XMLArchiveFolder* docProps = new XMLArchiveFolder("docProps", &mRoot);
+	new XMLArchiveFile("app.xml", DefaultDocPropsApp, docProps);
+	new XMLArchiveFile("core.xml", DefaultDocPropsCore, docProps);
+
+	XMLArchiveFolder* xl = new XMLArchiveFolder("xl", &mRoot);
+	new XMLArchiveFile("workbook.xml", DefaultWorkbookXml, xl);
+	new XMLArchiveFile("styles.xml", DefaultStyleXml, xl);
+
+	XMLArchiveFolder* xl_rels = new XMLArchiveFolder("_rels", xl);
+	new XMLArchiveFile("workbook.xml.rels", DefaultWorkbookRelsXml, xl_rels);
+
+	XMLArchiveFolder* xl_worksheets = new XMLArchiveFolder("worksheets", xl);
+}
+
+void	XLSXDocument::initEmpty()
+{
+	// clear current hierarchy if any
+	clear();
+	createFolderHierarchy();
 }
 
 bool	XLSXDocument::open(const std::string& filename)
@@ -200,7 +342,110 @@ std::vector<XLSXElementRef>	XLSXDocument::find(int content)
 	return result;
 }
 
+void XLSXDocument::addSheet(std::string name)
+{
+	int id = mSheets.size()+1;
+	char cid[12];
+	char crid[12];
+	itoa(id, cid, 10);
 
+	if (name == "")
+	{
+		name = "Sheet";
+		name +=cid;
+	}
+
+	// create sheet with given name
+	XLSXSheet* sheet = new XLSXSheet(name, id, &mSharedStrings);
+	
+	// then construct xml file
+	std::string xmlname = "sheet";
+	xmlname += cid;
+	xmlname += ".xml";
+
+	// add <Override PartName="/xl/worksheets/sheet#.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/> to content_type
+	XML* _xml = static_cast<XML*>( (static_cast<XMLArchiveFile*>(mRoot.getFile("[Content_Types].xml")))->getXML());
+	XMLNodeBase* _xmlroot= _xml->getRoot();
+	XMLNode* newNode = new XMLNode(XML_NODE_ELEMENT,"Override");
+	XMLAttribute* newAttr = new XMLAttribute("PartName", std::string("/xl/worksheets/")+ xmlname);
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("ContentType", DefaultContentTypeSheet);
+	newNode->addAttribute(newAttr);
+	_xmlroot->addChild(newNode);
+
+	//add relationship <Relationship Id = "rId2" Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target = "worksheets/sheet1.xml" / >
+	_xml = static_cast<XML*>((static_cast<XMLArchiveFile*>(mRoot.getFile("xl/_rels/workbook.xml.rels")))->getXML());
+	_xmlroot = _xml->getRoot();
+	int rid=_xmlroot->getChildCount()+1;
+	itoa(rid, crid, 10);
+	newNode = new XMLNode(XML_NODE_ELEMENT, "Relationship");
+	newAttr = new XMLAttribute("Id", std::string("rId")+crid);
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet");
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("Target", std::string("worksheets/") + xmlname);
+	newNode->addAttribute(newAttr);
+	_xmlroot->addChild(newNode);
+
+	// add sheet to workbook <sheet name = "Sheet1" sheetId = "1" state = "visible" r:id = "rId2" / >
+	_xml = static_cast<XML*>((static_cast<XMLArchiveFile*>(mRoot.getFile("xl/workbook.xml")))->getXML());
+	_xmlroot = _xml->getRoot();
+	_xmlroot = _xmlroot->getChildElement("sheets");
+	newNode = new XMLNode(XML_NODE_ELEMENT, "sheet");
+	newAttr = new XMLAttribute("name", name);
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("sheetId", cid);
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("state", "visible");
+	newNode->addAttribute(newAttr);
+	newAttr = new XMLAttribute("r:id", std::string("rId") + crid);
+	newNode->addAttribute(newAttr);
+	_xmlroot->addChild(newNode);
+
+	XMLArchiveFolder* xl_worksheets = static_cast<XMLArchiveFolder*>(mRoot.getFile("xl/worksheets"));
+	XMLArchiveFile* sheetfile=new XMLArchiveFile(xmlname.c_str(), DefaultEmptySheetXml, xl_worksheets);
+	sheetfile->interpretAsXML();
+	sheet->initFromXML(sheetfile->getXML());
+
+	mSheets.push_back(sheet);
+}
+
+
+CoreRawBuffer* XLSXDocument::save()
+{
+	if (!mSheets.size()) // need at least one sheet
+	{
+		addSheet("sheet1");
+	}
+	
+	// update sharedstrings
+	mSharedStrings.reset();
+
+	for (size_t i = 0; i < mSheets.size(); i++)
+	{
+		auto s = (*this)[i];
+		XLSXSheet* sheet = s;
+
+		XMLBase* sheetXML = sheet->mBaseXML;
+
+		for (auto& r : s)
+		{
+			for (auto& c : s)
+			{
+				std::string txt = c;
+				if (txt.length())
+				{
+					// TODO
+					//u32 strIndex=
+				}
+			}
+		}
+	}
+
+	// then call XMLArchiveManager save
+
+	return XMLArchiveManager::save();
+}
 
 // content type
 
@@ -269,13 +514,6 @@ std::string XLSXContentType::getContentType(const std::string name)
 	return "";
 }
 
-
-XMLBase* XLSXContentType::createXML()
-{
-	// TODO 
-	return nullptr;
-}
-
 // relations
 
 void XLSXRelationships::initFromXML(XMLBase* xml)
@@ -302,25 +540,56 @@ void XLSXRelationships::initFromXML(XMLBase* xml)
 	}
 }
 
+
+
 void  XLSXSharedStrings::initFromXML(XMLBase* xml)
 {
 	mSharedStrings.clear();
+	mStringIndex.clear();
 
 	XMLNodeBase* root = xml->getRoot();
+	auto c=root->getAttribute("uniqueCount");
+	mSharedStrings.resize(c->getInt());
 
 	for (u32 i = 0; i < root->getChildCount(); i++)
 	{
 		XMLNodeBase* si = root->getChildElement(i);
+
 		XMLNodeBase* t = si->getChildElement(0);
 		if (t->getChildCount())
 		{
 			XMLNodeBase* txt = t->getChildElement(0);
-			mSharedStrings.push_back(txt->getString());
+			mSharedStrings[i]=txt->getString();
+			mStringIndex[txt->getString()] = i;
 		}
 		else
 		{
-			mSharedStrings.push_back("");
+			mSharedStrings[i]="";
+			mStringIndex[""] = i;
 		}
 	}
 }
 
+void XLSXSharedStrings::updateXML(XMLBase* toUpdate)
+{
+	XMLNodeBase* root = toUpdate->getRoot();
+	XMLAttribute* c = static_cast<XMLAttribute*>(root->getAttribute("uniqueCount"));
+	c->setInt(mSharedStrings.size());
+
+	c = static_cast<XMLAttribute*>(root->getAttribute("count"));
+	c->setInt(mCountAccess);
+	
+	root->clearAllChildren();
+
+	for (auto s : mSharedStrings)
+	{
+		XMLNode* si = new XMLNode(XML_NODE_ELEMENT,"si");
+		root->addChild(si);
+		XMLNode* t = new XMLNode(XML_NODE_ELEMENT, "t");
+		si->addChild(t);
+		XMLNode* txt = new XMLNode(XML_NODE_TEXT, "");
+		txt->setString(s);
+		t->addChild(txt);
+	}
+
+}

@@ -13,7 +13,7 @@ protected:
 	s32								mSheedID=0;
 	std::vector<XLSXRow>			mRows;
 	XLSXSharedStrings*				mSharedStrings=nullptr;
-
+	XMLBase*						mBaseXML = nullptr;
 	friend class XLSXDocument;
 
 	XLSXSheet() {};
@@ -29,7 +29,7 @@ public:
 	}
 
 	void initFromXML(XMLBase* xml);
-	XMLBase* createXML();
+	void updateXML(XMLBase* xml);
 
 	v2i	getDimension()
 	{
@@ -92,6 +92,8 @@ public:
 		XLSXElementRef result(name, this);
 		return result;
 	}
+
+	void	setRange(const std::string& range);
 
 	static	std::string	getCellName(u32 col, u32 row);
 	static	s32	getColIndex(const std::string& colname);
