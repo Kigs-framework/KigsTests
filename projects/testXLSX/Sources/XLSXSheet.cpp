@@ -75,48 +75,142 @@ void XLSXSheet::updateXML(XMLBase* xml)
 			std::string dimstr = "A1:" + getCellName(mRows[0].size() - 1, mRows.size() - 1);
 			ref->setString(dimstr);
 		}
-		XMLNodeBase* sheetData = worksheet->getChildElement("sheetData");
-		if (sheetData)
+
 		{
-			/*for (u32 i = 0; i < sheetData->getChildCount(); i++)
+			// first update cols
+			XMLNodeBase* cols = worksheet->getChildElement("cols");
+			if (!cols) // cols node doesn't exist ? create one
 			{
-				XMLNodeBase* e = sheetData->getChildElement(i);
-				if (e->getName() == "row")
+				cols = new XMLNode(XML_NODE_ELEMENT, "cols");
+				worksheet->addChild(cols);
+			}
+			std::vector<XMLNodeBase*>	ColsArray;
+			size_t colscount = cols->getChildCount();
+			for (size_t cindex = 0; cindex < mRows[0].size(); cindex++)
+			{
+				if (cindex < colscount)
 				{
-					for (u32 ci = 0; ci < e->getChildCount(); ci++)
+					XMLNodeBase* col = cols->getChildElement(cindex);
+					ColsArray.push_back(col->Copy()); // copy
+				}
+				else
+				{
+					XMLNode* col = new XMLNode(XML_NODE_ELEMENT, "col");
+					col->addAttribute(new XMLAttribute("min", (int)cindex+1));
+					col->addAttribute(new XMLAttribute("max", (int)cindex+1));
+					ColsArray.push_back(col);
+				}
+			}
+			cols->clearAllChildren();
+			for (auto c : ColsArray)
+			{
+				cols->addChild(c);
+			}
+		}
+		
+		{
+
+			// then update rows and cells
+			XMLNodeBase* sheetData = worksheet->getChildElement("sheetData");
+			if (!sheetData) // sheetData node doesn't exist ? create one
+			{
+				sheetData = new XMLNode(XML_NODE_ELEMENT, "sheetData");
+				worksheet->addChild(sheetData);
+			}
+
+			auto addcells = [&](XMLNodeBase* row, size_t rindex)
+			{
+				std::vector<XMLNodeBase*>	CellArray;
+				size_t cellcount = row->getChildCount();
+				for (size_t cindex = 0; cindex < mRows[rindex].size(); cindex++)
+				{
+					XLSXCell& currentcell=mRows[rindex][cindex];
+
+					XMLNodeBase* cell = nullptr;
+
+					if (cindex < cellcount)
 					{
-						XMLNodeBase* ce = e->getChildElement(ci);
-						if (ce && ce->getChildCount())
+						cell = row->getChildElementWithAttribute("c","r", XLSXSheet::getCellName(cindex, rindex));
+						if (cell)
 						{
-							XMLNodeBase* val = ce->getChildElement(0);
-							if (val->getChildCount())
-							{
-								val = val->getChildElement(0);
-							}
-							auto cellname = ce->getAttribute("r");
-							if (cellname)
-							{
-								std::string strcellname = cellname->getString();
+							cell = cell->Copy();
+						}
 
-								auto cell = (*this)[strcellname];
+						// remove child and type
+						cell->getAndRemoveAttribute("t");
+						cell->clearAllChildren();
+					}
+					if (!cell)
+					{
+						XMLNode* newcell = new XMLNode(XML_NODE_ELEMENT, "c");
+						newcell->addAttribute(new XMLAttribute("r", XLSXSheet::getCellName(cindex, rindex)));
+						newcell->addAttribute(new XMLAttribute("s", (int)0));
+						cell = newcell;
+					}
 
-								auto type = ce->getAttribute("t");
-
-								if (type && (type->getString() == "s"))
-								{
-									*cell = mSharedStrings->getString(val->getInt()); //CoreItemSP::getCoreValue(mSharedStrings->getString(val->getInt()));
-								}
-								else
-								{
-									*cell = val->getInt(); //CoreItemSP::getCoreValue();
-								}
-
-							}
+					if (currentcell.get() != nullptr)
+					{
+						std::string txtContent = (std::string)currentcell;
+						float f;
+						if(sscanf(txtContent.c_str(),"%f",&f)>0)
+						{
+							auto v = new XMLNode(XML_NODE_ELEMENT, "v");
+							cell->addChild(v);
+							v->addChild(new XMLNode(XML_NODE_TEXT, txtContent));
+						}
+						else
+						{
+							static_cast<XMLNode*>(cell)->addAttribute(new XMLAttribute("t", "s"));
+							auto v = new XMLNode(XML_NODE_ELEMENT, "v");
+							cell->addChild(v);
+							v->addChild(new XMLNode(XML_NODE_TEXT,std::to_string(mSharedStrings->getIndex(txtContent))));
 						}
 					}
+
+					CellArray.push_back(cell); 
 				}
 
-			}*/
+				row->clearAllChildren();
+
+				for (auto c : CellArray)
+				{
+					row->addChild(c);
+				}
+			};
+
+
+			std::vector<XMLNodeBase*>	RowsArray;
+			size_t rowscount = sheetData->getChildCount();
+			for (size_t rindex = 0; rindex < mRows.size(); rindex++)
+			{
+				XMLNode* row=nullptr;
+				if (rindex < rowscount)
+				{
+					row = static_cast<XMLNode * >(sheetData->getChildElementWithAttribute("row","r",std::to_string(rindex)));
+					if (row)
+					{
+						row = static_cast<XMLNode*>(row->Copy());
+					}
+				}
+				if(!row)
+				{
+					row = new XMLNode(XML_NODE_ELEMENT, "row");
+					row->addAttribute(new XMLAttribute("r", (int)rindex + 1));
+					row->addAttribute(new XMLAttribute("customFormat", "false"));
+					row->addAttribute(new XMLAttribute("hidden", "false"));
+					row->addAttribute(new XMLAttribute("ht", 12.8f));
+					row->addAttribute(new XMLAttribute("customHeight", "false"));
+					row->addAttribute(new XMLAttribute("outlineLevel",(int)0));
+					row->addAttribute(new XMLAttribute("collapsed", "false"));
+				}
+				addcells(row, rindex);
+				RowsArray.push_back(row);
+			}
+			sheetData->clearAllChildren();
+			for (auto r : RowsArray)
+			{
+				sheetData->addChild(r);
+			}
 		}
 	}
 }

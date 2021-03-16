@@ -30,12 +30,14 @@ void	testXLSX::ProtectedInit()
 
 	XLSXDocument	doc;
 	doc.initEmpty();
-	doc.addSheet("Waaarrrzaaa");
-	doc.addSheet("blop");
+	doc.addSheet("first");
 
 	auto s1 = doc[0]; // get first sheet
 	XLSXSheet* sheet = s1.sheet();
 	sheet->setRange("A1:C3");
+	*doc[0]["A1"]=12;
+	*doc[0]["B3"] = "houla";
+	*doc[0]["C2"] = "houla";
 
 	CoreRawBuffer* saved = doc.save();
 	if (saved)

@@ -116,9 +116,14 @@ public:
 		return "";
 	}
 
+	void addRelation(const std::string& id, const std::string& type, const std::string& target)
+	{
+		mRelations[id] = { type ,target };
+	}
+
 	void initFromXML(XMLBase* xml);
 
-	XMLBase* createXML();
+	void updateXML(XMLBase* xml);
 
 	friend class XLSXDocument;
 };
@@ -130,6 +135,7 @@ protected:
 	XLSXContentType								mContentType;
 	std::map<std::string, XLSXRelationships>	mRels;
 	XLSXSharedStrings							mSharedStrings;
+	XMLBase*									mSharedStringsXML=nullptr;
 
 	void		initWorkbook(const std::string& name);
 	void		initSharedStrings(const std::string& name);

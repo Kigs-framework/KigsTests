@@ -114,6 +114,12 @@ const char* DefaultEmptySheetXml = R"===(
 </worksheet>
 )===";
 
+const char* DefaultSharedString = R"===(
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0">
+</sst>
+)===";
+
 XLSXDocument::XLSXDocument() : XMLArchiveManager()
 {
 
@@ -145,6 +151,7 @@ void		XLSXDocument::initSharedStrings(const std::string& name)
 	XMLArchiveFile* xlsxfile = static_cast<XMLArchiveFile*>(mRoot.getFile(name));
 	if (xlsxfile && xlsxfile->getXML())
 	{
+		mSharedStringsXML = xlsxfile->getXML();
 		mSharedStrings.initFromXML(xlsxfile->getXML());
 	}
 }
@@ -428,20 +435,22 @@ CoreRawBuffer* XLSXDocument::save()
 
 		XMLBase* sheetXML = sheet->mBaseXML;
 
-		for (auto& r : s)
-		{
-			for (auto& c : s)
-			{
-				std::string txt = c;
-				if (txt.length())
-				{
-					// TODO
-					//u32 strIndex=
-				}
-			}
-		}
+		sheet->updateXML(sheetXML);
+
 	}
 
+	if (mSharedStrings.mSharedStrings.size())
+	{
+		if (!mSharedStringsXML)
+		{
+			XMLArchiveFolder* xl_worksheets = static_cast<XMLArchiveFolder*>(mRoot.getFile("xl/worksheets"));
+			XMLArchiveFile* sharedfile = new XMLArchiveFile("sharedStrings.xml", DefaultSharedString, xl_worksheets);
+			sharedfile->interpretAsXML();
+			mSharedStringsXML = sharedfile->getXML();
+		}
+
+		mSharedStrings.updateXML(mSharedStringsXML);
+	}
 	// then call XMLArchiveManager save
 
 	return XMLArchiveManager::save();
