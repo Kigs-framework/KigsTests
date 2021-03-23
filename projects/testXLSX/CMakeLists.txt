@@ -14,7 +14,7 @@ endif()
 
 set(testXLSX_GUID_CMAKE "B336C350-F037-4AD0-ACF7-D59375EAD0BE" CACHE INTERNAL "testXLSX GUID")
 
-target_link_libraries(testXLSX PRIVATE DataDrivenApplication miniz)
+target_link_libraries(testXLSX PRIVATE DataDrivenApplication miniz XMLArchive)
 #target_link_libraries(testXLSX PRIVATE Holographic)
 
 target_include_directories(testXLSX PRIVATE "Headers")

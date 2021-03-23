@@ -39,17 +39,16 @@ void	testXLSX::ProtectedInit()
 	*doc[0]["B3"] = "houla";
 	*doc[0]["C2"] = "houla";
 
-	CoreRawBuffer* saved = doc.save();
-	if (saved)
+	SP<CoreRawBuffer> saved = doc.save();
+	if (!saved.isNil())
 	{
 		ModuleFileManager::SaveFile("export.xlsx", (u8*)saved->buffer(), saved->size());
-		saved->Destroy();
 	}
 
 
-	/*
+	
 	// XLSX doc
-	XLSXDocument	doc;
+	/*XLSXDocument	doc;
 
 	// open it
 	if (doc.open("tst.xlsx"))
