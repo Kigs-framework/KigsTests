@@ -1,4 +1,5 @@
 #include "AI.h"
+#include "Arbres.h""
 
 AI::AI(Case* start, const v2i& startpos)
 {
@@ -16,51 +17,57 @@ AI::~AI()
 	mPath.clear();
 }
 
-bool	FirstFound::Update()
+bool	recursiveFirstFound::run()
 {
-	searchCase& current = mPath.back();
-
-	if (current.mCase->getType() == Case::CaseType::Exit) // already found
+	while (Arbres::isLocked())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	}
+	Arbres::lock();
+	Case* current = mPath.back().mCase;
+	if (current->getType() == Case::CaseType::Exit) // already found
 	{
 		return true;
 	}
 
-	current.mIndex++;
-	while (current.mIndex < current.mCase->getNeighbors().size())
-	{
-		searchCase	toAdd;
-
-		v2i pos = current.mPos + Case::mTranslatePos[(int)current.mCase->getNeighbors()[current.mIndex].second];
-
-		toAdd.mCase = current.mCase->getNeighbors()[current.mIndex].first;
-		if (toAdd.mCase->isVisit()) // case already visited
+	for (auto& c : current->getNeighbors())
+	{		
+		if (c.first->isVisit()) // case already visited
 		{
-			current.mIndex++;
 			continue;
 		}
-		toAdd.mIndex = -1;
-		toAdd.mPos = pos;
+		searchCase	toAdd;
+		toAdd.mCase = c.first;
 		toAdd.mCase->setVisit(true);
-
 		mPath.push_back(toAdd);
-		return false;
+		if (run())
+		{
+			return true;
+		}
 	}
-	
-	current.mCase->setVisit(false);
+
+	current->setVisit(false);
 	mPath.pop_back();
-	
+
 	return false;
 }
 
-bool	BestFound::Update()
+
+bool	recursiveBestFound::run()
 {
+	while (Arbres::isLocked())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	}
+	Arbres::lock();
+
 	if ((mPath.size() == 0) && (mFound.size()))
 	{
 		return true;
 	}
-	searchCase& current = mPath.back();
 
-	if (current.mCase->getType() == Case::CaseType::Exit) // found
+	Case* current = mPath.back().mCase;
+	if (current->getType() == Case::CaseType::Exit) // already found
 	{
 		if ((mPath.size() <= mFound.size()) || (!mFound.size()))
 		{
@@ -68,30 +75,23 @@ bool	BestFound::Update()
 		}
 	}
 
-	current.mIndex++;
-	while(current.mIndex < current.mCase->getNeighbors().size())
+	for (auto& c : current->getNeighbors())
 	{
-		
-		searchCase	toAdd;
-
-		v2i pos = current.mPos + Case::mTranslatePos[(int)current.mCase->getNeighbors()[current.mIndex].second];
-
-		toAdd.mCase = current.mCase->getNeighbors()[current.mIndex].first;
-		if (toAdd.mCase->isVisit()) // case already visited
+		if (c.first->isVisit()) // case already visited
 		{
-			current.mIndex++;
 			continue;
 		}
-		toAdd.mIndex = -1;
-		toAdd.mPos = pos;
+		searchCase	toAdd;
+		toAdd.mCase = c.first;
 		toAdd.mCase->setVisit(true);
-
 		mPath.push_back(toAdd);
-		return false;
+		if (run())
+		{
+			return true;
+		}
 	}
 
-	
-	current.mCase->setVisit(false);
+	current->setVisit(false);
 	mPath.pop_back();
 	if (mPath.size() == 0)
 	{
@@ -101,33 +101,34 @@ bool	BestFound::Update()
 		}
 		return true;
 	}
-	
 	return false;
 }
 
 
-void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> path)
+void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> path, int deep)
 {
 
 	if (current->getNeighbors().size() == 2) // go to next one
 	{
+		if (current->isVisit()) // already visited 
+		{
+			return;
+		}
 		current->setVisit(true);
 		for (auto& n : current->getNeighbors())
 		{
-			if (!n.first->isVisit())
+			if (n.first != path.back())
 			{
 				path.push_back(current);
-				return setNeighbors(startNode, n.first, path);
+				return setNeighbors(startNode, n.first, path,deep);
 			}
 		}
 		// both nodes are already done ?
 		return;
 	}
 
-	if ((current->getNeighbors().size() == 1) && (current->getType() != Case::CaseType::Exit)) // cul de sac
+	if ((current->getNeighbors().size() == 1) && (current->getType() == Case::CaseType::Slab)) 
 	{
-		std::vector<Case*> empty;
-		startNode.mLinks.push_back({ empty ,nullptr });
 		current->setVisit(true);
 		return;
 	}
@@ -143,22 +144,26 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 	}
 
 	path.push_back(current);
+	DNode& endNode = mNodes[current];
+	bool endalreadyvisited = endNode.mCase->isVisit();
 
-	startNode.mLinks.push_back({ path,&mNodes[current] });
-	mNodes[current].mLinks.push_back({ path,&startNode });
+	startNode.mLinks.push_back({ path,&endNode });
+	startNode.mCase->setVisit(true);
+	endNode.mLinks.push_back({ path,&startNode });
+	endNode.mCase->setVisit(true);
 
-	if (startNode.mLinks.size() == current->getNeighbors().size())
+	if (!endalreadyvisited)
 	{
-		current->setVisit(true);
-	}
-
-	std::vector<Case*> newpath;
-	newpath.push_back(current);
-	for (auto& n : current->getNeighbors())
-	{
-		if (!n.first->isVisit())
+		if (deep == 5)
 		{
-			setNeighbors(mNodes[current], n.first, newpath);
+			printf("");
+		}
+		endNode.mCase->setText(std::to_string(deep));
+		std::vector<Case*> newpath;
+		newpath.push_back(current);
+		for (auto& n : current->getNeighbors())
+		{
+			setNeighbors(endNode, n.first, newpath,deep+1);
 		}
 	}
 }
@@ -177,7 +182,7 @@ Dijkstra::Dijkstra(Case* start, const v2i& startpos) : AI(start, startpos)
 	newpath.push_back(start);
 	for (auto& n : start->getNeighbors())
 	{
-		setNeighbors(mNodes[start], n.first, newpath);
+		setNeighbors(mNodes[start], n.first, newpath,1);
 	}
 
 	for (auto& n : mNodes)
@@ -186,9 +191,9 @@ Dijkstra::Dijkstra(Case* start, const v2i& startpos) : AI(start, startpos)
 	}
 }
 
-bool	Dijkstra::Update()
+bool	Dijkstra::run()
 {
-
+	/*
 	searchCase& current = mPath.back();
 
 	if (current.mCase->getType() == Case::CaseType::Exit) // found
@@ -236,6 +241,6 @@ bool	Dijkstra::Update()
 
 		mPath.push_back(toAdd);
 	}
-
+	*/
 	return false;
 }

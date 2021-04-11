@@ -14,7 +14,7 @@ endif()
 
 set(Arbres_GUID_CMAKE "48BF5AC1-4045-4933-AD74-C67264CAE4D3" CACHE INTERNAL "Arbres GUID")
 
-target_link_libraries(Arbres PRIVATE DataDrivenApplication)
+target_link_libraries(Arbres PRIVATE DataDrivenApplication  Thread)
 #target_link_libraries(Arbres PRIVATE Holographic)
 
 target_include_directories(Arbres PRIVATE "Headers")

@@ -11,6 +11,21 @@ public:
 	DECLARE_CLASS_INFO(Arbres, DataDrivenBaseApplication, Core);
 	DECLARE_CONSTRUCTOR(Arbres);
 
+	static bool	isLocked()
+	{
+		return mIsLocked;
+	}
+
+	static void	unlock()
+	{
+		mIsLocked=false;
+	}
+
+	static void lock()
+	{
+		mIsLocked = true;
+	}
+
 protected:
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;
@@ -39,9 +54,12 @@ protected:
 	bool					mPathFound = false;
 	bool					mIsPlaying = false;
 
+	void	launchAI();
 	void	step();
 	void	play();
-	WRAP_METHODS(step,play);
+	WRAP_METHODS(step,play,launchAI);
 
+	CMSP	mThread;
+	static bool	mIsLocked;
 
 };

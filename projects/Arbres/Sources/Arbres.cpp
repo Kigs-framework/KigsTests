@@ -3,7 +3,10 @@
 #include "JSonFileParser.h"
 #include "UI/UIItem.h"
 #include "AI.h"
+#include "ModuleThread.h"
+#include "Thread.h"
 
+bool	Arbres::mIsLocked=true;
 
 IMPLEMENT_CLASS_INFO(Arbres);
 
@@ -24,7 +27,7 @@ void	Arbres::ProtectedInit()
 	SP<FilePathManager>& pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
 
-	
+	CoreCreateModule(ModuleThread, nullptr);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
@@ -52,15 +55,20 @@ void	Arbres::ProtectedInitSequence(const kstl::string& sequence)
 		mMainInterface = GetFirstInstanceByName("UIItem", "Interface");
 		clearLabyrinthe(); // just in case
 		initLabyrinthe();
-		mAI = new Dijkstra(&mLabyrinthe[mStartPos.y][mStartPos.x], mStartPos);
+		mAI = new recursiveBestFound(&mLabyrinthe[mStartPos.y][mStartPos.x], mStartPos);
 		clearVisited();
-		
+
+		SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
+		mThread = aithread;
+		aithread->setMethod(this, "launchAI");
+		aithread->Init();
 	}
 }
 void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
+		Downgrade("TickerUpgrador");
 		clearLabyrinthe();
 		mMainInterface = nullptr;
 	}
@@ -93,7 +101,7 @@ void	Arbres::initLabyrinthe()
 
 				// add text if needed
 
-				if (mLabyrinthe[i][j].getType() == Case::CaseType::Slab)
+				if (mLabyrinthe[i][j].getType() != Case::CaseType::Wall)
 				{
 					SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
 					uitext->setValue("SizeX", -1.0f);
@@ -214,7 +222,7 @@ void	Arbres::clearLabyrinthe()
 
 void	Arbres::step()
 {
-	mPathFound=mAI->Update();
+	unlock();
 }
 
 void	Arbres::play()
@@ -236,4 +244,10 @@ void	Arbres::play()
 		setValue("TickerFunction", "step");
 	}
 	mIsPlaying = !mIsPlaying;
+}
+
+void	Arbres::launchAI()
+{
+	mPathFound=mAI->run();
+	mThread = nullptr;
 }

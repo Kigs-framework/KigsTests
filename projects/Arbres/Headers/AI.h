@@ -8,7 +8,7 @@ public:
 	AI(Case* start,const v2i& startpos );
 	virtual ~AI();
 
-	virtual bool	Update()=0;
+	virtual bool	run()=0;
 
 protected:
 
@@ -23,21 +23,22 @@ protected:
 
 };
 
-class FirstFound : public AI
+class recursiveFirstFound : public AI
 {
 public:
-	FirstFound(Case* start, const v2i& startpos) : AI(start,startpos){}
-	bool	Update() override;
+	recursiveFirstFound(Case* start, const v2i& startpos) : AI(start, startpos) {}
+	bool	run() override;
 };
 
-class BestFound : public AI
+class recursiveBestFound : public AI
 {
 protected:
 	std::vector<searchCase>	mFound;
 public:
-	BestFound(Case* start, const v2i& startpos) : AI(start, startpos) {}
-	bool	Update() override;
+	recursiveBestFound(Case* start, const v2i& startpos) : AI(start, startpos) {}
+	bool	run() override;
 };
+
 
 class Dijkstra : public AI
 {
@@ -51,11 +52,11 @@ class Dijkstra : public AI
 
 	std::map<Case*,DNode>					mNodes;
 
-	void setNeighbors(DNode& startNode, Case* current, std::vector<Case*> path);
+	void setNeighbors(DNode& startNode, Case* current, std::vector<Case*> path,int deep);
 
 public:
 
 	Dijkstra(Case* start, const v2i& startpos);
-	bool	Update() override;
+	bool	run() override;
 
 };
