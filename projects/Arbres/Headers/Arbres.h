@@ -47,7 +47,7 @@ protected:
 	v2i		mExitPos;
 	Case**	mLabyrinthe=nullptr;
 
-	std::vector<UIItem*>	mGraphicCases;
+	std::vector<SP<UIItem>>	mGraphicCases;
 	CMSP					mMainInterface;
 
 	AI*						mAI = nullptr;
@@ -57,9 +57,19 @@ protected:
 	void	launchAI();
 	void	step();
 	void	play();
-	WRAP_METHODS(step,play,launchAI);
+	void	firstfound();
+	void	bestfound();
+	void	dijkstra();
+
+	void	showHideControls(bool show);
+	void	showHideAI(bool show);
+
+	template<typename ai>
+	void	setupAI();
+
+	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra);
 
 	CMSP	mThread;
-	static bool	mIsLocked;
+	static volatile bool	mIsLocked;
 
 };

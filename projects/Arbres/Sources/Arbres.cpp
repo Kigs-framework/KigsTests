@@ -6,7 +6,7 @@
 #include "ModuleThread.h"
 #include "Thread.h"
 
-bool	Arbres::mIsLocked=true;
+volatile bool	Arbres::mIsLocked=true;
 
 IMPLEMENT_CLASS_INFO(Arbres);
 
@@ -36,11 +36,8 @@ void	Arbres::ProtectedInit()
 void	Arbres::ProtectedUpdate()
 {
 	DataDrivenBaseApplication::ProtectedUpdate();
-
-	if (mAI)
-	{
-		drawLabyrinthe();
-	}
+	drawLabyrinthe();
+	
 }
 
 void	Arbres::ProtectedClose()
@@ -53,15 +50,8 @@ void	Arbres::ProtectedInitSequence(const kstl::string& sequence)
 	if (sequence == "sequencemain")
 	{
 		mMainInterface = GetFirstInstanceByName("UIItem", "Interface");
-		clearLabyrinthe(); // just in case
-		initLabyrinthe();
-		mAI = new recursiveBestFound(&mLabyrinthe[mStartPos.y][mStartPos.x], mStartPos);
-		clearVisited();
 
-		SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
-		mThread = aithread;
-		aithread->setMethod(this, "launchAI");
-		aithread->Init();
+		showHideControls(false);
 	}
 }
 void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
@@ -118,7 +108,7 @@ void	Arbres::initLabyrinthe()
 
 				mMainInterface->addItem(uicase);
 				uicase->Init();
-				mGraphicCases.push_back(uicase.get());
+				mGraphicCases.push_back(uicase);
 				caseIndex++;
 			}
 		}
@@ -217,6 +207,11 @@ void	Arbres::clearLabyrinthe()
 	mLabyrinthe = nullptr;
 	mLabyrintheSize.Set(0.0, 0.0);
 
+	for (auto g : mGraphicCases)
+	{
+		mMainInterface->removeItem(g);
+	}
+
 	mGraphicCases.clear();
 }
 
@@ -230,14 +225,14 @@ void	Arbres::play()
 	if (mIsPlaying)
 	{
 		mMainInterface["step"]("IsHidden") = false;
-		mMainInterface["step"]("IsTouchable") = false;
+		mMainInterface["step"]("IsTouchable") = true;
 		mMainInterface["play"]("Text") = "Play";
 		Downgrade("TickerUpgrador");
 	}
 	else
 	{
 		mMainInterface["step"]("IsHidden") = true;
-		mMainInterface["step"]("IsTouchable") = true;
+		mMainInterface["step"]("IsTouchable") = false;
 		mMainInterface["play"]("Text") = "Pause";
 		Upgrade("TickerUpgrador");
 		setValue("TickerFrequency", 4.0f);
@@ -250,4 +245,60 @@ void	Arbres::launchAI()
 {
 	mPathFound=mAI->run();
 	mThread = nullptr;
+	delete mAI;
+	mAI = nullptr;
+	mIsPlaying = true;
+	play();
+	showHideControls(false);
+	showHideAI(true);
+}
+
+template<typename ai>
+void	Arbres::setupAI()
+{
+	showHideControls(true);
+	showHideAI(false);
+	clearLabyrinthe(); // just in case
+	initLabyrinthe();
+	mPathFound = false;
+	mAI = new ai(&mLabyrinthe[mStartPos.y][mStartPos.x]);
+
+	clearVisited();
+
+	SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
+	mThread = aithread;
+	aithread->setMethod(this, "launchAI");
+	aithread->Init();
+}
+
+void	Arbres::firstfound()
+{
+	setupAI<FirstFound>();
+}
+void	Arbres::bestfound()
+{
+	setupAI<BestFound>();
+}
+
+void	Arbres::dijkstra()
+{
+	setupAI< Dijkstra>();
+}
+
+void	Arbres::showHideControls(bool show)
+{
+	mMainInterface["step"]("IsHidden") = !show;
+	mMainInterface["step"]("IsTouchable") = show;
+	mMainInterface["play"]("IsHidden") = !show;
+	mMainInterface["play"]("IsTouchable") = show;
+}
+
+void	Arbres::showHideAI(bool show)
+{
+	mMainInterface["FirstFound"]("IsHidden") = !show;
+	mMainInterface["FirstFound"]("IsTouchable") = show;
+	mMainInterface["BestFound"]("IsHidden") = !show;
+	mMainInterface["BestFound"]("IsTouchable") = show;
+	mMainInterface["Dijkstra"]("IsHidden") = !show;
+	mMainInterface["Dijkstra"]("IsTouchable") = show;
 }

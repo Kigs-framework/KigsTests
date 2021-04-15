@@ -89,6 +89,81 @@
 					<Connect Si="ClickUp" E="this" Sl="play" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
+			<Inst N="FirstFound" T="UIText">
+				<Attr N="Priority" V="11"/>
+				<Attr N="Text" V="FirstFound"/>
+				<Attr N="Anchor" V="{0.500000,0.500000}"/>
+				<Attr N="Dock" V="{0.150,0.05}"/>
+				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
+				<Attr N="SizeX" V="-1.0"/>
+				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Font" V="Calibri.ttf"/>
+				<Attr N="FontSize" V="24"/>
+				<Attr N="MaxWidth" V="128"/>
+				<Inst N="ffound_btn" T="UIButtonImage">
+					<Attr N="Priority" V="10"/>
+					<Attr N="UpTexture" V="Up.png"/>	
+					<Attr N="DownTexture" V="Down.png"/>
+					<Attr N="Sliced" V="{5.0,5.0}"/>
+					<Attr N="SizeModeX" V="Add"/>
+					<Attr N="SizeModeY" V="Add"/>
+					<Attr N="Anchor" V="{0.5,0.5}"/>
+					<Attr N="Dock" V="{0.5,0.5}"/>
+					<Attr N="SizeX" V="16"/>
+					<Attr N="SizeY" V="16"/>	
+					<Connect Si="ClickUp" E="this" Sl="firstfound" R="/CoreBaseApplication:Arbres"/>
+				</Inst>
+			</Inst>
+			<Inst N="BestFound" T="UIText">
+				<Attr N="Priority" V="11"/>
+				<Attr N="Text" V="BestFound"/>
+				<Attr N="Anchor" V="{0.500000,0.500000}"/>
+				<Attr N="Dock" V="{0.300,0.05}"/>
+				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
+				<Attr N="SizeX" V="-1.0"/>
+				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Font" V="Calibri.ttf"/>
+				<Attr N="FontSize" V="24"/>
+				<Attr N="MaxWidth" V="128"/>
+				<Inst N="bfound_btn" T="UIButtonImage">
+					<Attr N="Priority" V="10"/>
+					<Attr N="UpTexture" V="Up.png"/>	
+					<Attr N="DownTexture" V="Down.png"/>
+					<Attr N="Sliced" V="{5.0,5.0}"/>
+					<Attr N="SizeModeX" V="Add"/>
+					<Attr N="SizeModeY" V="Add"/>
+					<Attr N="Anchor" V="{0.5,0.5}"/>
+					<Attr N="Dock" V="{0.5,0.5}"/>
+					<Attr N="SizeX" V="16"/>
+					<Attr N="SizeY" V="16"/>	
+					<Connect Si="ClickUp" E="this" Sl="bestfound" R="/CoreBaseApplication:Arbres"/>
+				</Inst>
+			</Inst>
+			<Inst N="Dijkstra" T="UIText">
+				<Attr N="Priority" V="11"/>
+				<Attr N="Text" V="Dijkstra"/>
+				<Attr N="Anchor" V="{0.500000,0.500000}"/>
+				<Attr N="Dock" V="{0.450,0.05}"/>
+				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
+				<Attr N="SizeX" V="-1.0"/>
+				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Font" V="Calibri.ttf"/>
+				<Attr N="FontSize" V="24"/>
+				<Attr N="MaxWidth" V="128"/>
+				<Inst N="dfound_btn" T="UIButtonImage">
+					<Attr N="Priority" V="10"/>
+					<Attr N="UpTexture" V="Up.png"/>	
+					<Attr N="DownTexture" V="Down.png"/>
+					<Attr N="Sliced" V="{5.0,5.0}"/>
+					<Attr N="SizeModeX" V="Add"/>
+					<Attr N="SizeModeY" V="Add"/>
+					<Attr N="Anchor" V="{0.5,0.5}"/>
+					<Attr N="Dock" V="{0.5,0.5}"/>
+					<Attr N="SizeX" V="16"/>
+					<Attr N="SizeY" V="16"/>	
+					<Connect Si="ClickUp" E="this" Sl="dijkstra" R="/CoreBaseApplication:Arbres"/>
+				</Inst>
+			</Inst>
 		</Inst>
 	</Inst>
 </Inst>

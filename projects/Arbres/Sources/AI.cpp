@@ -1,15 +1,11 @@
 #include "AI.h"
 #include "Arbres.h""
 
-AI::AI(Case* start, const v2i& startpos)
+AI::AI(Case* start)
 {
+	// just add start Case to the path
 	mPath.clear();
-	searchCase	toAdd;
-	toAdd.mCase = start;
-	toAdd.mIndex = -1;
-	toAdd.mPos = startpos;
-
-	mPath.push_back(toAdd);
+	mPath.push_back(start);
 }
 
 AI::~AI()
@@ -17,97 +13,106 @@ AI::~AI()
 	mPath.clear();
 }
 
-bool	recursiveFirstFound::run()
+bool	FirstFound::run()
 {
+	// mecanism to wait for next step from application
 	while (Arbres::isLocked())
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(33));
 	}
 	Arbres::lock();
-	Case* current = mPath.back().mCase;
-	if (current->getType() == Case::CaseType::Exit) // already found
+
+	// check if current Case is Exit
+	Case* current = mPath.back();
+	if (current->getType() == Case::CaseType::Exit) 
 	{
-		return true;
+		return true; // OK we have a good path
 	}
 
+	// visit all neighbors
 	for (auto& c : current->getNeighbors())
 	{		
 		if (c.first->isVisit()) // case already visited
 		{
 			continue;
 		}
-		searchCase	toAdd;
-		toAdd.mCase = c.first;
-		toAdd.mCase->setVisit(true);
-		mPath.push_back(toAdd);
-		if (run())
+
+		// set this neighbor as visited and add it to path
+		c.first->setVisit(true);
+		mPath.push_back(c.first);
+		// then recurse
+		if (run()) // return only if exit was found
 		{
-			return true;
+			return true; 
 		}
 	}
 
+	// all neigbors were recursively visited but none was the exit so pop this case (go back)
 	current->setVisit(false);
 	mPath.pop_back();
-
 	return false;
 }
 
 
-bool	recursiveBestFound::run()
+bool	BestFound::run()
 {
+	// mecanism to wait for next step from application
 	while (Arbres::isLocked())
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(33));
 	}
 	Arbres::lock();
 
-	if ((mPath.size() == 0) && (mFound.size()))
+	// test if current case is Exit
+	Case* current = mPath.back();
+	if (current->getType() == Case::CaseType::Exit) // exit found
 	{
-		return true;
-	}
-
-	Case* current = mPath.back().mCase;
-	if (current->getType() == Case::CaseType::Exit) // already found
-	{
+		// check if this is the best (or first) found path
 		if ((mPath.size() <= mFound.size()) || (!mFound.size()))
 		{
 			mFound = mPath;
 		}
 	}
 
+	// visit all neighbors
 	for (auto& c : current->getNeighbors())
 	{
 		if (c.first->isVisit()) // case already visited
 		{
 			continue;
 		}
-		searchCase	toAdd;
-		toAdd.mCase = c.first;
-		toAdd.mCase->setVisit(true);
-		mPath.push_back(toAdd);
+
+		// set this case as visited and push it on path
+		c.first->setVisit(true);
+		mPath.push_back(c.first);
+
+		// recurse
 		if (run())
 		{
-			return true;
+			return true; // if all pathes were tested and best was found, return here
 		}
 	}
 
+	// all neighbors were recursively visited, go back
 	current->setVisit(false);
 	mPath.pop_back();
+
+	// check if all pathes were visited
 	if (mPath.size() == 0)
 	{
+		// mark best found as visited for main application 
 		for (auto& c : mFound)
 		{
-			c.mCase->setVisit(true);
+			c->setVisit(true);
 		}
 		return true;
 	}
 	return false;
 }
 
-
-void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> path, int deep)
+// mark crossroads and construct links between crossroads
+void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> path)
 {
-
 	if (current->getNeighbors().size() == 2) // go to next one
 	{
 		if (current->isVisit()) // already visited 
@@ -120,7 +125,7 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 			if (n.first != path.back())
 			{
 				path.push_back(current);
-				return setNeighbors(startNode, n.first, path,deep);
+				return setNeighbors(startNode, n.first, path);
 			}
 		}
 		// both nodes are already done ?
@@ -154,21 +159,16 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 
 	if (!endalreadyvisited)
 	{
-		if (deep == 5)
-		{
-			printf("");
-		}
-		endNode.mCase->setText(std::to_string(deep));
 		std::vector<Case*> newpath;
 		newpath.push_back(current);
 		for (auto& n : current->getNeighbors())
 		{
-			setNeighbors(endNode, n.first, newpath,deep+1);
+			setNeighbors(endNode, n.first, newpath);
 		}
 	}
 }
 
-Dijkstra::Dijkstra(Case* start, const v2i& startpos) : AI(start, startpos)
+Dijkstra::Dijkstra(Case* start) : AI(start)
 {
 	// init by filling the whole tree
 	start->setVisit(true);
@@ -182,7 +182,7 @@ Dijkstra::Dijkstra(Case* start, const v2i& startpos) : AI(start, startpos)
 	newpath.push_back(start);
 	for (auto& n : start->getNeighbors())
 	{
-		setNeighbors(mNodes[start], n.first, newpath,1);
+		setNeighbors(mNodes[start], n.first, newpath);
 	}
 
 	for (auto& n : mNodes)
@@ -191,26 +191,68 @@ Dijkstra::Dijkstra(Case* start, const v2i& startpos) : AI(start, startpos)
 	}
 }
 
+void Dijkstra::forwardPath(Case* currentcase)
+{
+	// clear path
+	for (auto c : mPath)
+	{
+		c->setVisit(false);
+	}
+	// then follow the path back from the exit to the start going to the smaller link
+
+	while (currentcase->getType() != Case::CaseType::Start)
+	{
+		DNode& currentN = mNodes[currentcase];
+		int bestw = 0;
+		std::pair<std::vector<Case*>, DNode*> bestnode;
+
+		for (const auto& l : currentN.mLinks)
+		{
+			if ((l.second->mW < bestw) || (bestw ==0))
+			{
+				bestw = l.second->mW;
+				bestnode = l;
+			}
+		}
+
+		for (auto c : bestnode.first)
+		{
+			c->setVisit(true);
+		}
+
+		currentcase = bestnode.second->mCase;
+
+	}
+}
+
 bool	Dijkstra::run()
 {
-	/*
-	searchCase& current = mPath.back();
-
-	if (current.mCase->getType() == Case::CaseType::Exit) // found
+	// mecanism to wait for next step from application
+	while (Arbres::isLocked())
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	}
+	Arbres::lock();
+
+	Case* current = mPath.back();
+
+	if (current->getType() == Case::CaseType::Exit) // found
+	{
+		forwardPath(current);
 		return true;
 	}
 	
-	DNode& currentN = mNodes[current.mCase];
+	DNode& currentN = mNodes[current];
+	current->setVisit(true);
 
-	// weight n
+	// update linked nodes
 	for (auto l : currentN.mLinks)
 	{
-		if (l.second->mW < 0)
+		int neww = currentN.mW + l.first.size();
+		if ((l.second->mW < 0) || ((!l.second->mCase->isVisit())&&(l.second->mW> neww)))
 		{
-			l.second->mW = currentN.mW + l.first.size();
+			l.second->mW = neww;
 			l.second->mCase->setText(std::to_string(l.second->mW));
-			return false;
 		}
 	}
 
@@ -233,14 +275,12 @@ bool	Dijkstra::run()
 
 	if (goodOne)
 	{
-
-		searchCase	toAdd;
-		toAdd.mCase = goodOne;
-		toAdd.mIndex = -1;
-		toAdd.mCase->setVisit(true);
-
-		mPath.push_back(toAdd);
+		mPath.push_back(goodOne);
+		if (run())
+		{
+			return true;
+		}
 	}
-	*/
+	
 	return false;
 }

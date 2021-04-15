@@ -2,47 +2,44 @@
 #include "Case.h"
 #include <map>
 
+// base class for AI
 class AI
 {
 public:
-	AI(Case* start,const v2i& startpos );
+
+	// AI starts at a starting Case
+	AI(Case* start);
 	virtual ~AI();
 
+	// pure virtual run AI
 	virtual bool	run()=0;
 
 protected:
 
-	struct searchCase
-	{
-		Case*	mCase;
-		v2i		mPos;
-		int		mIndex;
-	};
-
-	std::vector<searchCase>	mPath;
-
+	// current path
+	std::vector<Case*>	mPath;
 };
 
-class recursiveFirstFound : public AI
+class FirstFound : public AI
 {
 public:
-	recursiveFirstFound(Case* start, const v2i& startpos) : AI(start, startpos) {}
+	FirstFound(Case* start) : AI(start) {}
 	bool	run() override;
 };
 
-class recursiveBestFound : public AI
+class BestFound : public AI
 {
 protected:
-	std::vector<searchCase>	mFound;
+	std::vector<Case*>	mFound;
 public:
-	recursiveBestFound(Case* start, const v2i& startpos) : AI(start, startpos) {}
+	BestFound(Case* start) : AI(start) {}
 	bool	run() override;
 };
 
 
 class Dijkstra : public AI
 {
-	
+private:
 	struct DNode
 	{
 		Case*												mCase;
@@ -52,11 +49,12 @@ class Dijkstra : public AI
 
 	std::map<Case*,DNode>					mNodes;
 
-	void setNeighbors(DNode& startNode, Case* current, std::vector<Case*> path,int deep);
+	void setNeighbors(DNode& startNode, Case* current, std::vector<Case*> path);
 
+	void forwardPath(Case* exitcase);
 public:
 
-	Dijkstra(Case* start, const v2i& startpos);
+	Dijkstra(Case* start);
 	bool	run() override;
 
 };
