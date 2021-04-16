@@ -53,8 +53,7 @@ private:
 
 	void forwardPath(Case* exitcase);
 
-	bool checkLink(const DNode& startNode, const DNode& endNode, const std::vector<Case*>& path);
-
+	void setBackLinks();
 public:
 
 	Dijkstra(Case* start);

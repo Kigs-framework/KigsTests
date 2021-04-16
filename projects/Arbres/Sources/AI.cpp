@@ -153,20 +153,16 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 
 	// so we have found an "endnode" and we have a link between startnode and endnode
 	DNode& endNode = mNodes[current];
-	bool endalreadyvisited = endNode.mCase->isVisit();
-
-	if (!checkLink(startNode, endNode, path))
+	
+	startNode.mLinks.push_back({ path,&endNode });
+	
+	if (!endNode.mCase->isVisit())
 	{
-		startNode.mLinks.push_back({ path,&endNode });
-		startNode.mCase->setVisit(true);
-		endNode.mLinks.push_back({ path,&startNode });
 		endNode.mCase->setVisit(true);
-	}
-
-	if (!endalreadyvisited)
-	{
 		std::vector<Case*> newpath;
 		newpath.push_back(current);
+
+		// recurse
 		for (auto& n : current->getNeighbors())
 		{
 			setNeighbors(endNode, n.first, newpath);
@@ -174,48 +170,17 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 	}
 }
 
-// check if a link already exists
-bool Dijkstra::checkLink (const DNode& startNode, const DNode& endNode,const std::vector<Case*>& path)
+// 
+void Dijkstra::setBackLinks()
 {
-	bool found = false;
-
-	for (auto& n : startNode.mLinks)
+	for (auto& n : mNodes)
 	{
-		if (n.second == &endNode) // a link already exist, check full path
+		for (auto& l : n.second.mLinks)
 		{
-			if (path.size() == n.first.size())
-			{
-				found = true;
-				if (path[0] == n.first[0])
-				{
-					for (size_t i=0;i<path.size();i++)
-					{
-						if (path[i] != n.first[i])
-						{
-							found = false;
-							break;
-						}
-					}
-				}
-				else if (path[0] == n.first[path.size() - 1])
-				{
-					for (size_t i = 0; i < path.size(); i++)
-					{
-						if (path[i] != n.first[path.size() - 1-i])
-						{
-							found = false;
-							break;
-						}
-					}
-				}
-				if(found)
-					return true;
-			}
+			auto& endn = mNodes[l.second->mCase];
+			endn.mLinks.push_back({ l.first,&n.second });
 		}
 	}
-
-
-	return found;
 }
 
 Dijkstra::Dijkstra(Case* start) : AI(start)
@@ -230,11 +195,12 @@ Dijkstra::Dijkstra(Case* start) : AI(start)
 	mNodes[start]=toAdd;
 	std::vector<Case*> newpath;
 	newpath.push_back(start);
+	start->setVisit(true);
 	for (auto& n : start->getNeighbors())
 	{
 		setNeighbors(mNodes[start], n.first, newpath);
 	}
-
+	setBackLinks();
 	for (auto& n : mNodes)
 	{
 		n.first->setColor({ 0.2,1.0,0.5 });
