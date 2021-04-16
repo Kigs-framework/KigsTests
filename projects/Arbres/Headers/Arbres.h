@@ -36,6 +36,8 @@ protected:
 
 	// Labyrinthe managment
 
+	void	generateLabyrinthe();
+	void	loadLabyrinthe();
 	void	initLabyrinthe();
 	void	clearLabyrinthe();
 	void	clearVisited();

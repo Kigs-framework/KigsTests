@@ -64,16 +64,153 @@ void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
 	}
 }
 
-void	Arbres::initLabyrinthe()
+void	Arbres::generateLabyrinthe()
+{
+
+	mLabyrintheSize.Set(29, 19);
+	mLabyrinthe = new Case * [mLabyrintheSize.y];
+	for (int i = 0; i < mLabyrintheSize.y; i++)
+	{
+		mLabyrinthe[i] = new Case[mLabyrintheSize.x]; 
+		for (int j = 0; j < mLabyrintheSize.x; j++)
+		{
+			// only isolated cells to begin
+			if ((i & 1) && (j & 1))
+			{
+				mLabyrinthe[i][j].setType(Case::CaseType::Slab);
+			}
+			else
+			{
+				mLabyrinthe[i][j].setType(Case::CaseType::Wall);
+			}
+		}
+	}
+
+	struct wallstruct
+	{
+		Case*	mCase;
+		v2i		mPos;
+		bool	mHorizontal;
+	};
+
+	std::vector<wallstruct>	wallList;
+	v2i startpos(1 + ((rand()*2) % (mLabyrintheSize.x - 1)), 1 + ((rand()*2) % (mLabyrintheSize.y - 1)));
+	mLabyrinthe[startpos.y][startpos.x].setVisit(true);
+	wallList.push_back({ &mLabyrinthe[startpos.y - 1][startpos.x],{startpos.x,startpos.y - 1},true });
+	mLabyrinthe[startpos.y - 1][startpos.x].setVisit(true);
+	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x + 1],{startpos.x + 1,startpos.y},false });
+	mLabyrinthe[startpos.y][startpos.x + 1].setVisit(true);
+	wallList.push_back({ &mLabyrinthe[startpos.y + 1][startpos.x],{startpos.x,startpos.y + 1},true });
+	mLabyrinthe[startpos.y + 1][startpos.x].setVisit(true);
+	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x - 1],{startpos.x - 1,startpos.y},false });
+	mLabyrinthe[startpos.y][startpos.x - 1].setVisit(true);
+
+	v2i	deltapos[2][2] = { { {0,-1} , {0,1} } , { {-1,0} , {1,0} } };
+
+	while (wallList.size())
+	{
+		int randWall = rand() % wallList.size();
+		wallstruct currentwall = wallList[randWall];
+		size_t countvisited = 0;
+		for (size_t i = 0; i < 2; i++)
+		{
+			v2i tstpos = currentwall.mPos + deltapos[currentwall.mHorizontal ? 0 : 1][i];
+
+			// check tstpos is inside labyrinthe
+			if ((tstpos.x > 0) && (tstpos.x < (mLabyrintheSize.x - 1)) && (tstpos.y > 0) && (tstpos.y < (mLabyrintheSize.y - 1)))
+			{
+				if (mLabyrinthe[tstpos.y][tstpos.x].getType() == Case::CaseType::Slab)
+				{
+					countvisited += mLabyrinthe[tstpos.y][tstpos.x].isVisit() ? 1 : 0;
+				}
+			}
+
+		}
+
+		auto addwall = [&](v2i pos) {
+			for (size_t dx = 0; dx < 2; dx++)
+			{
+				for (size_t dy = 0; dy < 2; dy++)
+				{
+					v2i wallpos = pos + deltapos[dy][dx];
+
+					// check wallpos is inside labyrinthe
+					if ((wallpos.x > 0) && (wallpos.x < (mLabyrintheSize.x - 1)) && (wallpos.y > 0) && (wallpos.y < (mLabyrintheSize.y - 1)))
+					{
+						if (mLabyrinthe[wallpos.y][wallpos.x].getType() == Case::CaseType::Wall)
+						{
+							if (!mLabyrinthe[wallpos.y][wallpos.x].isVisit())
+							{
+								wallList.push_back({ &mLabyrinthe[wallpos.y][wallpos.x],{wallpos.x,wallpos.y},dy==0 });
+								mLabyrinthe[wallpos.y][wallpos.x].setVisit(true);
+							}
+						}
+					}
+				}
+			}
+		
+		};
+
+		if (countvisited == 1)
+		{
+			currentwall.mCase->setType(Case::CaseType::Slab);
+			for (size_t i = 0; i < 2; i++)
+			{
+				v2i tstpos = currentwall.mPos + deltapos[currentwall.mHorizontal ? 0 : 1][i];
+
+				// check tstpos is inside labyrinthe
+				if ((tstpos.x > 0) && (tstpos.x < (mLabyrintheSize.x - 1)) && (tstpos.y > 0) && (tstpos.y < (mLabyrintheSize.y - 1)))
+				{
+					if (mLabyrinthe[tstpos.y][tstpos.x].getType() == Case::CaseType::Slab)
+					{
+						if (!mLabyrinthe[tstpos.y][tstpos.x].isVisit())
+						{
+							mLabyrinthe[tstpos.y][tstpos.x].setVisit(true);
+							// add walls
+							addwall(tstpos);
+						}
+					}
+				}
+			}
+		}
+
+		wallList.erase(wallList.begin() + randWall);
+	}
+
+	// set start and end pos
+	bool setpos = false;
+	while (!setpos)
+	{
+		int posy = rand() % mLabyrintheSize.y;
+		if (mLabyrinthe[posy][1].getType() == Case::CaseType::Slab)
+		{
+			mLabyrinthe[posy][0].setType(Case::CaseType::Start);
+			mStartPos.Set(0, posy);
+			setpos = true;
+		}
+	}
+	setpos = false;
+	while (!setpos)
+	{
+		int posy = rand() % mLabyrintheSize.y;
+		if (mLabyrinthe[posy][mLabyrintheSize.x-2].getType() == Case::CaseType::Slab)
+		{
+			mLabyrinthe[posy][mLabyrintheSize.x - 1].setType(Case::CaseType::Exit);
+			mExitPos.Set(mLabyrintheSize.x - 1, posy);
+			setpos = true;
+		}
+	}
+}
+void	Arbres::loadLabyrinthe()
 {
 	JSonFileParser L_JsonParser;
 	CoreItemSP initP = L_JsonParser.Get_JsonDictionary("laby.json");
 
-	mLabyrintheSize= (v2f)initP["Size"];
+	mLabyrintheSize = (v2f)initP["Size"];
 
-	if ((mLabyrintheSize.y>0) && (mLabyrintheSize.x>0))
+	if ((mLabyrintheSize.y > 0) && (mLabyrintheSize.x > 0))
 	{
-		CoreItemSP cases= initP["Cases"];
+		CoreItemSP cases = initP["Cases"];
 		size_t caseIndex = 0;
 		mLabyrinthe = new Case * [mLabyrintheSize.y];
 		for (int i = 0; i < mLabyrintheSize.y; i++)
@@ -82,37 +219,50 @@ void	Arbres::initLabyrinthe()
 			for (int j = 0; j < mLabyrintheSize.x; j++)
 			{
 				mLabyrinthe[i][j].setType((Case::CaseType)(int)cases[caseIndex]);
-
-				SP<UIItem>	uicase = KigsCore::GetInstanceOf("case", "UIPanel");
-				uicase->setValue("SizeX", tileSize);
-				uicase->setValue("SizeY", tileSize);
-				uicase->setValue("Dock", v2f(0.5+(float)(j- mLabyrintheSize.x /2)*(tileSize /1280.0f),0.5 + (float)(i- mLabyrintheSize.y/2) * (tileSize /800.0f)));
-				uicase->setValue("Priority", 20);
-
-				// add text if needed
-
-				if (mLabyrinthe[i][j].getType() != Case::CaseType::Wall)
-				{
-					SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
-					uitext->setValue("SizeX", -1.0f);
-					uitext->setValue("SizeY", -1.0f);
-					uitext->setValue("Priority", 25);
-					uitext->setValue("Text", "");
-					uitext->setValue("Color", v3f( 0.0, 0.0, 0.0 ));
-					uitext->setValue("Font", "Calibri.ttf");
-					uitext->setValue("FontSize", 24);
-					uitext->setValue("MaxWidth", 64);
-					uicase->addItem(uitext);
-					uitext->Init();
-				}
-
-				mMainInterface->addItem(uicase);
-				uicase->Init();
-				mGraphicCases.push_back(uicase);
 				caseIndex++;
 			}
 		}
 	}
+}
+void	Arbres::initLabyrinthe()
+{
+	
+	size_t caseIndex = 0;
+	for (int i = 0; i < mLabyrintheSize.y; i++)
+	{
+		for (int j = 0; j < mLabyrintheSize.x; j++)
+		{
+				
+			SP<UIItem>	uicase = KigsCore::GetInstanceOf("case", "UIPanel");
+			uicase->setValue("SizeX", tileSize);
+			uicase->setValue("SizeY", tileSize);
+			uicase->setValue("Dock", v2f(0.5+(float)(j- mLabyrintheSize.x /2)*(tileSize /1280.0f),0.5 + (float)(i- mLabyrintheSize.y/2) * (tileSize /800.0f)));
+			uicase->setValue("Priority", 20);
+
+			// add text if needed
+
+			if (mLabyrinthe[i][j].getType() != Case::CaseType::Wall)
+			{
+				SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
+				uitext->setValue("SizeX", -1.0f);
+				uitext->setValue("SizeY", -1.0f);
+				uitext->setValue("Priority", 25);
+				uitext->setValue("Text", "");
+				uitext->setValue("Color", v3f( 0.0, 0.0, 0.0 ));
+				uitext->setValue("Font", "Calibri.ttf");
+				uitext->setValue("FontSize", 24);
+				uitext->setValue("MaxWidth", 64);
+				uicase->addItem(uitext);
+				uitext->Init();
+			}
+
+			mMainInterface->addItem(uicase);
+			uicase->Init();
+			mGraphicCases.push_back(uicase);
+			caseIndex++;
+		}
+	}
+	
 
 	// init neighbors
 
@@ -259,12 +409,14 @@ void	Arbres::setupAI()
 	showHideControls(true);
 	showHideAI(false);
 	clearLabyrinthe(); // just in case
+	generateLabyrinthe();
+	//loadLabyrinthe();
 	initLabyrinthe();
+	clearVisited();
 	mPathFound = false;
 	mAI = new ai(&mLabyrinthe[mStartPos.y][mStartPos.x]);
 
 	clearVisited();
-
 	SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
 	mThread = aithread;
 	aithread->setMethod(this, "launchAI");

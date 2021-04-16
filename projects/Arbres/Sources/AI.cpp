@@ -113,7 +113,7 @@ bool	BestFound::run()
 // mark crossroads and construct links between crossroads
 void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> path)
 {
-	if (current->getNeighbors().size() == 2) // go to next one
+	if (current->getNeighbors().size() == 2) // corridor => go to next case
 	{
 		if (current->isVisit()) // already visited 
 		{
@@ -122,22 +122,23 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 		current->setVisit(true);
 		for (auto& n : current->getNeighbors())
 		{
-			if (n.first != path.back())
+			if (n.first != path.back()) // this is not the one I come from ?
 			{
 				path.push_back(current);
-				return setNeighbors(startNode, n.first, path);
+				return setNeighbors(startNode, n.first, path); // recurse
 			}
 		}
 		// both nodes are already done ?
 		return;
 	}
 
-	if ((current->getNeighbors().size() == 1) && (current->getType() == Case::CaseType::Slab)) 
+	if ((current->getNeighbors().size() == 1) && (current->getType() == Case::CaseType::Slab)) // cul de sac
 	{
 		current->setVisit(true);
 		return;
 	}
 
+	// if code reach this, then the current case is a crossroad
 	// check if node already there, else add it
 	auto f=mNodes.find(current);
 	if (f == mNodes.end())
@@ -149,13 +150,18 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 	}
 
 	path.push_back(current);
+
+	// so we have found an "endnode" and we have a link between startnode and endnode
 	DNode& endNode = mNodes[current];
 	bool endalreadyvisited = endNode.mCase->isVisit();
 
-	startNode.mLinks.push_back({ path,&endNode });
-	startNode.mCase->setVisit(true);
-	endNode.mLinks.push_back({ path,&startNode });
-	endNode.mCase->setVisit(true);
+	if (!checkLink(startNode, endNode, path))
+	{
+		startNode.mLinks.push_back({ path,&endNode });
+		startNode.mCase->setVisit(true);
+		endNode.mLinks.push_back({ path,&startNode });
+		endNode.mCase->setVisit(true);
+	}
 
 	if (!endalreadyvisited)
 	{
@@ -166,6 +172,50 @@ void Dijkstra::setNeighbors(DNode& startNode,Case* current, std::vector<Case*> p
 			setNeighbors(endNode, n.first, newpath);
 		}
 	}
+}
+
+// check if a link already exists
+bool Dijkstra::checkLink (const DNode& startNode, const DNode& endNode,const std::vector<Case*>& path)
+{
+	bool found = false;
+
+	for (auto& n : startNode.mLinks)
+	{
+		if (n.second == &endNode) // a link already exist, check full path
+		{
+			if (path.size() == n.first.size())
+			{
+				found = true;
+				if (path[0] == n.first[0])
+				{
+					for (size_t i=0;i<path.size();i++)
+					{
+						if (path[i] != n.first[i])
+						{
+							found = false;
+							break;
+						}
+					}
+				}
+				else if (path[0] == n.first[path.size() - 1])
+				{
+					for (size_t i = 0; i < path.size(); i++)
+					{
+						if (path[i] != n.first[path.size() - 1-i])
+						{
+							found = false;
+							break;
+						}
+					}
+				}
+				if(found)
+					return true;
+			}
+		}
+	}
+
+
+	return found;
 }
 
 Dijkstra::Dijkstra(Case* start) : AI(start)
@@ -203,12 +253,12 @@ void Dijkstra::forwardPath(Case* currentcase)
 	while (currentcase->getType() != Case::CaseType::Start)
 	{
 		DNode& currentN = mNodes[currentcase];
-		int bestw = 0;
+		int bestw = -1;
 		std::pair<std::vector<Case*>, DNode*> bestnode;
 
 		for (const auto& l : currentN.mLinks)
 		{
-			if ((l.second->mW < bestw) || (bestw ==0))
+			if ((l.second->mW < bestw) || (bestw == -1))
 			{
 				bestw = l.second->mW;
 				bestnode = l;

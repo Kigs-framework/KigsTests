@@ -52,6 +52,9 @@ private:
 	void setNeighbors(DNode& startNode, Case* current, std::vector<Case*> path);
 
 	void forwardPath(Case* exitcase);
+
+	bool checkLink(const DNode& startNode, const DNode& endNode, const std::vector<Case*>& path);
+
 public:
 
 	Dijkstra(Case* start);
