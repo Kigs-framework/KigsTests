@@ -67,7 +67,7 @@ void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
 void	Arbres::generateLabyrinthe()
 {
 
-	mLabyrintheSize.Set(29, 19);
+	mLabyrintheSize.Set(35, 25);
 	mLabyrinthe = new Case * [mLabyrintheSize.y];
 	for (int i = 0; i < mLabyrintheSize.y; i++)
 	{
@@ -201,6 +201,41 @@ void	Arbres::generateLabyrinthe()
 		}
 	}
 }
+
+void	Arbres::openMoreWallsLabyrinthe(u32 tryOpeningCount)
+{
+	v2i	deltapos[4] = {  {0,-1} , {1,0}  ,  {0,1} , {-1,0}  };
+	for (size_t i = 0; i < tryOpeningCount; i++)
+	{
+		v2i randpos(1 + (rand() % (mLabyrintheSize.x - 2)), 1 + (rand() % (mLabyrintheSize.y - 2)));
+
+		Case& current = mLabyrinthe[randpos.y][randpos.x];
+		if (current.getType() == Case::CaseType::Wall)
+		{
+			bool isSlab[4];
+			int slabCount = 0;
+			for (size_t p = 0; p < 4; p++)
+			{
+				v2i neighborpos = randpos + deltapos[p];
+				isSlab[p] = (mLabyrinthe[neighborpos.y][neighborpos.x].getType() == Case::CaseType::Slab);
+				if (isSlab[p])
+					slabCount++;
+			}
+
+			if (slabCount == 2)
+			{
+				bool horizontal = isSlab[0] && isSlab[2];
+				bool vertical = isSlab[1] && isSlab[3];
+
+				if (horizontal ^ vertical)
+				{
+					current.setType(Case::CaseType::Slab);
+				}
+			}
+		}
+	}
+}
+
 void	Arbres::loadLabyrinthe()
 {
 	JSonFileParser L_JsonParser;
@@ -370,6 +405,34 @@ void	Arbres::step()
 	unlock();
 }
 
+void Arbres::speedup()
+{
+	mCurrentFrequency *= 2.0f;
+	setValue("TickerFrequency", mCurrentFrequency);
+	if (mCurrentFrequency > 64.0f)
+	{
+		mMainInterface["speedUp"]("IsHidden") = true;
+		mMainInterface["speedUp"]("IsTouchable") = false;
+	}
+
+	mMainInterface["speedDown"]("IsHidden") = false;
+	mMainInterface["speedDown"]("IsTouchable") = true;
+}
+
+void Arbres::speeddown()
+{
+	mCurrentFrequency *= 0.5f;
+	setValue("TickerFrequency", mCurrentFrequency);
+	if (mCurrentFrequency < 8.0f)
+	{
+		mMainInterface["speedDown"]("IsHidden") = true;
+		mMainInterface["speedDown"]("IsTouchable") = false;
+	}
+
+	mMainInterface["speedUp"]("IsHidden") = false;
+	mMainInterface["speedUp"]("IsTouchable") = true;
+}
+
 void	Arbres::play()
 {
 	if (mIsPlaying)
@@ -377,6 +440,10 @@ void	Arbres::play()
 		mMainInterface["step"]("IsHidden") = false;
 		mMainInterface["step"]("IsTouchable") = true;
 		mMainInterface["play"]("Text") = "Play";
+		mMainInterface["speedDown"]("IsHidden") = true;
+		mMainInterface["speedDown"]("IsTouchable") = false;
+		mMainInterface["speedUp"]("IsHidden") = true;
+		mMainInterface["speedUp"]("IsTouchable") = false;
 		Downgrade("TickerUpgrador");
 	}
 	else
@@ -384,8 +451,13 @@ void	Arbres::play()
 		mMainInterface["step"]("IsHidden") = true;
 		mMainInterface["step"]("IsTouchable") = false;
 		mMainInterface["play"]("Text") = "Pause";
+		mMainInterface["speedDown"]("IsHidden") = true;
+		mMainInterface["speedDown"]("IsTouchable") = false;
+		mMainInterface["speedUp"]("IsHidden") = false;
+		mMainInterface["speedUp"]("IsTouchable") = true;
 		Upgrade("TickerUpgrador");
-		setValue("TickerFrequency", 4.0f);
+		mCurrentFrequency = 4.0f;
+		setValue("TickerFrequency", mCurrentFrequency);
 		setValue("TickerFunction", "step");
 	}
 	mIsPlaying = !mIsPlaying;
@@ -404,12 +476,13 @@ void	Arbres::launchAI()
 }
 
 template<typename ai>
-void	Arbres::setupAI()
+void	Arbres::setupAI(u32 tryOpeningCount)
 {
 	showHideControls(true);
 	showHideAI(false);
 	clearLabyrinthe(); // just in case
 	generateLabyrinthe();
+	openMoreWallsLabyrinthe(tryOpeningCount);
 	//loadLabyrinthe();
 	initLabyrinthe();
 	clearVisited();
@@ -425,16 +498,21 @@ void	Arbres::setupAI()
 
 void	Arbres::firstfound()
 {
-	setupAI<FirstFound>();
+	setupAI<FirstFound>(60);
 }
 void	Arbres::bestfound()
 {
-	setupAI<BestFound>();
+	setupAI<BestFound>(10);
 }
 
 void	Arbres::dijkstra()
 {
-	setupAI< Dijkstra>();
+	setupAI< Dijkstra>(0);
+}
+
+void	Arbres::astar()
+{
+	setupAI<AStar>(80);
 }
 
 void	Arbres::showHideControls(bool show)
@@ -443,6 +521,12 @@ void	Arbres::showHideControls(bool show)
 	mMainInterface["step"]("IsTouchable") = show;
 	mMainInterface["play"]("IsHidden") = !show;
 	mMainInterface["play"]("IsTouchable") = show;
+
+	mMainInterface["speedUp"]("IsHidden") = true;
+	mMainInterface["speedUp"]("IsTouchable") = false;
+	mMainInterface["speedDown"]("IsHidden") = true;
+	mMainInterface["speedDown"]("IsTouchable") = false;
+
 }
 
 void	Arbres::showHideAI(bool show)
@@ -453,4 +537,6 @@ void	Arbres::showHideAI(bool show)
 	mMainInterface["BestFound"]("IsTouchable") = show;
 	mMainInterface["Dijkstra"]("IsHidden") = !show;
 	mMainInterface["Dijkstra"]("IsTouchable") = show;
+	mMainInterface["AStar"]("IsHidden") = !show;
+	mMainInterface["AStar"]("IsTouchable") = show;
 }

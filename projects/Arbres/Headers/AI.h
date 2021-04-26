@@ -1,7 +1,7 @@
 #pragma once
 #include "Case.h"
 #include <map>
-
+#include <set>
 // base class for AI
 class AI
 {
@@ -57,6 +57,41 @@ private:
 public:
 
 	Dijkstra(Case* start);
+	bool	run() override;
+
+};
+
+class AStar : public AI
+{
+private:
+
+	struct WNode
+	{
+		Case*		mCase = nullptr;
+		float		mWD = -1.0f;
+		bool operator<(const WNode& other) const { if (mWD == other.mWD) return mCase < other.mCase; return mWD < other.mWD; }
+	};
+
+	std::map<Case*,WNode>		mClosedList;
+	std::set<WNode>				mOpenList;
+
+	const float					mDirectionW[4] = { 2.0f,0.1f,2.0f,4.0f };
+
+	Case*						mCurrent=nullptr;
+
+	void						forwardPath(Case* exitcase);
+
+public:
+
+	AStar(Case* start) : AI(start)
+	{
+		WNode toAdd;
+		toAdd.mCase = start;
+		toAdd.mWD = 0.0f;		
+		mClosedList[start] = toAdd;
+		mCurrent = start;
+	}
+
 	bool	run() override;
 
 };

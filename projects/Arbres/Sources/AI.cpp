@@ -300,3 +300,96 @@ bool	Dijkstra::run()
 	
 	return false;
 }
+
+bool	AStar::run()
+{
+	// mecanism to wait for next step from application
+	while (Arbres::isLocked())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	}
+	Arbres::lock();
+
+	// check if current Case is Exit
+	Case* current = mCurrent;
+	if (current)
+	{
+		current->setVisit(true);
+		if (current->getType() == Case::CaseType::Exit)
+		{
+			forwardPath(current);
+			return true; // OK we have a good path
+		}
+
+		// weight all neighbors
+
+		WNode& currentNode = mClosedList[current];
+
+		for (auto& c : current->getNeighbors())
+		{
+			if (c.first->isVisit()) // case already in closed set
+			{
+				continue;
+			}
+
+			// set this neighbor as visited and add it to the open list
+			c.first->setVisit(true);
+
+			WNode toAdd;
+			toAdd.mCase = c.first;
+			toAdd.mWD = currentNode.mWD + mDirectionW[c.second];
+
+			mOpenList.insert(toAdd);
+		}
+	}
+	WNode bestNodeInOpenList = *(mOpenList.begin());
+	mOpenList.erase(mOpenList.begin());
+	mClosedList[bestNodeInOpenList.mCase] = bestNodeInOpenList;
+	mCurrent = bestNodeInOpenList.mCase;
+	if (run())
+	{
+		return true; // if all pathes were tested and best was found, return here
+	}
+	mCurrent = nullptr;
+
+	return false;
+}
+
+void AStar::forwardPath(Case* currentcase)
+{
+	// clear all visited
+	for (auto c : mClosedList)
+	{
+		c.first->setVisit(false);
+	}
+	for (auto c : mOpenList)
+	{
+		c.mCase->setVisit(false);
+	}
+
+	// then follow the path back from the exit to the start going to the smaller link
+
+	while (currentcase->getType() != Case::CaseType::Start)
+	{
+
+		float bestw = -1.0f;
+		Case* bestFound = nullptr;
+		for (const auto& n : currentcase->getNeighbors())
+		{
+			if (mClosedList.find(n.first) != mClosedList.end())
+			{
+				WNode& currentN = mClosedList[n.first];
+
+				if ((currentN.mWD < bestw) || (bestw < 0.0f))
+				{
+					bestw = currentN.mWD;
+					bestFound = currentN.mCase;
+				}
+			}			
+		}
+
+		bestFound->setVisit(true);
+		currentcase = bestFound;
+
+	}
+}

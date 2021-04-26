@@ -39,6 +39,7 @@ protected:
 	void	generateLabyrinthe();
 	void	loadLabyrinthe();
 	void	initLabyrinthe();
+	void	openMoreWallsLabyrinthe(u32 tryOpeningCount);
 	void	clearLabyrinthe();
 	void	clearVisited();
 
@@ -62,14 +63,20 @@ protected:
 	void	firstfound();
 	void	bestfound();
 	void	dijkstra();
+	void	astar();
+
+	float	mCurrentFrequency = 4.0f;
+
+	void	speedup();
+	void	speeddown();
 
 	void	showHideControls(bool show);
 	void	showHideAI(bool show);
 
 	template<typename ai>
-	void	setupAI();
+	void	setupAI(u32 tryOpeningCount);
 
-	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra);
+	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra, astar, speedup,speeddown);
 
 	CMSP	mThread;
 	static volatile bool	mIsLocked;
