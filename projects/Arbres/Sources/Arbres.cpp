@@ -86,6 +86,9 @@ void	Arbres::generateLabyrinthe()
 		}
 	}
 
+	initGraphicLabyrinthe();
+	mLabyrintheCanBeShow = true;
+
 	struct wallstruct
 	{
 		Case*	mCase;
@@ -109,6 +112,7 @@ void	Arbres::generateLabyrinthe()
 
 	while (wallList.size())
 	{
+		waitMainThread();
 		int randWall = rand() % wallList.size();
 		wallstruct currentwall = wallList[randWall];
 		size_t countvisited = 0;
@@ -202,6 +206,19 @@ void	Arbres::generateLabyrinthe()
 	}
 }
 
+void	Arbres::removeRandomWalls(u32 tryOpeningCount)
+{
+	for (size_t i = 0; i < tryOpeningCount; i++)
+	{
+		v2i randpos(1 + (rand() % (mLabyrintheSize.x - 2)), 1 + (rand() % (mLabyrintheSize.y - 2)));
+		Case& current = mLabyrinthe[randpos.y][randpos.x];
+		if (current.getType() == Case::CaseType::Wall)
+		{
+			current.setType(Case::CaseType::Slab);
+		}
+	}
+}
+
 void	Arbres::openMoreWallsLabyrinthe(u32 tryOpeningCount)
 {
 	v2i	deltapos[4] = {  {0,-1} , {1,0}  ,  {0,1} , {-1,0}  };
@@ -259,46 +276,56 @@ void	Arbres::loadLabyrinthe()
 		}
 	}
 }
-void	Arbres::initLabyrinthe()
+
+void	Arbres::initGraphicLabyrinthe()
 {
-	
 	size_t caseIndex = 0;
+
+	mLabyBG = KigsCore::GetInstanceOf("bg", "UIItem");
+	mLabyBG->setValue("SizeX", 1280);
+	mLabyBG->setValue("SizeY", 800);
+	mLabyBG->setValue("Priority", 10);
+
 	for (int i = 0; i < mLabyrintheSize.y; i++)
 	{
 		for (int j = 0; j < mLabyrintheSize.x; j++)
 		{
-				
+
 			SP<UIItem>	uicase = KigsCore::GetInstanceOf("case", "UIPanel");
 			uicase->setValue("SizeX", tileSize);
 			uicase->setValue("SizeY", tileSize);
-			uicase->setValue("Dock", v2f(0.5+(float)(j- mLabyrintheSize.x /2)*(tileSize /1280.0f),0.5 + (float)(i- mLabyrintheSize.y/2) * (tileSize /800.0f)));
+			uicase->setValue("Dock", v2f(0.5 + (float)(j - mLabyrintheSize.x / 2) * (tileSize / 1280.0f), 0.5 + (float)(i - mLabyrintheSize.y / 2) * (tileSize / 800.0f)));
 			uicase->setValue("Priority", 20);
 
-			// add text if needed
+			
+			SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
+			uitext->setValue("SizeX", -1.0f);
+			uitext->setValue("SizeY", -1.0f);
+			uitext->setValue("Priority", 25);
+			uitext->setValue("Text", "");
+			uitext->setValue("Color", v3f(0.0, 0.0, 0.0));
+			uitext->setValue("Font", "Calibri.ttf");
+			uitext->setValue("FontSize", 24);
+			uitext->setValue("MaxWidth", 64);
+			uicase->addItem(uitext);
+			uitext->Init();
+			
 
-			if (mLabyrinthe[i][j].getType() != Case::CaseType::Wall)
-			{
-				SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
-				uitext->setValue("SizeX", -1.0f);
-				uitext->setValue("SizeY", -1.0f);
-				uitext->setValue("Priority", 25);
-				uitext->setValue("Text", "");
-				uitext->setValue("Color", v3f( 0.0, 0.0, 0.0 ));
-				uitext->setValue("Font", "Calibri.ttf");
-				uitext->setValue("FontSize", 24);
-				uitext->setValue("MaxWidth", 64);
-				uicase->addItem(uitext);
-				uitext->Init();
-			}
-
-			mMainInterface->addItem(uicase);
+			mLabyBG->addItem(uicase);
 			uicase->Init();
 			mGraphicCases.push_back(uicase);
 			caseIndex++;
 		}
 	}
-	
 
+	mMainInterface->addItem(mLabyBG);
+
+}
+
+void	Arbres::initLabyrinthe()
+{
+	
+	
 	// init neighbors
 
 	v2i	neighbors[4] = { {0,-1},{1,0},{0,1},{-1,0} };
@@ -340,7 +367,7 @@ void	Arbres::initLabyrinthe()
 
 void	Arbres::drawLabyrinthe() // refresh visit colors
 {
-	if (mLabyrinthe)
+	if (mLabyrinthe && mLabyrintheCanBeShow)
 	{
 		v3f	color={0.4,0.04,0.04};
 
@@ -354,7 +381,10 @@ void	Arbres::drawLabyrinthe() // refresh visit colors
 		{
 			for (size_t j = 0; j < mLabyrintheSize.x; j++)
 			{
-				mGraphicCases[caseIndex]->setValue("Color", mLabyrinthe[i][j].isVisit()?color:mLabyrinthe[i][j].getColor());
+				if(mLabyrinthe[i][j].getType() == Case::Slab)
+					mGraphicCases[caseIndex]->setValue("Color", mLabyrinthe[i][j].isVisit()?color:mLabyrinthe[i][j].getColor());
+				else
+					mGraphicCases[caseIndex]->setValue("Color", mLabyrinthe[i][j].getColor());
 
 				if (mLabyrinthe[i][j].getText() != "")
 				{
@@ -381,6 +411,8 @@ void	Arbres::clearVisited()
 
 void	Arbres::clearLabyrinthe()
 {
+	mPathFound = false;
+	mLabyrintheCanBeShow = false;
 	if (mLabyrinthe)
 	{
 		for (size_t i = 0; i < mLabyrintheSize.y; i++)
@@ -392,10 +424,9 @@ void	Arbres::clearLabyrinthe()
 	mLabyrinthe = nullptr;
 	mLabyrintheSize.Set(0.0, 0.0);
 
-	for (auto g : mGraphicCases)
-	{
-		mMainInterface->removeItem(g);
-	}
+	if(!mLabyBG.isNil())
+		mMainInterface->removeItem(mLabyBG);
+	mLabyBG = nullptr;
 
 	mGraphicCases.clear();
 }
@@ -475,20 +506,11 @@ void	Arbres::launchAI()
 	showHideAI(true);
 }
 
-template<typename ai>
-void	Arbres::setupAI(u32 tryOpeningCount)
+void	Arbres::setupAI()
 {
-	showHideControls(true);
-	showHideAI(false);
-	clearLabyrinthe(); // just in case
-	generateLabyrinthe();
-	openMoreWallsLabyrinthe(tryOpeningCount);
-	//loadLabyrinthe();
-	initLabyrinthe();
-	clearVisited();
 	mPathFound = false;
-	mAI = new ai(&mLabyrinthe[mStartPos.y][mStartPos.x]);
-
+	clearVisited();
+	mAI->init(&mLabyrinthe[mStartPos.y][mStartPos.x]);
 	clearVisited();
 	SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
 	mThread = aithread;
@@ -496,23 +518,53 @@ void	Arbres::setupAI(u32 tryOpeningCount)
 	aithread->Init();
 }
 
+void	Arbres::setupLabyrinthe(u32 tryOpeningCount,u32 removerandomwalls)
+{
+	showHideControls(true);
+	showHideAI(false);
+	clearLabyrinthe(); 
+	mTryOpeningCount = tryOpeningCount;
+	mRemoveRandomWalls = removerandomwalls;
+	SP<Thread> labythread = KigsCore::GetInstanceOf("labythread", "Thread");
+	mThread = labythread;
+	labythread->setMethod(this, "launchLaby");
+	labythread->Init();
+}
+
+void	Arbres::launchLaby()
+{
+	generateLabyrinthe();
+	openMoreWallsLabyrinthe(mTryOpeningCount);
+	removeRandomWalls(mRemoveRandomWalls);
+	initLabyrinthe();
+	clearVisited();
+	mIsPlaying = true; // reset play system
+	play();
+	setupAI();
+}
+
 void	Arbres::firstfound()
 {
-	setupAI<FirstFound>(60);
+	mAI = new FirstFound();
+	setupLabyrinthe(60,0);	
 }
 void	Arbres::bestfound()
 {
-	setupAI<BestFound>(10);
+	mAI = new BestFound();
+	setupLabyrinthe(10,0);
 }
 
 void	Arbres::dijkstra()
 {
-	setupAI< Dijkstra>(0);
+	mAI = new Dijkstra();
+	setupLabyrinthe(0,0);
 }
 
 void	Arbres::astar()
 {
-	setupAI<AStar>(80);
+	mAI = new AStar();
+	setupLabyrinthe(80,400);
+	
 }
 
 void	Arbres::showHideControls(bool show)

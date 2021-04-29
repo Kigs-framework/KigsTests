@@ -1,7 +1,7 @@
 #include "AI.h"
 #include "Arbres.h""
 
-AI::AI(Case* start)
+void AI::init(Case* start)
 {
 	// just add start Case to the path
 	mPath.clear();
@@ -16,11 +16,7 @@ AI::~AI()
 bool	FirstFound::run()
 {
 	// mecanism to wait for next step from application
-	while (Arbres::isLocked())
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-	}
-	Arbres::lock();
+	Arbres::waitMainThread();
 
 	// check if current Case is Exit
 	Case* current = mPath.back();
@@ -57,11 +53,7 @@ bool	FirstFound::run()
 bool	BestFound::run()
 {
 	// mecanism to wait for next step from application
-	while (Arbres::isLocked())
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-	}
-	Arbres::lock();
+	Arbres::waitMainThread();
 
 	// test if current case is Exit
 	Case* current = mPath.back();
@@ -183,8 +175,9 @@ void Dijkstra::setBackLinks()
 	}
 }
 
-Dijkstra::Dijkstra(Case* start) : AI(start)
+void Dijkstra::init(Case* start)
 {
+	AI::init(start);
 	// init by filling the whole tree
 	start->setVisit(true);
 
@@ -192,7 +185,7 @@ Dijkstra::Dijkstra(Case* start) : AI(start)
 	toAdd.mW = 0;
 	toAdd.mCase = start;
 	toAdd.mLinks.clear();
-	mNodes[start]=toAdd;
+	mNodes[start] = toAdd;
 	std::vector<Case*> newpath;
 	newpath.push_back(start);
 	start->setVisit(true);
@@ -206,6 +199,7 @@ Dijkstra::Dijkstra(Case* start) : AI(start)
 		n.first->setColor({ 0.2,1.0,0.5 });
 	}
 }
+
 
 void Dijkstra::forwardPath(Case* currentcase)
 {
@@ -244,11 +238,7 @@ void Dijkstra::forwardPath(Case* currentcase)
 bool	Dijkstra::run()
 {
 	// mecanism to wait for next step from application
-	while (Arbres::isLocked())
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-	}
-	Arbres::lock();
+	Arbres::waitMainThread();
 
 	Case* current = mPath.back();
 
@@ -304,11 +294,7 @@ bool	Dijkstra::run()
 bool	AStar::run()
 {
 	// mecanism to wait for next step from application
-	while (Arbres::isLocked())
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-	}
-	Arbres::lock();
+	Arbres::waitMainThread();
 
 	// check if current Case is Exit
 	Case* current = mCurrent;

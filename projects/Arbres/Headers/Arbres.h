@@ -26,6 +26,15 @@ public:
 		mIsLocked = true;
 	}
 
+	static void waitMainThread()
+	{
+		while (isLocked())
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+		lock();
+	}
+
 protected:
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;
@@ -37,11 +46,18 @@ protected:
 	// Labyrinthe managment
 
 	void	generateLabyrinthe();
+	void	initGraphicLabyrinthe();
 	void	loadLabyrinthe();
 	void	initLabyrinthe();
 	void	openMoreWallsLabyrinthe(u32 tryOpeningCount);
+	void	removeRandomWalls(u32 tryOpeningCount);
 	void	clearLabyrinthe();
 	void	clearVisited();
+	bool	mLabyrintheCanBeShow = false;
+	void	setupLabyrinthe(u32 tryOpeningCount, u32 removerandomwalls);
+
+	u32		mTryOpeningCount = 0;
+	u32		mRemoveRandomWalls = 0;
 
 	void	drawLabyrinthe();
 
@@ -52,6 +68,7 @@ protected:
 
 	std::vector<SP<UIItem>>	mGraphicCases;
 	CMSP					mMainInterface;
+	SP<UIItem>				mLabyBG;
 
 	AI*						mAI = nullptr;
 	bool					mPathFound = false;
@@ -73,10 +90,10 @@ protected:
 	void	showHideControls(bool show);
 	void	showHideAI(bool show);
 
-	template<typename ai>
-	void	setupAI(u32 tryOpeningCount);
+	void	setupAI();
+	void	launchLaby();
 
-	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra, astar, speedup,speeddown);
+	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra, astar, speedup,speeddown, launchLaby);
 
 	CMSP	mThread;
 	static volatile bool	mIsLocked;

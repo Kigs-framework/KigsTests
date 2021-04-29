@@ -8,8 +8,13 @@ class AI
 public:
 
 	// AI starts at a starting Case
-	AI(Case* start);
+	AI()
+	{
+		mPath.clear();
+	}
 	virtual ~AI();
+
+	virtual void init(Case* start);
 
 	// pure virtual run AI
 	virtual bool	run()=0;
@@ -23,7 +28,7 @@ protected:
 class FirstFound : public AI
 {
 public:
-	FirstFound(Case* start) : AI(start) {}
+	FirstFound() : AI() {}
 	bool	run() override;
 };
 
@@ -32,7 +37,7 @@ class BestFound : public AI
 protected:
 	std::vector<Case*>	mFound;
 public:
-	BestFound(Case* start) : AI(start) {}
+	BestFound() : AI() {}
 	bool	run() override;
 };
 
@@ -56,8 +61,9 @@ private:
 	void setBackLinks();
 public:
 
-	Dijkstra(Case* start);
+	Dijkstra() : AI() {}
 	bool	run() override;
+	void init(Case* start) override;
 
 };
 
@@ -83,14 +89,21 @@ private:
 
 public:
 
-	AStar(Case* start) : AI(start)
+	AStar() : AI()
 	{
+		
+	}
+
+	void init(Case* start) override
+	{
+		AI::init(start);
 		WNode toAdd;
 		toAdd.mCase = start;
-		toAdd.mWD = 0.0f;		
+		toAdd.mWD = 0.0f;
 		mClosedList[start] = toAdd;
 		mCurrent = start;
 	}
+
 
 	bool	run() override;
 
