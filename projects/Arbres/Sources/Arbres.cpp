@@ -101,12 +101,16 @@ void	Arbres::generateLabyrinthe()
 	mLabyrinthe[startpos.y][startpos.x].setVisit(true);
 	wallList.push_back({ &mLabyrinthe[startpos.y - 1][startpos.x],{startpos.x,startpos.y - 1},true });
 	mLabyrinthe[startpos.y - 1][startpos.x].setVisit(true);
+	mLabyrinthe[startpos.y - 1][startpos.x].setText("__");
 	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x + 1],{startpos.x + 1,startpos.y},false });
 	mLabyrinthe[startpos.y][startpos.x + 1].setVisit(true);
+	mLabyrinthe[startpos.y][startpos.x + 1].setText(" | ");
 	wallList.push_back({ &mLabyrinthe[startpos.y + 1][startpos.x],{startpos.x,startpos.y + 1},true });
 	mLabyrinthe[startpos.y + 1][startpos.x].setVisit(true);
+	mLabyrinthe[startpos.y + 1][startpos.x].setText("__");
 	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x - 1],{startpos.x - 1,startpos.y},false });
 	mLabyrinthe[startpos.y][startpos.x - 1].setVisit(true);
+	mLabyrinthe[startpos.y][startpos.x - 1].setText(" | ");
 
 	v2i	deltapos[2][2] = { { {0,-1} , {0,1} } , { {-1,0} , {1,0} } };
 
@@ -128,6 +132,11 @@ void	Arbres::generateLabyrinthe()
 					countvisited += mLabyrinthe[tstpos.y][tstpos.x].isVisit() ? 1 : 0;
 				}
 			}
+			else
+			{
+				countvisited = 0;
+				break;
+			}
 
 		}
 
@@ -147,6 +156,7 @@ void	Arbres::generateLabyrinthe()
 							{
 								wallList.push_back({ &mLabyrinthe[wallpos.y][wallpos.x],{wallpos.x,wallpos.y},dy==0 });
 								mLabyrinthe[wallpos.y][wallpos.x].setVisit(true);
+								mLabyrinthe[wallpos.y][wallpos.x].setText((dy == 0)?"__":" | ");
 							}
 						}
 					}
@@ -158,6 +168,7 @@ void	Arbres::generateLabyrinthe()
 		if (countvisited == 1)
 		{
 			currentwall.mCase->setType(Case::CaseType::Slab);
+			
 			for (size_t i = 0; i < 2; i++)
 			{
 				v2i tstpos = currentwall.mPos + deltapos[currentwall.mHorizontal ? 0 : 1][i];
@@ -177,7 +188,7 @@ void	Arbres::generateLabyrinthe()
 				}
 			}
 		}
-
+		currentwall.mCase->setText("");
 		wallList.erase(wallList.begin() + randWall);
 	}
 
@@ -386,9 +397,9 @@ void	Arbres::drawLabyrinthe() // refresh visit colors
 				else
 					mGraphicCases[caseIndex]->setValue("Color", mLabyrinthe[i][j].getColor());
 
-				if (mLabyrinthe[i][j].getText() != "")
+				CMSP caset = mGraphicCases[caseIndex]->GetFirstSonByName("UIText", "caset");
+				if (mLabyrinthe[i][j].getText() != caset->getValue<std::string>("Text"))
 				{
-					CMSP caset = mGraphicCases[caseIndex]->GetFirstSonByName("UIText", "caset");
 					caset->setValue("Text", mLabyrinthe[i][j].getText());
 				}
 
@@ -496,6 +507,7 @@ void	Arbres::play()
 
 void	Arbres::launchAI()
 {
+	srand(time(nullptr)); // srand each thread
 	mPathFound=mAI->run();
 	mThread = nullptr;
 	delete mAI;
@@ -510,7 +522,7 @@ void	Arbres::setupAI()
 {
 	mPathFound = false;
 	clearVisited();
-	mAI->init(&mLabyrinthe[mStartPos.y][mStartPos.x]);
+	mAI->init(&mLabyrinthe[mStartPos.y][mStartPos.x], mStartPos, &mLabyrinthe[mExitPos.y][mExitPos.x], mExitPos);
 	clearVisited();
 	SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
 	mThread = aithread;
@@ -533,6 +545,7 @@ void	Arbres::setupLabyrinthe(u32 tryOpeningCount,u32 removerandomwalls)
 
 void	Arbres::launchLaby()
 {
+	srand(time(nullptr)); // srand each thread
 	generateLabyrinthe();
 	openMoreWallsLabyrinthe(mTryOpeningCount);
 	removeRandomWalls(mRemoveRandomWalls);
@@ -551,7 +564,7 @@ void	Arbres::firstfound()
 void	Arbres::bestfound()
 {
 	mAI = new BestFound();
-	setupLabyrinthe(10,0);
+	setupLabyrinthe(0,0);
 }
 
 void	Arbres::dijkstra()
@@ -563,8 +576,7 @@ void	Arbres::dijkstra()
 void	Arbres::astar()
 {
 	mAI = new AStar();
-	setupLabyrinthe(80,400);
-	
+	setupLabyrinthe(80,200);
 }
 
 void	Arbres::showHideControls(bool show)

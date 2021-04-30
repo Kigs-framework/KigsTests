@@ -14,7 +14,7 @@ public:
 	}
 	virtual ~AI();
 
-	virtual void init(Case* start);
+	virtual void init(Case* start,v2i startPos,Case* end,v2i endPos);
 
 	// pure virtual run AI
 	virtual bool	run()=0;
@@ -63,7 +63,7 @@ public:
 
 	Dijkstra() : AI() {}
 	bool	run() override;
-	void init(Case* start) override;
+	void init(Case* start, v2i startPos, Case* end, v2i endPos) override;
 
 };
 
@@ -75,18 +75,24 @@ private:
 	{
 		Case*		mCase = nullptr;
 		float		mWD = -1.0f;
+		v2i			mPos;
 		bool operator<(const WNode& other) const { if (mWD == other.mWD) return mCase < other.mCase; return mWD < other.mWD; }
 	};
 
 	std::map<Case*,WNode>		mClosedList;
 	std::set<WNode>				mOpenList;
 
-	const float					mDirectionW[4] = { 2.0f,0.1f,2.0f,4.0f };
-
 	Case*						mCurrent=nullptr;
 
 	void						forwardPath(Case* exitcase);
 
+	Case*						mEnd=nullptr;
+	v2i							mStartPos;
+	v2i							mEndPos;
+
+	const v2i					mDeltapos[4] = { {0,-1} , {1,0} , {0,1} , {-1,0}  };
+
+	float						mTotalDist = 0.0f;
 public:
 
 	AStar() : AI()
@@ -94,11 +100,22 @@ public:
 		
 	}
 
-	void init(Case* start) override
+	void init(Case* start, v2i startPos, Case* end, v2i endPos) override
 	{
-		AI::init(start);
+		AI::init(start, startPos, end, endPos);
+
+		mEnd = end;
+
+		mStartPos = startPos;
+		mEndPos = endPos;
+
+		v2f deltapos(mEndPos);
+		deltapos -= mStartPos;
+		mTotalDist = Norm(deltapos);
+
 		WNode toAdd;
 		toAdd.mCase = start;
+		toAdd.mPos = startPos;
 		toAdd.mWD = 0.0f;
 		mClosedList[start] = toAdd;
 		mCurrent = start;

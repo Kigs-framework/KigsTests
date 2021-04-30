@@ -1,7 +1,7 @@
 #include "AI.h"
 #include "Arbres.h""
 
-void AI::init(Case* start)
+void AI::init(Case* start, v2i startPos, Case* end, v2i endPos)
 {
 	// just add start Case to the path
 	mPath.clear();
@@ -175,9 +175,9 @@ void Dijkstra::setBackLinks()
 	}
 }
 
-void Dijkstra::init(Case* start)
+void Dijkstra::init(Case* start, v2i startPos, Case* end, v2i endPos)
 {
-	AI::init(start);
+	AI::init(start,  startPos,  end,  endPos);
 	// init by filling the whole tree
 	start->setVisit(true);
 
@@ -310,10 +310,15 @@ bool	AStar::run()
 		// weight all neighbors
 
 		WNode& currentNode = mClosedList[current];
+		// prepare compute move cost
+		v2f deltapos(mEndPos);
+		deltapos -= currentNode.mPos;
+		float dist = Norm(deltapos);
+		deltapos *= 1.0f / dist;
 
 		for (auto& c : current->getNeighbors())
 		{
-			if (c.first->isVisit()) // case already in closed set
+			if (c.first->isVisit()) // case already in closed set : TODO need update w ?
 			{
 				continue;
 			}
@@ -321,13 +326,27 @@ bool	AStar::run()
 			// set this neighbor as visited and add it to the open list
 			c.first->setVisit(true);
 
+
+			// compute move cost
+			v2f fdeltamove(mDeltapos[c.second]);
+
+			float dotprod = Dot(fdeltamove, deltapos);
+
+			float w = (2.0 - dotprod);
+			w *= w;
+			w*=(dist / mTotalDist);
+			w *= w;
+
 			WNode toAdd;
 			toAdd.mCase = c.first;
-			toAdd.mWD = currentNode.mWD + mDirectionW[c.second];
+			toAdd.mPos = currentNode.mPos + mDeltapos[c.second];
+
+			toAdd.mWD = currentNode.mWD + w;
 
 			mOpenList.insert(toAdd);
 		}
 	}
+
 	WNode bestNodeInOpenList = *(mOpenList.begin());
 	mOpenList.erase(mOpenList.begin());
 	mClosedList[bestNodeInOpenList.mCase] = bestNodeInOpenList;
