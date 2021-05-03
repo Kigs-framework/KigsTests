@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
+  <Identity Name="00F2279B-AE3C-45DC-BB24-17AD515C11E5" Publisher="CN=Antoine" Version="0.1.0.0" />
+  <mp:PhoneIdentity PhoneProductId="00F2279B-AE3C-45DC-BB24-17AD515C11E5" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <Properties>
+    <DisplayName>testPixelSprites</DisplayName>
+    <PublisherDisplayName>Kigs framework</PublisherDisplayName>
+    <Logo>Assets\Generated\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="x-generate" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="testPixelSpritesPackaging.App">
+      <uap:VisualElements DisplayName="testPixelSprites" Square150x150Logo="Assets\Generated\Square150x150Logo.png" Square44x44Logo="Assets\Generated\Square44x44Logo.png" Description="testPixelSprites" BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Generated\Wide310x150Logo.png" Square310x310Logo="Assets\Generated\LargeTile.png" Square71x71Logo="Assets\Generated\SmallTile.png">
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Assets\Generated\SplashScreen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+  </Capabilities>
+</Package>
