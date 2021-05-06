@@ -44,24 +44,24 @@
 				<Attr N="Dock" V="{0.5,0.5}"/>
 				<Attr N="Anchor" V="{0.5,0.5}"/>
 				<Inst N="tst" T="UIImage">
-					<Attr N="TextureName" V="UISprites.json:test"/>
-					<!--Attr N="SizeY" V="16"/-->
-					<!--Attr N="SizeX" V="12"/-->
-					<!--Attr N="Sliced" V="{1.0,1.0}"/-->
+					<Attr N="TextureName" V="test.png"/>
+					<Attr N="SizeY" V="16"/>
+					<Attr N="SizeX" V="12"/>
+					<Attr N="Sliced" V="{1.0,1.0}"/>
 					<Attr N="Priority" V="3"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
-					<Attr N="PreScaleX" V="64.0"/>
-					<Attr N="PreScaleY" V="64.0"/>
+					<Attr N="PreScaleX" V="16.0"/>
+					<Attr N="PreScaleY" V="16.0"/>
 					<Attr N="Repeat_U" V="true"/>
 					<Attr N="Repeat_V" V="true"/>
-					<Attr N="ForceNearest" V="true"/>
+					<Attr N="ForceNearest" V="false"/>
 					
 					<!--Inst N="shape" T="UIShapeDisc">
 						<Attr N="SliceCount" V="64"/>
 					</Inst-->
 				</Inst>
-				<Inst N="tst" T="UIPanel">
+				<!--Inst N="tst" T="UIPanel">
 					<Attr N="SizeY" V="15"/>
 					<Attr N="SizeX" V="15"/>
 					<Attr N="Priority" V="1"/>
@@ -70,7 +70,7 @@
 					<Attr N="PreScaleX" V="64.0"/>
 					<Attr N="PreScaleY" V="64.0"/>
 					<Attr N="Color" V="{1.0, 0.0, 0.0}"/>
-				</Inst>
+				</Inst-->
 				
 				<!--Inst Name="animatepng" Type="CoreSequenceLauncher">
 						<Attr Type="coreitem" Name="Sequence"><![CDATA[
