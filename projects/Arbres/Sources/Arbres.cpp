@@ -576,7 +576,7 @@ void	Arbres::dijkstra()
 void	Arbres::astar()
 {
 	mAI = new AStar();
-	setupLabyrinthe(80,200);
+	setupLabyrinthe(80,800);
 }
 
 void	Arbres::showHideControls(bool show)
