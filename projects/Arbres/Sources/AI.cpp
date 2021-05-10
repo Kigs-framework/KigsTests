@@ -299,7 +299,7 @@ bool	AStar::run()
 	// check if current Case is Exit
 	Case* current = mCurrent;
 
-	std::set<WNode>::iterator itBest= mOpenList.end();
+	std::set<WNode>::const_iterator itBest= mOpenList.end();
 
 	if (current)
 	{
@@ -321,9 +321,8 @@ bool	AStar::run()
 
 		// compute cost for all 4 directions
 
-		float costs[4];
-		float bestCost = -1.0f;
-
+		std::vector<float> costs = {-1.0f,-1.0f,-1.0f,-1.0f};
+		
 		for (size_t costIndex = 0; costIndex < 4; costIndex++)
 		{
 			v2f fdeltamove(mDeltapos[costIndex]);
@@ -334,35 +333,59 @@ bool	AStar::run()
 			costs[costIndex] *= costs[costIndex];
 			costs[costIndex] *= (dist / mTotalDist);
 			costs[costIndex] *= costs[costIndex];
-
-			if ((bestCost < 0.0) || (bestCost>costs[costIndex]))
-			{
-				bestCost = costs[costIndex];
-			}
-
 		}
+		std::vector<float> bestcosts = costs;
+		std::sort(bestcosts.begin(), bestcosts.end());
 
-
+		int currentBestCost = 0;
 		for (auto& c : current->getNeighbors())
 		{
-			if (c.first->isVisit()) // case already in closed set : TODO need update w ?
+			if (mClosedList.find(c.first) != mClosedList.end()) // case already in closed set
 			{
+				if (costs[c.second] == bestcosts[currentBestCost])
+					currentBestCost++;
 				continue;
 			}
 
 			// set this neighbor as visited and add it to the open list
-			c.first->setVisit(true);
+			if (!c.first->isVisit()) // already in open list
+			{
+				c.first->setVisit(true);
 
-			WNode toAdd;
-			toAdd.mCase = c.first;
-			toAdd.mPos = currentNode.mPos + mDeltapos[c.second];
+				WNode toAdd;
+				toAdd.mCase = c.first;
+				toAdd.mPos = currentNode.mPos + mDeltapos[c.second];
 
-			toAdd.mWD = currentNode.mWD + costs[c.second];
+				toAdd.mWD = currentNode.mWD + costs[c.second];
 
-			auto inserted=mOpenList.insert(toAdd);
+				auto inserted = mOpenList.insert(toAdd);
+				mOpenListMap[c.first] = &(*(inserted.first));
 
-			if (costs[c.second] == bestCost)
-				itBest = inserted.first;
+				if (costs[c.second] == bestcosts[currentBestCost])
+					itBest = inserted.first;
+			}
+			else // already visited, update if needed
+			{
+				float newW = currentNode.mWD + costs[c.second];
+
+				const WNode* currentWNode = mOpenListMap[c.first];
+				
+				if (currentWNode->mWD > newW) 
+				{
+					WNode toAdd(*currentWNode);
+					toAdd.mWD = newW;
+
+					mOpenList.erase(mOpenList.find(*currentWNode));
+
+					auto inserted = mOpenList.insert(toAdd);
+					currentWNode= &(*(inserted.first));
+					mOpenListMap[c.first] = currentWNode;
+				}
+
+				if (costs[c.second] == bestcosts[currentBestCost])
+					itBest = mOpenList.find(*currentWNode);
+			}
+		
 		}
 
 	}
@@ -374,6 +397,7 @@ bool	AStar::run()
 
 	WNode bestNodeInOpenList = *(itBest);
 	mOpenList.erase(itBest);
+	mOpenListMap.erase(mOpenListMap.find(bestNodeInOpenList.mCase));
 	mClosedList[bestNodeInOpenList.mCase] = bestNodeInOpenList;
 
 	bestNodeInOpenList.mCase->setText("c");

@@ -81,6 +81,7 @@ private:
 
 	std::map<Case*,WNode>		mClosedList;
 	std::set<WNode>				mOpenList;
+	std::map<Case*,const WNode*>		mOpenListMap;
 
 	Case*						mCurrent=nullptr;
 
