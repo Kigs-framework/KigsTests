@@ -214,7 +214,7 @@ void	TweetFrequency::ProtectedUpdate()
 			{
 				if (CanLaunchRequest())
 				{
-					std::string url = "1.1/users/show.json?screen_name=" + mUserNames[mCurrentUserIndex];
+					std::string url = "2/users/by/username/" + mUserNames[mCurrentUserIndex] + "?user.fields=created_at,public_metrics,profile_image_url";
 					mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
 					mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 					mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
@@ -795,9 +795,10 @@ DEFINE_METHOD(TweetFrequency, getUserDetails)
 
 	if (!json.isNil())
 	{
-
-		u64			currentID= json["id"];
-		std::string user = json["screen_name"];
+		CoreItemSP	data = json["data"];
+		CoreItemSP	public_m = data["public_metrics"];
+		u64			currentID= data["id"];
+		std::string user = data["username"];
 
 		TwitterAccount* current=getUser(currentID);
 
@@ -808,10 +809,10 @@ DEFINE_METHOD(TweetFrequency, getUserDetails)
 
 		current->mUserStruct.mName = user;
 		current->mID = currentID;
-		current->mUserStruct.mFollowersCount = json["followers_count"];
-		current->mUserStruct.mFollowingCount = json["friends_count"];
-		current->mUserStruct.mStatuses_count = json["statuses_count"];
-		current->mUserStruct.UTCTime = json["created_at"];
+		current->mUserStruct.mFollowersCount = public_m["followers_count"];
+		current->mUserStruct.mFollowingCount = public_m["following_count"];
+		current->mUserStruct.mStatuses_count = public_m["tweet_count"];
+		current->mUserStruct.UTCTime = data["created_at"];
 
 	
 		if (mState.back() == WAIT_USERID)
