@@ -42,6 +42,8 @@ void	Arbres::ProtectedUpdate()
 
 void	Arbres::ProtectedClose()
 {
+
+	CoreDestroyModule(ModuleThread);
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
