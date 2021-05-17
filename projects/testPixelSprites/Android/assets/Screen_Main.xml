@@ -44,22 +44,26 @@
 				<Attr N="Dock" V="{0.5,0.5}"/>
 				<Attr N="Anchor" V="{0.5,0.5}"/>
 				<Inst N="tst" T="UIImage">
-					<Attr N="TextureName" V="UISprites.json:test"/>
-					<Attr N="SizeY" V="16"/>
-					<Attr N="SizeX" V="12"/>
-					<Attr N="Sliced" V="{1.0,1.0}"/>
+					<Attr N="TextureName" V="dino.json"/>
+					<!--Attr N="SizeY" V="16"/>
+					<Attr N="SizeX" V="12"/-->
+					<!--Attr N="Sliced" V="{1.0,1.0}"/-->
 					<Attr N="Priority" V="3"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
-					<Attr N="PreScaleX" V="16.0"/>
-					<Attr N="PreScaleY" V="16.0"/>
+					<Attr N="PreScaleX" V="1.0"/>
+					<Attr N="PreScaleY" V="1.0"/>
 					<Attr N="Repeat_U" V="true"/>
 					<Attr N="Repeat_V" V="true"/>
 					<Attr N="ForceNearest" V="true"/>
+					<Attr N="CurrentAnimation" V="Dead"/>
+					<Attr N="Loop" V="true"/>
+					<Attr N="FramePerSecond" V="4"/>
 					
-					<Inst N="shape" T="UIShapeDisc">
+					
+					<!--Inst N="shape" T="UIShapeDisc">
 						<Attr N="SliceCount" V="64"/>
-					</Inst>
+					</Inst-->
 				</Inst>
 				<!--Inst N="tst" T="UIPanel">
 					<Attr N="SizeY" V="15"/>
