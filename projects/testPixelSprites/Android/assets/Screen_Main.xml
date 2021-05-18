@@ -51,11 +51,10 @@
 					<Attr N="Priority" V="3"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
-					<Attr N="PreScaleX" V="1.0"/>
-					<Attr N="PreScaleY" V="1.0"/>
+					<Attr N="PreScale" V="{1.0,1.0}"/>
 					<Attr N="Repeat_U" V="true"/>
 					<Attr N="Repeat_V" V="true"/>
-					<Attr N="ForceNearest" V="true"/>
+					<Attr N="ForceNearest" V="false"/>
 					<Attr N="CurrentAnimation" V="Dead"/>
 					<Attr N="Loop" V="true"/>
 					<Attr N="FramePerSecond" V="4"/>
