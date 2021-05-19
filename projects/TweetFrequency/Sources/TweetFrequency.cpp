@@ -357,8 +357,7 @@ void	TweetFrequency::AddUserLegend()
 		CMSP uiPanel = KigsCore::GetInstanceOf("drawuColor", "UIPanel");
 		uiPanel->setValue("Priority", 10);
 		uiPanel->setValue("Anchor", v2f(0.5f, 0.5f));
-		uiPanel->setValue("SizeX", 32);
-		uiPanel->setValue("SizeY", 16);
+		uiPanel->setValue("Size", v2f(32,16));
 
 		v2f dock((float)(zoneStart.x + columnSize / 4 + columnSize * i) / 1920.0f, 0.06f);
 
@@ -370,8 +369,7 @@ void	TweetFrequency::AddUserLegend()
 		uiuName->setValue("Priority", 10);
 		uiuName->setValue("Anchor", v2f(0.0f, 0.5f));
 		uiuName->setValue("Dock", v2f(2.0f, 0.5f));
-		uiuName->setValue("SizeX", -1);
-		uiuName->setValue("SizeY", -1);
+		uiuName->setValue("Size", v2f(-1,-1));
 		uiuName->setValue("Text", mUserNames[i]);
 		uiuName->setValue("Font", "Calibri.ttf");
 		uiuName->setValue("FontSize", 32);

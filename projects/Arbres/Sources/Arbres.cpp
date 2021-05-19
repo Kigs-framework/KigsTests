@@ -295,8 +295,7 @@ void	Arbres::initGraphicLabyrinthe()
 	size_t caseIndex = 0;
 
 	mLabyBG = KigsCore::GetInstanceOf("bg", "UIItem");
-	mLabyBG->setValue("SizeX", 1280);
-	mLabyBG->setValue("SizeY", 800);
+	mLabyBG->setValue("Size", v2f( 1280,800 ));
 	mLabyBG->setValue("Priority", 10);
 
 	for (int i = 0; i < mLabyrintheSize.y; i++)
@@ -305,15 +304,13 @@ void	Arbres::initGraphicLabyrinthe()
 		{
 
 			SP<UIItem>	uicase = KigsCore::GetInstanceOf("case", "UIPanel");
-			uicase->setValue("SizeX", tileSize);
-			uicase->setValue("SizeY", tileSize);
+			uicase->setValue("Size", v2f(tileSize, tileSize));
 			uicase->setValue("Dock", v2f(0.5 + (float)(j - mLabyrintheSize.x / 2) * (tileSize / 1280.0f), 0.5 + (float)(i - mLabyrintheSize.y / 2) * (tileSize / 800.0f)));
 			uicase->setValue("Priority", 20);
 
 			
 			SP<UIItem>	uitext = KigsCore::GetInstanceOf("caset", "UIText");
-			uitext->setValue("SizeX", -1.0f);
-			uitext->setValue("SizeY", -1.0f);
+			uitext->setValue("Size", v2f(-1,-1));
 			uitext->setValue("Priority", 25);
 			uitext->setValue("Text", "");
 			uitext->setValue("Color", v3f(0.0, 0.0, 0.0));

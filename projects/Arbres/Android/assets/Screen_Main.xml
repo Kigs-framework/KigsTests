@@ -24,16 +24,13 @@
 		</Attr>
 	</Inst>
 	<Inst N="UILayer" T="UI2DLayer">
-	<Attr N="SizeY" V="800"/>
-	<Attr N="SizeX" V="1280"/>
+	<Attr N="Size" V="{1280,800}"/>
 	<Attr N="Priority" V="50"/>
 	<Attr N="RenderingScreen" V="RenderingScreen:theRenderingScreen"/>
 		<Inst N="Interface" T="UIItem">
-			<Attr N="SizeY" V="800"/>
-			<Attr N="SizeX" V="1280"/>
+			<Attr N="Size" V="{1280,800}"/>
 			<Inst N="background" T="UIPanel">
-				<Attr N="SizeY" V="800"/>
-				<Attr N="SizeX" V="1280"/>
+				<Attr N="Size" V="{1280,800}"/>
 				<Attr N="Priority" V="2"/>
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.500000,0.500000}"/>
@@ -45,8 +42,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.050,0.950}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -59,8 +55,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="step" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -70,8 +65,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.150,0.950}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -84,8 +78,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="play" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -95,8 +88,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.250,0.950}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -109,8 +101,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="speeddown" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -120,8 +111,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.350,0.950}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -134,8 +124,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>	
 					<Connect Si="ClickUp" E="this" Sl="speedup" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -145,8 +134,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.150,0.05}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -159,8 +147,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="firstfound" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -170,8 +157,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.300,0.05}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -184,8 +170,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>	
 					<Connect Si="ClickUp" E="this" Sl="bestfound" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -195,8 +180,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.450,0.05}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -209,8 +193,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="dijkstra" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
@@ -220,8 +203,7 @@
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.600,0.05}"/>
 				<Attr N="Color" V="{0.0, 0.0, 0.4}"/>
-				<Attr N="SizeX" V="-1.0"/>
-				<Attr N="SizeY" V="-1.0"/>
+				<Attr N="Size" V="{-1,-1}"/>
 				<Attr N="Font" V="Calibri.ttf"/>
 				<Attr N="FontSize" V="24"/>
 				<Attr N="MaxWidth" V="128"/>
@@ -234,8 +216,7 @@
 					<Attr N="SizeModeY" V="Add"/>
 					<Attr N="Anchor" V="{0.5,0.5}"/>
 					<Attr N="Dock" V="{0.5,0.5}"/>
-					<Attr N="SizeX" V="16"/>
-					<Attr N="SizeY" V="16"/>	
+					<Attr N="Size" V="{16,16}"/>
 					<Connect Si="ClickUp" E="this" Sl="astar" R="/CoreBaseApplication:Arbres"/>
 				</Inst>
 			</Inst>
