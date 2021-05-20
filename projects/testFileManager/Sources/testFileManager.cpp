@@ -43,7 +43,7 @@ void	testFileManager::ProtectedInit()
 	// 	<Attr Type="string" N="BundleFileName" V="files.bundle" Dyn="true"/>
 
 	// get FilePathManager singleton
-	SP<FilePathManager>& pathManager = KigsCore::Singleton<FilePathManager>();
+	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	// search xml in root directory
 	pathManager->AddToPath(".", "xml");
 	// and in Skin2 directory

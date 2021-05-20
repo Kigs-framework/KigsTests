@@ -24,7 +24,7 @@ void	Arbres::ProtectedInit()
 	// lets say that the update will sleep 1ms
 	SetUpdateSleepTime(1);
 
-	SP<FilePathManager>& pathManager = KigsCore::Singleton<FilePathManager>();
+	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
 
 	CoreCreateModule(ModuleThread, nullptr);
