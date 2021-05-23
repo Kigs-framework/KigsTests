@@ -20,12 +20,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
     <TargetName>com.kigs.PacMan</TargetName>
-	<AndroidAPILevel>android-19</AndroidAPILevel>
+    <AndroidAPILevel>android-19</AndroidAPILevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
     <TargetName>com.kigs.PacMan</TargetName>
-	<AndroidAPILevel>android-19</AndroidAPILevel>
+    <AndroidAPILevel>android-19</AndroidAPILevel>
   </PropertyGroup>
   <Import Project="$(AndroidTargetsPath)\Android.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -75,8 +75,8 @@
     <JavaCompile Include="src\com\kigs\PacManEmpty.java" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\framework\PlatformsModules\Android\Platform\Main\kigsmain\kigs.kigsmain.androidproj" />
-    <ProjectReference Include="..\..\..\..\Build\solutionAndroidVSCMake\kigs\projects\PacMan\PacMan.vcxproj" />
+    <ProjectReference Include="..\..\..\..\kigs\framework\PlatformsModules\Android\Platform\Main\kigsmain\kigs.kigsmain.androidproj" />
+    <ProjectReference Include="$(SolutionDir)\PacMan.vcxproj" />
   </ItemGroup>
   <Import Project="$(AndroidTargetsPath)\Android.targets" />
   <ImportGroup Label="ExtensionTargets" />
