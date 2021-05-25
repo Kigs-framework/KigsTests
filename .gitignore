@@ -1,3 +1,4 @@
 **/Android/ARM/
-projects/PacMan/Android/assets/
-projects/PacMan/TmpRessources
+projects/**/Android/assets/**
+projects/**/TmpRessources/**
+**/Ressources/AMLastDone.json
