@@ -22,16 +22,16 @@ bool	TwitterAccount::needMoreTweets()
 {
 	
 	CoreItemSP tweets = loadTweetsFile();
-	if (tweets.isNil())
+	if (!tweets)
 	{
 		return true;
 	}
 	else
 	{
 		CoreItemSP meta = tweets["meta"];
-		if (!meta.isNil())
+		if (meta)
 		{
-			if (!meta["next_token"].isNil())
+			if (meta["next_token"])
 			{
 				mNextTweetsToken = meta["next_token"];
 				return true;
@@ -68,7 +68,7 @@ void		TwitterAccount::addTweets(CoreItemSP json,bool addtofile)
 		fromfile=loadTweetsFile();
 
 	CoreItemSP tweetsArray = json["data"];
-	if (!tweetsArray.isNil())
+	if (tweetsArray)
 	{
 		unsigned int tweetcount = tweetsArray->size();
 		for (unsigned int i = 0; i < tweetcount; i++)
@@ -76,7 +76,7 @@ void		TwitterAccount::addTweets(CoreItemSP json,bool addtofile)
 			CoreItemSP currentTwt = tweetsArray[i];
 
 			// add tweet to previous file
-			if (!fromfile.isNil() && addtofile)
+			if (fromfile && addtofile)
 				fromfile["data"]->set("", currentTwt);
 
 			if (!addtofile)
@@ -86,24 +86,24 @@ void		TwitterAccount::addTweets(CoreItemSP json,bool addtofile)
 	}
 
 
-	if (!fromfile.isNil() && addtofile)
+	if (fromfile&& addtofile)
 	{
 
-		if (fromfile["includes"].isNil())
+		if (!fromfile["includes"])
 		{
-			fromfile->set("includes", CoreItemSP::getCoreMap());
+			fromfile->set("includes", MakeCoreMap());
 		}
 
-		if (fromfile["includes"]["media"].isNil())
+		if (!fromfile["includes"]["media"])
 		{
-			fromfile["includes"]->set("media", CoreItemSP::getCoreVector());
+			fromfile["includes"]->set("media", MakeCoreVector());
 		}
 
 		CoreItemSP addTo = fromfile["includes"]["media"];
 
 		// add includes
 		CoreItemSP includesMediaArray = json["includes"]["media"];
-		if (!includesMediaArray.isNil())
+		if (includesMediaArray)
 		{
 			unsigned int mediacount = includesMediaArray->size();
 			for (unsigned int i = 0; i < mediacount; i++)
@@ -118,9 +118,9 @@ void		TwitterAccount::addTweets(CoreItemSP json,bool addtofile)
 	std::string nextStr = "-1";
 
 	CoreItemSP meta = json["meta"];
-	if (!meta.isNil())
+	if (meta)
 	{
-		if (!meta["next_token"].isNil())
+		if (meta["next_token"])
 		{
 			nextStr = meta["next_token"];
 			if (nextStr == "0")
@@ -130,7 +130,7 @@ void		TwitterAccount::addTweets(CoreItemSP json,bool addtofile)
 		}
 	}
 
-	if (!fromfile.isNil() && addtofile)
+	if (fromfile && addtofile)
 	{
 		fromfile->set("meta",meta);
 	}

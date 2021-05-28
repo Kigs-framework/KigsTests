@@ -17,13 +17,12 @@ void	PrintFileContent(const std::string& filename)
 {
 	std::cout << std::endl;
 	u64 flen;
-	CoreRawBuffer* txtfile = ModuleFileManager::LoadFileAsCharString(filename.c_str(), flen, sizeof(char));
+	SP<CoreRawBuffer> txtfile = ModuleFileManager::LoadFileAsCharString(filename.c_str(), flen, sizeof(char));
 	if (txtfile)
 	{
 		std::string content = txtfile->buffer();
 		std::cout << "Content of file :" << filename << std::endl;
 		std::cout << content << std::endl;
-		txtfile->Destroy();
 	}
 	else
 	{

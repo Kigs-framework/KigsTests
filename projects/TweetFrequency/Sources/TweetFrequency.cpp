@@ -5,6 +5,7 @@
 #include "NotificationCenter.h"
 #include "HTTPRequestModule.h"
 #include "JSonFileParser.h"
+#include "CoreItem.h"
 #include "TinyImage.h"
 #include "JPEGClass.h"
 #include "PNGClass.h"
@@ -111,12 +112,12 @@ void	TweetFrequency::ProtectedInit()
 
 		foundBear = initP[(std::string)BearName];
 
-		if (!foundBear.isNil())
+		if (foundBear)
 		{
 			mTwitterBear.push_back("authorization: Bearer " + (std::string)foundBear);
 			
 		}
-	} while (!foundBear.isNil());
+	} while (foundBear);
 
 	// retreive users to analyse
 	CoreItemSP foundUser;
@@ -129,16 +130,16 @@ void	TweetFrequency::ProtectedInit()
 
 		foundUser = initP[(std::string)userName];
 
-		if (!foundUser.isNil())
+		if (foundUser)
 		{
 			mUserNames.push_back(foundUser);
 
 		}
-	} while (!foundUser.isNil());
+	} while (foundUser);
 
 
 	auto SetMemberFromParam = [&](auto& x, const char* id) {
-		if (!initP[id].isNil()) x = initP[id];
+		if (initP[id]) x = initP[id];
 	};
 
 	SetMemberFromParam(mFromDate, "FromDate");
@@ -190,8 +191,7 @@ void	TweetFrequency::ProtectedUpdate()
 		{
 
 			mWaitQuota = false;
-			mAnswer->GetRef(); 
-			KigsCore::addAsyncRequest(mAnswer.get());
+			KigsCore::addAsyncRequest(mAnswer);
 			mAnswer->Init();
 			RequestLaunched(60.5);
 		}
@@ -210,7 +210,7 @@ void	TweetFrequency::ProtectedUpdate()
 			currentUserProgress += mUserNames[mCurrentUserIndex] + "_" + mFromDate + "_" + mToDate + ".json";
 			CoreItemSP currentP = LoadJSon(currentUserProgress, false, false);
 
-			if (currentP.isNil())
+			if (!currentP)
 			{
 				if (CanLaunchRequest())
 				{
@@ -274,7 +274,7 @@ void	TweetFrequency::ProtectedUpdate()
 				}
 				else
 				{
-					if (mMainInterface.isNil())
+					if (!mMainInterface)
 						break;
 
 					AddUserLegend();
@@ -652,13 +652,13 @@ CoreItemSP	TweetFrequency::RetrieveJSON(CoreModifiable* sender)
 			JSonFileParserUTF16 L_JsonParser;
 			CoreItemSP result = L_JsonParser.Get_JsonDictionaryFromString(utf8string);
 
-			if (!result["error"].isNil())
+			if (result["error"])
 			{
 				return nullptr;
 			}
-			if (!result["errors"].isNil())
+			if (result["errors"])
 			{
-				if (!result["errors"][0]["code"].isNil())
+				if (result["errors"][0]["code"])
 				{
 					int code = result["errors"][0]["code"];
 					mApiErrorCode = code;
@@ -776,7 +776,7 @@ DEFINE_METHOD(TweetFrequency, getTweets)
 {
 	auto json = RetrieveJSON(sender);
 
-	if (!json.isNil())
+	if (json)
 	{
 		mCurrentTreatedAccount->addTweets(json,true);
 		mState.pop_back();
@@ -791,7 +791,7 @@ DEFINE_METHOD(TweetFrequency, getUserDetails)
 {
 	auto json = RetrieveJSON(sender);
 
-	if (!json.isNil())
+	if (json)
 	{
 		CoreItemSP	data = json["data"];
 		CoreItemSP	public_m = data["public_metrics"];
@@ -819,9 +819,8 @@ DEFINE_METHOD(TweetFrequency, getUserDetails)
 				mUserIDs.push_back(currentID);
 
 			JSonFileParser L_JsonParser;
-			CoreItemSP initP = CoreItemSP::getCoreItemOfType<CoreMap<std::string>>();
-			CoreItemSP idP = CoreItemSP::getCoreItemOfType<CoreValue<u64>>();
-			idP = currentID;
+			CoreItemSP initP = MakeCoreVector();
+			CoreItemSP idP = MakeCoreValue(currentID);
 			initP->set("id", idP);
 			std::string filename = "Cache/UserNameTF/" + mUserNames[mCurrentUserIndex] + "_" + mFromDate + "_" + mToDate + ".json";
 			L_JsonParser.Export((CoreMap<std::string>*)initP.get(), filename);

@@ -40,7 +40,7 @@ void	testXLSX::ProtectedInit()
 	*doc[0]["C2"] = "houla";
 
 	SP<CoreRawBuffer> saved = doc.save();
-	if (!saved.isNil())
+	if (saved)
 	{
 		ModuleFileManager::SaveFile("export.xlsx", (u8*)saved->buffer(), saved->size());
 	}

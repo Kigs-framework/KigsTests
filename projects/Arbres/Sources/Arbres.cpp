@@ -434,7 +434,7 @@ void	Arbres::clearLabyrinthe()
 	mLabyrinthe = nullptr;
 	mLabyrintheSize.Set(0.0, 0.0);
 
-	if(!mLabyBG.isNil())
+	if(mLabyBG)
 		mMainInterface->removeItem(mLabyBG);
 	mLabyBG = nullptr;
 
