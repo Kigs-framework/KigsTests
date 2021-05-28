@@ -1,7 +1,8 @@
-#include <PacMan.h>
-#include <FilePathManager.h>
-#include <NotificationCenter.h>
+#include "PacMan.h"
+#include "FilePathManager.h"
+#include "NotificationCenter.h"
 #include "GameLoop.h"
+#include "Ghost.h"
 
 IMPLEMENT_CLASS_INFO(PacMan);
 
@@ -20,6 +21,7 @@ void	PacMan::ProtectedInit()
 	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
 
+	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), Ghost, Ghost, PacMan);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();

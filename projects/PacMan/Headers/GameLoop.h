@@ -2,6 +2,7 @@
 
 #include "CoreModifiable.h"
 #include "Board.h"
+#include "Ghost.h"
 
 class GameLoop
 {
@@ -10,12 +11,11 @@ protected:
 	CMSP	mMainInterface;
 	Board* mBoard = nullptr;
 
+	std::vector<SP<Ghost>>	mGhostList;
+
 public:
 
-	GameLoop(CMSP linterface) :mMainInterface(linterface)
-	{
-		mBoard = new Board("laby.json");
-	}
+	GameLoop(CMSP linterface);
 
 	~GameLoop()
 	{
@@ -24,4 +24,6 @@ public:
 	}
 
 	void	update();
+
+
 };
