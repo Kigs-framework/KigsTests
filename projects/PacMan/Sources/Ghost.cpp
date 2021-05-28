@@ -1,5 +1,6 @@
 #include "Ghost.h"
 #include "Core.h"
+#include "CoreFSM.h"
 
 IMPLEMENT_CLASS_INFO(Ghost)
 
@@ -14,7 +15,11 @@ void	Ghost::InitModifiable()
 	if (IsInit())
 	{
 		// add FSM
-		CMSP fsm = KigsCore::GetInstanceOf("fsm", "CoreFSM");
+		SP<CoreFSM> fsm = KigsCore::GetInstanceOf("fsm", "CoreFSM");
 		addItem(fsm);
+
+
+
+		fsm->addState(CoreFSMStateClassName(Ghost, Appear), new CoreFSMStateClass(Ghost, Appear)());
 	}
 }
