@@ -3,6 +3,7 @@
 #include "NotificationCenter.h"
 #include "GameLoop.h"
 #include "Ghost.h"
+#include "CoreFSM.h"
 
 IMPLEMENT_CLASS_INFO(PacMan);
 
@@ -20,6 +21,8 @@ void	PacMan::ProtectedInit()
 
 	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
+
+	initCoreFSM();
 
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), Ghost, Ghost, PacMan);
 

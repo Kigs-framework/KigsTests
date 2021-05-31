@@ -15,6 +15,7 @@ GameLoop::GameLoop(CMSP linterface) :mMainInterface(linterface)
 	for (int i = 0; i < 5; i++)
 	{
 		mGhostList.push_back(KigsCore::GetInstanceOf("gg", "Ghost"));
+		mGhostList.back()->Init();
 	}
 	
 }
