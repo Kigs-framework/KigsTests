@@ -1,10 +1,12 @@
 #include "Ghost.h"
 #include "Core.h"
 #include "CoreFSM.h"
+#include "Board.h"
+#include "Timer.h"
 
 IMPLEMENT_CLASS_INFO(Ghost)
 
-Ghost::Ghost(const kstl::string& name, CLASS_NAME_TREE_ARG) : CoreModifiable(name, PASS_CLASS_NAME_TREE_ARG)
+Ghost::Ghost(const kstl::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
 {
 
 }
@@ -14,6 +16,18 @@ void	Ghost::InitModifiable()
 	ParentClassType::InitModifiable();
 	if (IsInit())
 	{
+		// graphic representation first
+
+		std::string ghostName="Pacman.json:";
+		ghostName += (std::string)mName;
+
+		mGraphicRepresentation = KigsCore::GetInstanceOf("ghost", "UIImage");
+		mGraphicRepresentation->setValue("TextureName", ghostName);
+		mGraphicRepresentation->setValue("Anchor", v2f(0.5f, 0.5f));
+		mGraphicRepresentation->setValue("Priority", 15);
+		mBoard->getGraphicInterface()->addItem(mGraphicRepresentation);
+		mGraphicRepresentation->Init();
+
 		// add FSM
 		SP<CoreFSM> fsm = KigsCore::GetInstanceOf("fsm", "CoreFSM");
 		addItem(fsm);
@@ -64,7 +78,29 @@ void	Ghost::InitModifiable()
 
 		fsm->setStartState("Appear");
 		fsm->Init();
+
+
 	}
+	
+}
+
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, Appear)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* gh = static_cast<Ghost*>(toUpgrade);
+	Board* b = gh->getBoard();
+	// set ghost pos
+	if (b)
+	{
+		v2i pos=b->getAppearPosForGhost();
+		gh->setCurrentPos(v2f( pos.x,pos.y ));
+	}
+}
+// destroy UpgradorData and remove dynamic attributes 
+void	CoreFSMStateClass(Ghost, Appear)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+{
+
 }
 
 
@@ -78,14 +114,80 @@ DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, FreeMove), seePacMan)
 // update ( hide popup if it was open for too long ) 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 {
-	//kdouble t = timer.GetTime();
-	
+	v2f newpos = mCurrentPos;
+	v2f rpos = getRoundPos();
+	if (mDirection >= 0)
+	{
+		double dt = timer.GetDt(this);
+		if (dt > 0.1)
+		{
+			dt = 0.1;
+		}
+		v2f dtmove(movesVector[mDirection].x, movesVector[mDirection].y);
+		newpos += dtmove * dt*mSpeed;
+
+		// too far ? 
+		v2f dpos = newpos - mCurrentPos;
+		v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
+
+		if (Dot(dDest, dpos) < 0) 
+		{
+			// check if need to change direction
+			std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
+			if ((availableCases[mDirection]) && (!mBoard->checkForGhostOnCase(mDestPos,this)) && (!mBoard->checkForGhostOnCase(rpos, this)))
+			{
+				mCurrentPos = mDestPos;
+				mDestPos = rpos;
+				mDestPos+=movesVector[mDirection];
+			}
+			else
+			{
+				mCurrentPos = mDestPos;
+				newpos = mCurrentPos;
+				rpos = getRoundPos();
+				mDirection = -1;
+			}
+		}
+
+		setCurrentPos(newpos);
+	}
+
+	if (mDirection == -1)
+	{
+		std::vector<bool> availableCases = mBoard->getAvailableDirection(rpos);
+		std::vector<std::pair<int, v2i>> reallyAvailable;
+		// check if other ghost is on available case
+		for (int direction = 0; direction < 4; direction++)
+		{
+			if (availableCases[direction])
+			{
+				v2i dircase = rpos;
+				dircase += movesVector[direction];
+
+				if (mBoard->checkForGhostOnCase(dircase))
+				{
+					availableCases[direction] = false;
+				}
+				else
+				{
+					reallyAvailable.push_back({ direction,dircase });
+				}
+			}
+		}
+
+		if (reallyAvailable.size())
+		{
+			auto choose = reallyAvailable[rand() % reallyAvailable.size()];
+			mDirection = choose.first;
+			mDestPos = choose.second;
+		}
+	}
 }
 
 // create and init Upgrador if needed and add dynamic attributes
 void	CoreFSMStateClass(Ghost, FreeMove)::Init(CoreModifiable* toUpgrade)
 {
-
+	
 }
 // destroy UpgradorData and remove dynamic attributes 
 void	CoreFSMStateClass(Ghost, FreeMove)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)

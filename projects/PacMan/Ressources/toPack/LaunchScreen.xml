@@ -3,7 +3,7 @@
 	<Attr N="Size" V="{1280,800}"/>
 	<Attr N="Priority" V="0"/>
 	<Attr N="RenderingScreen" V="RenderingScreen:theRenderingScreen"/>
-	<Inst N="Interface" T="UIItem">
+	<Inst N="Bump" T="UIItem">
 		<Attr N="Size" V="{1280,800}"/>
 		<Attr N="Opacity" V="0.0"/>
 		<Attr N="Dock" V="{0.500000,0.50000}"/>

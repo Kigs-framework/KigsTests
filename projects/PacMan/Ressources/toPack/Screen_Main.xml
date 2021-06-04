@@ -31,10 +31,10 @@
 			<Attr N="Size" V="{1280,800}"/>
 			<Inst N="background" T="UIPanel">
 				<Attr N="Size" V="{1280,800}"/>
-				<Attr N="Priority" V="50"/>
+				<Attr N="Priority" V="0"/>
 				<Attr N="Anchor" V="{0.500000,0.500000}"/>
 				<Attr N="Dock" V="{0.500000,0.500000}"/>
-				<Attr N="Color" V="{0.0, 0.2, 0.4, 1.0}"/>
+				<Attr N="Color" V="{0.0, 0.0, 0.0, 1.0}"/>
 			</Inst>
 		</Inst>
 	</Inst>

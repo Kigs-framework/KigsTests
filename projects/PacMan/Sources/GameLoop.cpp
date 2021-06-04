@@ -1,21 +1,20 @@
 #include "GameLoop.h"
 #include "Core.h"
 
+
+
 void	GameLoop::update()
 {
-
+	mBoard->Update();
 }
 
 
 GameLoop::GameLoop(CMSP linterface) :mMainInterface(linterface)
 {
-	mBoard = new Board("laby.json");
-
-
-	for (int i = 0; i < 5; i++)
-	{
-		mGhostList.push_back(KigsCore::GetInstanceOf("gg", "Ghost"));
-		mGhostList.back()->Init();
-	}
-	
+	srand(time(NULL));
+	// Init Board
+	mBoard = new Board("laby.json", mMainInterface);
+	mBoard->initGraphicBoard();
+	mBoard->InitGhosts();
+	mBoard->InitPlayer();
 }

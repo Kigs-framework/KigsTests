@@ -4,14 +4,14 @@
 #include "Board.h"
 #include "Ghost.h"
 
+
 class GameLoop
 {
 protected:
 
-	CMSP	mMainInterface;
-	Board* mBoard = nullptr;
+	CMSP			mMainInterface;
 
-	std::vector<SP<Ghost>>	mGhostList;
+	Board* mBoard = nullptr;
 
 public:
 
