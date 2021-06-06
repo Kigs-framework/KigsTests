@@ -819,7 +819,7 @@ DEFINE_METHOD(TweetFrequency, getUserDetails)
 				mUserIDs.push_back(currentID);
 
 			JSonFileParser L_JsonParser;
-			CoreItemSP initP = MakeCoreVector();
+			CoreItemSP initP = MakeCoreMap();
 			CoreItemSP idP = MakeCoreValue(currentID);
 			initP->set("id", idP);
 			std::string filename = "Cache/UserNameTF/" + mUserNames[mCurrentUserIndex] + "_" + mFromDate + "_" + mToDate + ".json";
