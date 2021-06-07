@@ -50,6 +50,29 @@ public:
 		return v2i(round(mCurrentPos.x), round(mCurrentPos.y));
 	}
 
+	// return current and dest pos if not the same
+	std::vector<v2i>	getPoses()
+	{
+		std::vector<v2i> result;
+		v2i cpos = getRoundPos();
+		result.push_back(cpos);
+		if (cpos != mDestPos)
+		{
+			result.push_back(mDestPos);
+		}
+		return result;
+	}
+
+	const v2i& getDestPos() const
+	{
+		return mDestPos;
+	}
+
+	void setDestPos(v2i p)
+	{
+		mDestPos = p;
+	}
+
 protected:
 
 	v2f			mCurrentPos;

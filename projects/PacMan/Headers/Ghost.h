@@ -14,6 +14,9 @@ public:
 
 	void	InitModifiable() override;
 
+	template<typename T>
+	friend class Upgrador;
+
 protected:
 
 	maString mName = BASE_ATTRIBUTE(Name, "");
@@ -37,7 +40,9 @@ UPGRADOR_METHODS(seePacMan)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunting)
-UPGRADOR_WITHOUT_METHODS()
+virtual void	Init(CoreModifiable* toUpgrade) override;
+v2i	mPacmanSeenPos;
+UPGRADOR_METHODS(seePacMan)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunted)

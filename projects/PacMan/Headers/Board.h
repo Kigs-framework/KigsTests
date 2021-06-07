@@ -24,6 +24,10 @@ protected:
 	std::vector<SP<Ghost>>			mGhosts;
 	SP<Player>						mPlayer;
 
+	bool	checkColumnVisibility(int x, int y1, int y2);
+	bool	checkRowVisibility(int y, int x1, int x2);
+
+
 public:
 
 	Board(const std::string& filename,SP<UIItem> minterface);
@@ -67,4 +71,8 @@ public:
 	std::vector<bool>	getAvailableDirection(const v2i& pos);
 
 	void	Update();
+
+	v2i	ghostSeePacman(const v2i& pos);
+
+	void	checkEat(const v2i& pos);
 };

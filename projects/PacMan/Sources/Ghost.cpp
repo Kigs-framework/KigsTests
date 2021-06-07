@@ -95,6 +95,7 @@ void	CoreFSMStateClass(Ghost, Appear)::Init(CoreModifiable* toUpgrade)
 	{
 		v2i pos=b->getAppearPosForGhost();
 		gh->setCurrentPos(v2f( pos.x,pos.y ));
+		gh->setDestPos(pos);
 	}
 }
 // destroy UpgradorData and remove dynamic attributes 
@@ -104,18 +105,25 @@ void	CoreFSMStateClass(Ghost, Appear)::Destroy(CoreModifiable* toDowngrade, bool
 }
 
 
-// ShowPopUp slot
+// 
 DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, FreeMove), seePacMan)
 {
-	
+	v2i rpos = getRoundPos();
+	v2i pmpos = mBoard->ghostSeePacman(rpos);
+	if (pmpos.x != -1)
+		return true;
+
 	return false;
 }
 
-// update ( hide popup if it was open for too long ) 
+// update 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 {
 	v2f newpos = mCurrentPos;
 	v2f rpos = getRoundPos();
+
+	int prevdirection = mDirection;
+
 	if (mDirection >= 0)
 	{
 		double dt = timer.GetDt(this);
@@ -130,17 +138,45 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 		v2f dpos = newpos - mCurrentPos;
 		v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
 
-		if (Dot(dDest, dpos) < 0) 
+		if (mBoard->checkForGhostOnCase(mDestPos, this)) // flip direction
 		{
-			// check if need to change direction
+			mDirection = -1;
+			newpos = rpos;
+		}
+		else if ( Dot(dDest, dpos) < 0.0f )
+		{
+			// check if it's possible to change direction
 			std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
-			if ((availableCases[mDirection]) && (!mBoard->checkForGhostOnCase(mDestPos,this)) && (!mBoard->checkForGhostOnCase(rpos, this)))
+
+			int count_available = 0;
+			for (int tst = 0; tst < 4; tst++)
+			{
+				if (tst == 2) // don't look back for this tst
+					continue;
+
+				int tstDir = (mDirection + tst) % 4;
+
+				v2i dircase = mDestPos;
+				dircase += movesVector[tstDir];
+
+				if (mBoard->checkForGhostOnCase(dircase, this)) // this case is occupied
+				{
+					availableCases[tstDir] = false;
+				}
+
+				if (availableCases[tstDir])
+				{
+					count_available++;
+				}
+			}
+
+			if ((availableCases[mDirection]) && (count_available==1)) // ghost can continue on it's path
 			{
 				mCurrentPos = mDestPos;
 				mDestPos = rpos;
 				mDestPos+=movesVector[mDirection];
 			}
-			else
+			else // choose another direction
 			{
 				mCurrentPos = mDestPos;
 				newpos = mCurrentPos;
@@ -152,32 +188,54 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 		setCurrentPos(newpos);
 	}
 
-	if (mDirection == -1)
+	if (mDirection == -1) // no given direction
 	{
 		std::vector<bool> availableCases = mBoard->getAvailableDirection(rpos);
+
 		std::vector<std::pair<int, v2i>> reallyAvailable;
+
 		// check if other ghost is on available case
 		for (int direction = 0; direction < 4; direction++)
 		{
-			if (availableCases[direction])
-			{
-				v2i dircase = rpos;
-				dircase += movesVector[direction];
+			v2i dircase = rpos;
+			dircase += movesVector[direction];
 
-				if (mBoard->checkForGhostOnCase(dircase))
-				{
-					availableCases[direction] = false;
-				}
-				else
-				{
-					reallyAvailable.push_back({ direction,dircase });
-				}
+			if (mBoard->checkForGhostOnCase(dircase,this))
+			{
+				availableCases[direction] = false;
+			}
+			
+			reallyAvailable.push_back({ availableCases[direction]?direction:-1,dircase });
+		}
+
+		// duplicate current direction, and side direction ( give more weight to move forward )
+		if (prevdirection >= 0)
+		{
+			reallyAvailable.push_back(reallyAvailable[prevdirection]);
+			for (int direction = 0; direction < 4; direction++)
+			{
+				if (direction == 2)
+					continue;
+
+				int tstDir = (prevdirection + direction) % 4;
+				reallyAvailable.push_back(reallyAvailable[tstDir]);
 			}
 		}
 
-		if (reallyAvailable.size())
+		// then just keep available dirs
+		std::vector<std::pair<int, v2i>> onlyAvailable;
+		for (int direction = 0; direction < reallyAvailable.size(); direction++)
 		{
-			auto choose = reallyAvailable[rand() % reallyAvailable.size()];
+			if (reallyAvailable[direction].first >= 0)
+			{
+				onlyAvailable.push_back(reallyAvailable[direction]);
+			}
+		}
+
+
+		if (onlyAvailable.size())
+		{
+			auto choose = onlyAvailable[rand() % onlyAvailable.size()];
 			mDirection = choose.first;
 			mDestPos = choose.second;
 		}
@@ -187,10 +245,50 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 // create and init Upgrador if needed and add dynamic attributes
 void	CoreFSMStateClass(Ghost, FreeMove)::Init(CoreModifiable* toUpgrade)
 {
-	
+	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
+	thisghost->getGraphicRepresentation()->setValue("RotationAngle", 0);
 }
 // destroy UpgradorData and remove dynamic attributes 
 void	CoreFSMStateClass(Ghost, FreeMove)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
 {
+
+}
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, Hunting)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
+	mPacmanSeenPos =thisghost->getBoard()->ghostSeePacman(thisghost->getCurrentPos());
+	// compute direction
+	thisghost->getGraphicRepresentation()->setValue("RotationAngle",PI);
+}
+// 
+DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, Hunting ), seePacMan)
+{
+	return false;
+}
+
+// update
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunting))
+{
+	v2i lastPacmanpos=GetUpgrador()->mPacmanSeenPos;
+
+	
+
+/*	v2f rpos = getRoundPos();
+	if (mDirection >= 0)
+	{
+		double dt = timer.GetDt(this);
+		if (dt > 0.1)
+		{
+			dt = 0.1;
+		}
+		v2f dtmove(movesVector[mDirection].x, movesVector[mDirection].y);
+		newpos += dtmove * dt * mSpeed;
+
+		// too far ? 
+		v2f dpos = newpos - mCurrentPos;
+		v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
+		*/
 
 }

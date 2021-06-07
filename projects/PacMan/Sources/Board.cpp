@@ -69,6 +69,8 @@ void	Board::Update()
 	const auto& t=KigsCore::GetCoreApplication()->GetApplicationTimer();
 	for (auto g : mGhosts)
 		g->CallUpdate(*t.get(),nullptr);
+
+	mPlayer->CallUpdate(*t.get(), nullptr);
 }
 
 void	Board::initGraphicBoard()
@@ -192,6 +194,81 @@ bool	Board::checkForWallOnCase(const v2i& pos)
 
 	return false;
 }
+
+bool	Board::checkColumnVisibility(int x, int y1, int y2)
+{
+	if (y1 > y2)
+	{
+		int swp = y1;
+		y1 = y2;
+		y2 = swp;
+	}
+	for (int y = y1; y <= y2; y++)
+	{
+		if (mCases[y][x].getType() == 1)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool	Board::checkRowVisibility(int y, int x1, int x2)
+{
+	if (x1 > x2)
+	{
+		int swp = x1;
+		x1 = x2;
+		x2 = swp;
+	}
+
+	for (int x = x1; x <= x2; x++)
+	{
+		if (mCases[y][x].getType() == 1)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+v2i	Board::ghostSeePacman(const v2i& pos)
+{
+	auto poses = mPlayer->getPoses();
+
+	for (const auto& p : poses)// first check if on the same line or column
+	{
+		if (p.x == pos.x)
+		{
+			if (checkColumnVisibility(p.x, p.y, pos.y))
+			{
+				return p;
+			}
+		}
+		if (p.y == pos.y)
+		{
+			if (checkRowVisibility(p.y, p.x, pos.x))
+			{
+				return p;
+			}
+		}
+	}
+
+	return {-1,-1};
+}
+
+void	Board::checkEat(const v2i& pos)
+{
+	if (mCases[pos.y][pos.x].getType() == 2)
+	{
+		mLabyBG->removeItem(mCases[pos.y][pos.x].getGraphicRepresentation());
+		mCases[pos.y][pos.x].setType(0);
+		mCases[pos.y][pos.x].setGraphicRepresentation(nullptr);
+	}
+}
+
 
 std::vector<bool> Board::getAvailableDirection(const v2i& pos)
 {
