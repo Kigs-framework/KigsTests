@@ -42,7 +42,13 @@ void	Arbres::ProtectedUpdate()
 
 void	Arbres::ProtectedClose()
 {
+	if (mThread)
+	{
+		SP<Thread> toKill = mThread;
+		toKill->Kill();
+		mThread = nullptr;
 
+	}
 	CoreDestroyModule(ModuleThread);
 	DataDrivenBaseApplication::ProtectedClose();
 }
@@ -69,6 +75,7 @@ void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
 void	Arbres::generateLabyrinthe()
 {
 
+	// create Case Array
 	mLabyrintheSize.Set(35, 25);
 	mLabyrinthe = new Case * [mLabyrintheSize.y];
 	for (int i = 0; i < mLabyrintheSize.y; i++)
@@ -76,21 +83,31 @@ void	Arbres::generateLabyrinthe()
 		mLabyrinthe[i] = new Case[mLabyrintheSize.x]; 
 		for (int j = 0; j < mLabyrintheSize.x; j++)
 		{
+			Case::CaseType	ctype = Case::CaseType::Wall;
 			// only isolated cells to begin
 			if ((i & 1) && (j & 1))
 			{
-				mLabyrinthe[i][j].setType(Case::CaseType::Slab);
+				ctype = Case::CaseType::Slab;
 			}
-			else
-			{
-				mLabyrinthe[i][j].setType(Case::CaseType::Wall);
-			}
+			mLabyrinthe[i][j].setType(ctype);
 		}
 	}
 
+	// init display, as this is threaded, we can follow the construction of the
+	// maze step by step
 	initGraphicLabyrinthe();
 	mLabyrintheCanBeShow = true;
 
+	// lambda to check if a pos is inside labyrinthe size
+	auto checkInside = [this](const v2i& pos)->bool {
+		if ((pos.x > 0) && (pos.x < (mLabyrintheSize.x - 1)) && (pos.y > 0) && (pos.y < (mLabyrintheSize.y - 1)))
+		{
+			return true;
+		}
+		return false;
+	};
+
+	// this struct is used only here, so we can define it locally
 	struct wallstruct
 	{
 		Case*	mCase;
@@ -98,36 +115,59 @@ void	Arbres::generateLabyrinthe()
 		bool	mHorizontal;
 	};
 
+	// list of walls to be checked for opening (replaced by slab)
 	std::vector<wallstruct>	wallList;
-	v2i startpos(1 + ((rand()*2) % (mLabyrintheSize.x - 1)), 1 + ((rand()*2) % (mLabyrintheSize.y - 1)));
-	mLabyrinthe[startpos.y][startpos.x].setVisit(true);
-	wallList.push_back({ &mLabyrinthe[startpos.y - 1][startpos.x],{startpos.x,startpos.y - 1},true });
-	mLabyrinthe[startpos.y - 1][startpos.x].setVisit(true);
-	mLabyrinthe[startpos.y - 1][startpos.x].setText("__");
-	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x + 1],{startpos.x + 1,startpos.y},false });
-	mLabyrinthe[startpos.y][startpos.x + 1].setVisit(true);
-	mLabyrinthe[startpos.y][startpos.x + 1].setText(" | ");
-	wallList.push_back({ &mLabyrinthe[startpos.y + 1][startpos.x],{startpos.x,startpos.y + 1},true });
-	mLabyrinthe[startpos.y + 1][startpos.x].setVisit(true);
-	mLabyrinthe[startpos.y + 1][startpos.x].setText("__");
-	wallList.push_back({ &mLabyrinthe[startpos.y][startpos.x - 1],{startpos.x - 1,startpos.y},false });
-	mLabyrinthe[startpos.y][startpos.x - 1].setVisit(true);
-	mLabyrinthe[startpos.y][startpos.x - 1].setText(" | ");
 
+	// list of possible directions to get neighbors
 	v2i	deltapos[2][2] = { { {0,-1} , {0,1} } , { {-1,0} , {1,0} } };
 
+	// lambda to add walls around the given case to the list
+	auto addwalls = [&](const v2i& pos) {
+		for (size_t dx = 0; dx < 2; dx++)
+		{
+			for (size_t dy = 0; dy < 2; dy++)
+			{
+				v2i wallpos = pos + deltapos[dy][dx];
+
+				// check wallpos is inside labyrinthe
+				if (checkInside(wallpos))
+				{
+					if (mLabyrinthe[wallpos.y][wallpos.x].getType() == Case::CaseType::Wall)
+					{
+						if (!mLabyrinthe[wallpos.y][wallpos.x].isVisit()) // this wall was not already processed ?
+						{
+							wallList.push_back({ &mLabyrinthe[wallpos.y][wallpos.x],{wallpos.x,wallpos.y},dy == 0 });
+							mLabyrinthe[wallpos.y][wallpos.x].setVisit(true);
+							mLabyrinthe[wallpos.y][wallpos.x].setText((dy == 0) ? "__" : " | ");
+						}
+					}
+				}
+			}
+		}
+
+	};
+
+	// choose random start case
+	
+	v2i startpos(1 + ((rand()*2) % (mLabyrintheSize.x - 1)), 1 + ((rand()*2) % (mLabyrintheSize.y - 1)));
+	mLabyrinthe[startpos.y][startpos.x].setVisit(true);
+	// add walls to the "wall to process" list
+	addwalls(startpos);
+
+	// while the list is not empty
 	while (wallList.size())
 	{
-		waitMainThread();
+		waitMainThread(); // this is for the multithread management, wait for step by step construction
 		int randWall = rand() % wallList.size();
 		wallstruct currentwall = wallList[randWall];
 		size_t countvisited = 0;
-		for (size_t i = 0; i < 2; i++)
+
+		for (size_t i = 0; i < 2; i++) // a wall is horizontal or vertical, so only to slab around it 
 		{
 			v2i tstpos = currentwall.mPos + deltapos[currentwall.mHorizontal ? 0 : 1][i];
 
 			// check tstpos is inside labyrinthe
-			if ((tstpos.x > 0) && (tstpos.x < (mLabyrintheSize.x - 1)) && (tstpos.y > 0) && (tstpos.y < (mLabyrintheSize.y - 1)))
+			if (checkInside(tstpos))
 			{
 				if (mLabyrinthe[tstpos.y][tstpos.x].getType() == Case::CaseType::Slab)
 				{
@@ -142,33 +182,9 @@ void	Arbres::generateLabyrinthe()
 
 		}
 
-		auto addwall = [&](v2i pos) {
-			for (size_t dx = 0; dx < 2; dx++)
-			{
-				for (size_t dy = 0; dy < 2; dy++)
-				{
-					v2i wallpos = pos + deltapos[dy][dx];
-
-					// check wallpos is inside labyrinthe
-					if ((wallpos.x > 0) && (wallpos.x < (mLabyrintheSize.x - 1)) && (wallpos.y > 0) && (wallpos.y < (mLabyrintheSize.y - 1)))
-					{
-						if (mLabyrinthe[wallpos.y][wallpos.x].getType() == Case::CaseType::Wall)
-						{
-							if (!mLabyrinthe[wallpos.y][wallpos.x].isVisit())
-							{
-								wallList.push_back({ &mLabyrinthe[wallpos.y][wallpos.x],{wallpos.x,wallpos.y},dy==0 });
-								mLabyrinthe[wallpos.y][wallpos.x].setVisit(true);
-								mLabyrinthe[wallpos.y][wallpos.x].setText((dy == 0)?"__":" | ");
-							}
-						}
-					}
-				}
-			}
-		
-		};
-
-		if (countvisited == 1)
+		if (countvisited == 1) // ok, this wall can be opened (changed to slab)
 		{
+			// change this wall to a slab
 			currentwall.mCase->setType(Case::CaseType::Slab);
 			
 			for (size_t i = 0; i < 2; i++)
@@ -176,7 +192,7 @@ void	Arbres::generateLabyrinthe()
 				v2i tstpos = currentwall.mPos + deltapos[currentwall.mHorizontal ? 0 : 1][i];
 
 				// check tstpos is inside labyrinthe
-				if ((tstpos.x > 0) && (tstpos.x < (mLabyrintheSize.x - 1)) && (tstpos.y > 0) && (tstpos.y < (mLabyrintheSize.y - 1)))
+				if (checkInside(tstpos))
 				{
 					if (mLabyrinthe[tstpos.y][tstpos.x].getType() == Case::CaseType::Slab)
 					{
@@ -184,7 +200,7 @@ void	Arbres::generateLabyrinthe()
 						{
 							mLabyrinthe[tstpos.y][tstpos.x].setVisit(true);
 							// add walls
-							addwall(tstpos);
+							addwalls(tstpos);
 						}
 					}
 				}
