@@ -3,14 +3,86 @@
 #include "Ghost.h"
 #include "Player.h"
 #include "Core.h"
+#include "NotificationCenter.h"
 #include "CoreBaseApplication.h"
+#include "CharacterBase.h"
 
 std::string ghostNames[4] = { "inky","clyde","pinky","blinky" };
 
 Case				Board::mErrorCase;
 #define tileSize 25.0f
 
+int		Board::directionFromDelta(const v2i& deltap)
+{
+	v2i newdelta(deltap);
+	// need "normalization" ?
+	if ((deltap.x) && (deltap.y))
+	{
+		v2i absdelta(abs(newdelta.x), abs(newdelta.y));
+		if (absdelta.x > absdelta.y)
+		{
+			newdelta.y = 0;
+		}
+		else if (absdelta.x == absdelta.y)
+		{
+			newdelta[rand()%2] = 0;
+		}
+		else
+		{
+			newdelta.x = 0;
+		}
+	}
+	else if(deltap.x == deltap.y) // both are 0
+	{
+		return -1;
+	}
 
+	if (newdelta.x > 0)
+	{
+		return 0;
+	}
+	else if (newdelta.y > 0)
+	{
+		return 1;
+	}
+	else if (newdelta.x < 0)
+	{
+		return 2;
+	}
+
+	return 3;
+}
+
+void	Board::manageTouchGhost()
+{
+	if (mPlayer->isDead()) // already dead
+		return;
+
+	v2f pacpos = mPlayer->getCurrentPos();
+	for (int i = 0; i < 4; i++)
+	{
+		if (mGhosts[i]->isDead())
+			continue;
+		v2f gpos = mGhosts[i]->getCurrentPos();
+
+		if (DistSquare(pacpos, gpos) < 1.0f)
+		{
+			if (mGhosts[i]->isHunted())
+			{
+				mGhosts[i]->setDead();
+				mScore += 200;
+			}
+			else 
+			{
+				KigsCore::GetNotificationCenter()->postNotificationName("PacManDie");
+				mPlayer->setDead();
+				if(mLives)
+					mLives -= 1;
+				break;
+			}
+		}
+	}
+}
 
 Board::Board(const std::string& filename, SP<UIItem> minterface) : mParentInterface(minterface)
 {
@@ -63,15 +135,39 @@ void	Board::InitPlayer()
 	mPlayer->Init();
 }
 
-
 void	Board::Update()
 {
+	if (mLives == 0)
+		return;
 	const auto& t=KigsCore::GetCoreApplication()->GetApplicationTimer();
 	for (auto g : mGhosts)
 		g->CallUpdate(*t.get(),nullptr);
 
 	mPlayer->CallUpdate(*t.get(), nullptr);
+
+	manageTouchGhost();
+
+	mParentInterface["Score"]("Text") = "Score : " + std::to_string(mScore);
+	mParentInterface["Lives"]("Text") = "Lives : " + std::to_string(mLives);
 }
+
+bool	Board::manageTeleport(const v2i& pos, int direction, CharacterBase* character)
+{
+	if ((pos == mTeleport[0]) && (character->getDirection() ==2))
+	{
+		character->setCurrentPos(mTeleport[1]);
+		character->setDestPos(mTeleport[1] + movesVector[2]);
+		return true;
+	}
+	else if ((pos == mTeleport[1]) && (character->getDirection() == 0))
+	{
+		character->setCurrentPos(mTeleport[0]);
+		character->setDestPos(mTeleport[0] + movesVector[0]);
+		return true;
+	}
+	return false;
+}
+
 
 void	Board::initGraphicBoard()
 {
@@ -129,6 +225,16 @@ void	Board::initGraphicBoard()
 				uicase->Init();
 			}
 			break;
+			case 5:
+			{
+				mTeleport[0].Set(j, i);
+			}
+			break;
+			case 6:
+			{
+				mTeleport[1].Set(j, i);
+			}
+			break;
 			}
 			if (uicase)
 			{
@@ -175,9 +281,9 @@ bool	Board::checkForGhostOnCase(const v2i& pos,const Ghost* me)
 		{
 			if (g.get() != me)
 			{
-				v2f gpos = g->getCurrentPos();
-				v2i igpos(round(gpos.x), round(gpos.y));
-				if (pos == igpos)
+				v2i gpos = g->getDestPos();
+				
+				if (pos == gpos)
 				{
 					return true;
 				}
@@ -236,6 +342,8 @@ bool	Board::checkRowVisibility(int y, int x1, int x2)
 
 v2i	Board::ghostSeePacman(const v2i& pos)
 {
+	if (mPlayer->isDead())
+		return { -1,-1 };
 	auto poses = mPlayer->getPoses();
 
 	for (const auto& p : poses)// first check if on the same line or column
@@ -261,7 +369,19 @@ v2i	Board::ghostSeePacman(const v2i& pos)
 
 void	Board::checkEat(const v2i& pos)
 {
-	if (mCases[pos.y][pos.x].getType() == 2)
+	bool needRemoveGraphicRep = false;
+	switch (mCases[pos.y][pos.x].getType())
+	{
+	case 4:
+		mPlayer->startHunting();
+		mScore += 90;
+	case 2:
+		mScore += 10;
+		needRemoveGraphicRep = true;
+		break;
+	}
+
+	if (needRemoveGraphicRep)
 	{
 		mLabyBG->removeItem(mCases[pos.y][pos.x].getGraphicRepresentation());
 		mCases[pos.y][pos.x].setType(0);
@@ -275,6 +395,12 @@ std::vector<bool> Board::getAvailableDirection(const v2i& pos)
 	std::vector<bool> result;
 	result.reserve(4);
 	
+	bool checkGhostHouse = true;
+	if (mCases[pos.y][pos.x].getType() == 3) // in ghost house
+	{
+		checkGhostHouse = false;
+	}
+
 	for (int direction = 0; direction < 4; direction++)
 	{
 		v2i destPos = pos + movesVector[direction];
@@ -285,7 +411,15 @@ std::vector<bool> Board::getAvailableDirection(const v2i& pos)
 			{
 				if (!checkForWallOnCase(destPos))
 				{
+					// also check for ghost house
 					isOk = true;
+					if (checkGhostHouse) // not in ghost house, so ghost house cases are not available anymore
+					{
+						if (mCases[destPos.y][destPos.x].getType() == 3)
+						{
+							isOk = false;
+						}
+					}
 				}
 			}
 		}

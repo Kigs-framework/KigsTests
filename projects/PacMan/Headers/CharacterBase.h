@@ -13,6 +13,8 @@ public:
 	DECLARE_ABSTRACT_CLASS_INFO(CharacterBase, CoreModifiable, PacMan);
 	DECLARE_CONSTRUCTOR(CharacterBase);
 
+	void	initAtPos(const v2i& pos);
+
 	void	setCurrentPos(const v2f& pos);
 
 	const v2f& getCurrentPos()
@@ -45,6 +47,11 @@ public:
 		return mIsDead;
 	}
 
+	void	setDead(bool d=true)
+	{
+		mIsDead = d;
+	}
+
 	v2i getRoundPos()
 	{
 		return v2i(round(mCurrentPos.x), round(mCurrentPos.y));
@@ -63,17 +70,36 @@ public:
 		return result;
 	}
 
-	const v2i& getDestPos() const
+	v2i getDestPos()
 	{
 		return mDestPos;
 	}
 
-	void setDestPos(v2i p)
+	float getSpeed()
 	{
-		mDestPos = p;
+		return mSpeed;
+	}
+
+	void setSpeed(float s)
+	{
+		mSpeed = s;
+	}
+
+	int getDirection()
+	{
+		return mDirection;
+	}
+
+	void	setDestPos(const v2i& dp)
+	{
+		mDestPos = dp;
 	}
 
 protected:
+	
+	// return true if is at dest
+	bool		moveToDest(const Timer& timer, v2f& newpos);
+
 
 	v2f			mCurrentPos;
 	Board*		mBoard = nullptr;
@@ -84,5 +110,5 @@ protected:
 	int			mDirection=-1;
 	v2i			mDestPos;
 
-	float		mSpeed = 3.0f;
+	float		mSpeed = 4.0f;
 };

@@ -17,9 +17,23 @@ public:
 	template<typename T>
 	friend class Upgrador;
 
+	bool isHunted()
+	{
+		return mIsHunted;
+	}
+
+	void setHunted(bool h)
+	{
+		mIsHunted = h;
+	}
 protected:
 
+	void	checkForNewDirectionNeed();
+	void	chooseNewDirection(int prevdirection, int prevdirweight=1);
+
 	maString mName = BASE_ATTRIBUTE(Name, "");
+
+	bool	mIsHunted = false;
 };
 
 
@@ -41,12 +55,16 @@ END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunting)
 virtual void	Init(CoreModifiable* toUpgrade) override;
+// destroy UpgradorData and remove dynamic attributes 
+virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
 v2i	mPacmanSeenPos;
-UPGRADOR_METHODS(seePacMan)
+UPGRADOR_WITHOUT_METHODS();
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunted)
-UPGRADOR_WITHOUT_METHODS()
+virtual void	Init(CoreModifiable* toUpgrade) override;
+virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
+UPGRADOR_METHODS(checkDead)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Die)

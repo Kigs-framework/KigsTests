@@ -7,6 +7,7 @@
 
 class Ghost;
 class Player;
+class CharacterBase;
 
 class Board
 {
@@ -14,9 +15,10 @@ protected:
 
 	std::vector<std::vector<Case>>	mCases;
 	v2i								mBoardSize;
+	v2i								mTeleport[2];
 	static Case						mErrorCase;
 	SP<UIItem>						mLabyBG;
-	SP<UIItem>						mParentInterface;
+	CMSP							mParentInterface;
 	std::vector<v2i>				mGhostAppearPos;
 
 	v2f								mScreenSize;
@@ -26,6 +28,11 @@ protected:
 
 	bool	checkColumnVisibility(int x, int y1, int y2);
 	bool	checkRowVisibility(int y, int x1, int x2);
+
+	u32		mScore = 0;
+	u32		mLives = 3;
+
+	void	manageTouchGhost();
 
 
 public:
@@ -53,6 +60,9 @@ public:
 	void	initGraphicBoard();
 
 	v2i		getAppearPosForGhost();
+	int		directionFromDelta(const v2i& deltap);
+	bool	manageTeleport(const v2i& pos, int direction, CharacterBase* character);
+
 
 
 	SP<UIItem>	getGraphicInterface()

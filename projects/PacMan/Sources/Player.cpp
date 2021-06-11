@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "InputIncludes.h"
 #include "CoreBaseApplication.h"
+#include "NotificationCenter.h"
 
 IMPLEMENT_CLASS_INFO(Player)
 
@@ -37,6 +38,34 @@ void	Player::InitModifiable()
 	}
 }
 
+
+void	Player::manageDeathState()
+{
+	if (mDeathTime < 0.0)
+	{
+		mDeathTime = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime();
+	}
+	double currentTime = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime();
+	if ((currentTime - mDeathTime) < 2.0f)
+	{
+		mGraphicRepresentation->setValue("RotationAngle", (currentTime - mDeathTime)*6.0);
+	}
+	else
+	{
+		if (!mBoard->checkForGhostOnCase(v2i(13, 23))) // wait till a ghost is here
+		{
+			setCurrentPos(v2f(13.0f, 23.0f));
+			mDestPos = v2i(13, 23);
+			mKeyDirection = { 0.0,-1 };
+			mIsDead = false;
+			mDeathTime = -1.0;
+			mGraphicRepresentation->setValue("RotationAngle", 0.0);
+			mDirection = -1;
+		}
+	}
+}
+
+
 void Player::UpdateKeyboard(std::vector<KeyEvent>& keys)
 {
 	if (!keys.empty())
@@ -69,8 +98,16 @@ void Player::UpdateKeyboard(std::vector<KeyEvent>& keys)
 	}
 }
 
+
+
 void Player::Update(const Timer& timer, void* addParam)
 {
+	if (mIsDead)
+	{
+		manageDeathState();
+		return;
+	}
+
 	v2f newpos = mCurrentPos;
 	v2f rpos = getRoundPos();
 
@@ -94,43 +131,51 @@ void Player::Update(const Timer& timer, void* addParam)
 		newpos += dtmove * dt * mSpeed;
 
 		// too far ? 
-		v2f dpos = newpos - mCurrentPos;
+		v2f dpos = newpos + dtmove * dt * mSpeed - mCurrentPos;
 		v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
 
 		if (Dot(dDest, dpos) < 0.0f)
 		{
-			// check if it's possible to change direction
-			std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
-
-			int count_available = 0;
-			for (int tst = 0; tst < 4; tst++)
+			bool teleport = mBoard->manageTeleport(mDestPos, mDirection, this);
+			if (teleport)
 			{
-				if (tst == 2) // don't look back for this tst
-					continue;
-
-				int tstDir = (mDirection + tst) % 4;
-
-				v2i dircase = mDestPos;
-				dircase += movesVector[tstDir];
-
-				if (availableCases[tstDir])
-				{
-					count_available++;
-				}
-			}
-
-			if ((availableCases[mDirection]) && ((count_available == 1) || !haskeypressed)) // continue on it's path
-			{
-				mCurrentPos = mDestPos;
-				mDestPos = rpos;
-				mDestPos += movesVector[mDirection];
-			}
-			else // can choose another direction
-			{
-				mCurrentPos = mDestPos;
 				newpos = mCurrentPos;
-				rpos = getRoundPos();
-				mDirection = -1;
+			}
+			else
+			{
+				// check if it's possible to change direction
+				std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
+
+				int count_available = 0;
+				for (int tst = 0; tst < 4; tst++)
+				{
+					if (tst == 2) // don't look back for this tst
+						continue;
+
+					int tstDir = (mDirection + tst) % 4;
+
+					v2i dircase = mDestPos;
+					dircase += movesVector[tstDir];
+
+					if (availableCases[tstDir])
+					{
+						count_available++;
+					}
+				}
+
+				if ((availableCases[mDirection]) && ((count_available == 1) || !haskeypressed)) // continue on it's path
+				{
+					mCurrentPos = mDestPos;
+					mDestPos = rpos;
+					mDestPos += movesVector[mDirection];
+				}
+				else // can choose another direction
+				{
+					mCurrentPos = mDestPos;
+					newpos = mCurrentPos;
+					rpos = getRoundPos();
+					mDirection = -1;
+				}
 			}
 		}
 
@@ -161,4 +206,14 @@ void Player::Update(const Timer& timer, void* addParam)
 	}
 
 	mBoard->checkEat(rpos);
+
+}
+
+void Player::startHunting()
+{
+	if (mIsDead)
+		return;
+
+	KigsCore::GetNotificationCenter()->postNotificationName("PacManHunting");
+
 }
