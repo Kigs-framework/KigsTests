@@ -122,19 +122,9 @@ void Player::Update(const Timer& timer, void* addParam)
 
 	if (mDirection >= 0)
 	{
-		double dt = timer.GetDt(this);
-		if (dt > 0.1)
-		{
-			dt = 0.1;
-		}
-		v2f dtmove(movesVector[mDirection].x, movesVector[mDirection].y);
-		newpos += dtmove * dt * mSpeed;
+		bool destReached = moveToDest(timer, newpos);
 
-		// too far ? 
-		v2f dpos = newpos + dtmove * dt * mSpeed - mCurrentPos;
-		v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
-
-		if (Dot(dDest, dpos) < 0.0f)
+		if (destReached)
 		{
 			bool teleport = mBoard->manageTeleport(mDestPos, mDirection, this);
 			if (teleport)
@@ -145,25 +135,16 @@ void Player::Update(const Timer& timer, void* addParam)
 			{
 				// check if it's possible to change direction
 				std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
-
-				int count_available = 0;
-				for (int tst = 0; tst < 4; tst++)
+				// if direction is not available continue
+				if (haskeypressed)
 				{
-					if (tst == 2) // don't look back for this tst
-						continue;
-
-					int tstDir = (mDirection + tst) % 4;
-
-					v2i dircase = mDestPos;
-					dircase += movesVector[tstDir];
-
-					if (availableCases[tstDir])
+					if (!availableCases[mKeyDirection.second])
 					{
-						count_available++;
+						haskeypressed = false;
 					}
 				}
 
-				if ((availableCases[mDirection]) && ((count_available == 1) || !haskeypressed)) // continue on it's path
+				if (availableCases[mDirection] && (!haskeypressed)) // continue on it's path
 				{
 					mCurrentPos = mDestPos;
 					mDestPos = rpos;
