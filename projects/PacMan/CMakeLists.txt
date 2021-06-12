@@ -14,8 +14,7 @@ endif()
 
 set(PacMan_GUID_CMAKE "AB30A9E2-878F-4B5A-AFE4-2F0F2B6D9C8E" CACHE INTERNAL "PacMan GUID")
 
-target_link_libraries(PacMan PRIVATE DataDrivenApplication)
-#target_link_libraries(PacMan PRIVATE Holographic)
+target_link_libraries(PacMan PRIVATE DataDrivenApplication CoreFSM)
 
 target_include_directories(PacMan PRIVATE "Headers")
 

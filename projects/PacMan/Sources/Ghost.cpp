@@ -1,0 +1,462 @@
+#include "Ghost.h"
+#include "Core.h"
+#include "CoreFSM.h"
+#include "Board.h"
+#include "Timer.h"
+
+#define DEFAULT_SPEED	4.0f
+#define LOW_SPEED		2.0f
+#define HIGH_SPEED		5.0f
+
+IMPLEMENT_CLASS_INFO(Ghost)
+
+Ghost::Ghost(const kstl::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
+{
+
+}
+
+void	Ghost::InitModifiable()
+{
+	ParentClassType::InitModifiable();
+	if (IsInit())
+	{
+		// graphic representation first
+
+		std::string ghostName="Pacman.json:";
+		ghostName += (std::string)mName;
+
+		mGraphicRepresentation = KigsCore::GetInstanceOf("ghost", "UIImage");
+		mGraphicRepresentation->setValue("TextureName", ghostName);
+		mGraphicRepresentation->setValue("Anchor", v2f(0.5f, 0.5f));
+		mGraphicRepresentation->setValue("Priority", 15);
+		mBoard->getGraphicInterface()->addItem(mGraphicRepresentation);
+		mGraphicRepresentation->Init();
+
+		// add FSM
+		SP<CoreFSM> fsm = KigsCore::GetInstanceOf("fsm", "CoreFSM");
+		addItem(fsm);
+		// Appear state
+		fsm->addState("Appear", new CoreFSMStateClass(Ghost, Appear)());
+		SP<CoreFSMTransition> wait = KigsCore::GetInstanceOf("wait", "CoreFSMDelayTransition");
+		wait->setState("FreeMove");
+		wait->Init();
+		fsm->getState("Appear")->AddTransition(wait);
+
+		// FreeMove state
+		fsm->addState("FreeMove", new CoreFSMStateClass(Ghost, FreeMove)());
+		SP<CoreFSMTransition> pacmanHunting = KigsCore::GetInstanceOf("pacmanHunting", "CoreFSMOnEventTransition");
+		pacmanHunting->setValue("EventName", "PacManHunting");
+		pacmanHunting->setState("Hunted");
+		pacmanHunting->Init();
+		fsm->getState("FreeMove")->AddTransition(pacmanHunting);
+		SP<CoreFSMTransition> hunt = KigsCore::GetInstanceOf("hunt", "CoreFSMOnMethodTransition");
+		hunt->setValue("MethodName", "seePacMan");
+		hunt->setState("Hunting");
+		hunt->Init();
+		fsm->getState("FreeMove")->AddTransition(hunt);
+
+
+		// pacman die transition
+		SP<CoreFSMTransition> pacmanDie = KigsCore::GetInstanceOf("pacmanDie", "CoreFSMOnEventTransition");
+		pacmanDie->setValue("EventName", "PacManDie");
+		pacmanDie->setState("FreeMove");
+		pacmanDie->Init();
+
+		// Hunting state
+		fsm->addState("Hunting", new CoreFSMStateClass(Ghost, Hunting)());
+		fsm->getState("Hunting")->AddTransition(pacmanHunting);
+		fsm->getState("Hunting")->AddTransition(pacmanDie);
+		SP<CoreFSMTransition> pacmanNotVisible = KigsCore::GetInstanceOf("pacmanNotVisible", "CoreFSMOnValueTransition");
+		pacmanNotVisible->setValue("ValueName", "PacManNotVisible");
+		pacmanNotVisible->setState("FreeMove");
+		pacmanNotVisible->Init();
+		fsm->getState("Hunting")->AddTransition(pacmanNotVisible);
+
+		// Hunted state
+		fsm->addState("Hunted", new CoreFSMStateClass(Ghost, Hunted)());
+		SP<CoreFSMTransition> die = KigsCore::GetInstanceOf("die", "CoreFSMOnMethodTransition");
+		die->setValue("MethodName", "checkDead");
+		die->setState("Die");
+		fsm->getState("Hunted")->AddTransition(die);
+		SP<CoreFSMTransition> HuntedEnd = KigsCore::GetInstanceOf("HuntedEnd", "CoreFSMDelayTransition");
+		HuntedEnd->setState("FreeMove");
+		HuntedEnd->setValue("Delay", 7.0f);
+		HuntedEnd->Init();
+		fsm->getState("Hunted")->AddTransition(HuntedEnd);
+
+		// Die state
+		fsm->addState("Die", new CoreFSMStateClass(Ghost, Die)());
+		SP<CoreFSMTransition> waitresurect = KigsCore::GetInstanceOf("waitresurect", "CoreFSMDelayTransition");
+		waitresurect->setState("Appear");
+		waitresurect->Init();
+		fsm->getState("Die")->AddTransition(waitresurect);
+
+
+		fsm->setStartState("Appear");
+		fsm->Init();
+
+	}
+	
+}
+
+void Ghost::checkForNewDirectionNeed()
+{
+	// check if it's possible to change direction
+	std::vector<bool> availableCases = mBoard->getAvailableDirection(mDestPos);
+
+	int count_available = 0;
+	for (int tst = 0; tst < 4; tst++)
+	{
+		if (tst == 2) // don't look back for this tst
+			continue;
+
+		int tstDir = (mDirection + tst) % 4;
+
+		v2i dircase = mDestPos;
+		dircase += movesVector[tstDir];
+
+		if (mBoard->checkForGhostOnCase(dircase, this)) // this case is occupied
+		{
+			availableCases[tstDir] = false;
+		}
+
+		if (availableCases[tstDir])
+		{
+			count_available++;
+		}
+	}
+
+	if ((availableCases[mDirection]) && (count_available == 1)) // ghost can continue on it's path
+	{
+		mDestPos += movesVector[mDirection];
+	}
+	else // choose another direction
+	{
+		mCurrentPos = mDestPos;
+		mDirection = -1;
+	}
+}
+
+void	Ghost::chooseNewDirection(int prevdirection, int prevdirweight)
+{
+	v2i rpos = getRoundPos();
+	std::vector<bool> availableCases = mBoard->getAvailableDirection(rpos);
+
+	std::vector<std::pair<int, v2i>> reallyAvailable;
+
+	// check if other ghost is on available case
+	for (int direction = 0; direction < 4; direction++)
+	{
+		v2i dircase = rpos;
+		dircase += movesVector[direction];
+
+		if (mBoard->checkForGhostOnCase(dircase, this))
+		{
+			availableCases[direction] = false;
+		}
+
+		reallyAvailable.push_back({ availableCases[direction] ? direction : -1,dircase });
+	}
+
+	// duplicate current direction, and side direction ( give more weight to move forward )
+	if (prevdirection >= 0)
+	{
+		int halfprevdir = (prevdirweight / 2) + 1;
+		int cornerprevdir = (prevdirweight / 6) + 1;
+		for (int w = 0; w < halfprevdir; w++)
+		{
+			reallyAvailable.push_back(reallyAvailable[prevdirection]);
+		}
+		for (int w = 0; w < cornerprevdir; w++)
+		{
+			for (int direction = 0; direction < 4; direction++)
+			{
+				if (direction == 2)
+					continue;
+
+				int tstDir = (prevdirection + direction) % 4;
+				reallyAvailable.push_back(reallyAvailable[tstDir]);
+			}
+		}
+	}
+
+	// then just keep available dirs
+	std::vector<std::pair<int, v2i>> onlyAvailable;
+	for (int direction = 0; direction < reallyAvailable.size(); direction++)
+	{
+		if (reallyAvailable[direction].first >= 0)
+		{
+			onlyAvailable.push_back(reallyAvailable[direction]);
+		}
+	}
+
+
+	if (onlyAvailable.size())
+	{
+		/*float stats[4] = { 0.0f,0.0f,0.0f,0.0f };
+		for (auto o : onlyAvailable)
+		{
+			stats[o.first] += 1.0f;
+		}
+		*/
+		auto choose = onlyAvailable[rand() % onlyAvailable.size()];
+		mDirection = choose.first;
+		mDestPos = choose.second;
+
+		/*if(prevdirweight>1)
+			printf("choosed direction chances = %f\n", stats[mDirection] / onlyAvailable.size());*/
+
+	}
+}
+
+// FSM
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, Appear)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* gh = static_cast<Ghost*>(toUpgrade);
+	Board* b = gh->getBoard();
+	// set ghost pos
+	if (b)
+	{
+		v2i pos=b->getAppearPosForGhost();
+		gh->initAtPos(pos);
+		gh->setDead(false); // happy resurection
+	}
+}
+// destroy UpgradorData and remove dynamic attributes 
+void	CoreFSMStateClass(Ghost, Appear)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Appear))
+{
+	// empty update
+}
+// 
+DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, FreeMove), seePacMan)
+{
+	v2i rpos = getRoundPos();
+	v2i pmpos = mBoard->ghostSeePacman(rpos);
+	if (pmpos.x != -1)
+		return true;
+
+	return false;
+}
+
+
+// update 
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
+{
+	v2f newpos = mCurrentPos;
+	int prevdirection = mDirection;
+
+	if (mDirection >= 0)
+	{
+		bool destReached = moveToDest(timer, newpos);
+		
+		if (destReached)
+		{
+			checkForNewDirectionNeed();
+		}
+
+		if (mDirection == -1)
+		{
+			newpos = mCurrentPos;
+		}
+
+		setCurrentPos(newpos);
+	}
+
+	if (mDirection == -1) // no given direction
+	{
+		chooseNewDirection(prevdirection);
+	}
+}
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, FreeMove)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
+	thisghost->getGraphicRepresentation()->setValue("RotationAngle", 0);
+}
+// destroy UpgradorData and remove dynamic attributes 
+void	CoreFSMStateClass(Ghost, FreeMove)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+{
+
+}
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, Hunting)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
+	mPacmanSeenPos =thisghost->getBoard()->ghostSeePacman(thisghost->getCurrentPos());
+	// compute direction
+	thisghost->getGraphicRepresentation()->setValue("RotationAngle",PI);
+
+	toUpgrade->AddDynamicAttribute(CoreModifiable::ATTRIBUTE_TYPE::BOOL, "PacManNotVisible", false);
+
+	// higher speed a bit
+	thisghost->setSpeed(HIGH_SPEED);
+
+}
+
+// destroy UpgradorData and remove dynamic attributes 
+void	CoreFSMStateClass(Ghost, Hunting)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+{
+	toDowngrade->RemoveDynamicAttribute("PacManNotVisible");
+	Ghost* thisghost = static_cast<Ghost*>(toDowngrade);
+	thisghost->getGraphicRepresentation()->setValue("RotationAngle", 0.0f);
+
+	// go back to normal speed 
+	thisghost->setSpeed(DEFAULT_SPEED);
+
+}
+
+
+// update
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunting))
+{
+	v2i lastPacmanpos=GetUpgrador()->mPacmanSeenPos;
+
+	v2f newpos = mCurrentPos;
+	v2i	currenPos = getRoundPos();
+
+	v2i pmpos = mBoard->ghostSeePacman(currenPos);
+	if (pmpos.x != -1) // update last pacmanpos
+	{
+		GetUpgrador()->mPacmanSeenPos = pmpos;
+		lastPacmanpos = pmpos;
+	}
+
+	int prevdirection = mBoard->directionFromDelta(lastPacmanpos- currenPos);
+
+	if (mDirection >= 0)
+	{
+		bool destReached = moveToDest(timer, newpos);
+
+		if (destReached)
+		{
+			if ((pmpos.x == -1) && (lastPacmanpos == mDestPos)) // pacman not found and last pacman pos reached, go back to freemove
+			{
+				setValue("PacManNotVisible", true);
+			}
+			checkForNewDirectionNeed();
+		}
+
+		if (mDirection == -1)
+		{
+			newpos = mCurrentPos;
+		}
+
+		setCurrentPos(newpos);
+	}
+
+	if (mDirection == -1) // no given direction
+	{
+		//printf("hunting direction = %d \n", prevdirection);
+		chooseNewDirection(prevdirection,12); 
+		//printf("choosed direction = %d \n", mDirection);
+	}
+}
+
+
+// create and init Upgrador if needed and add dynamic attributes
+void	CoreFSMStateClass(Ghost, Hunted)::Init(CoreModifiable* toUpgrade)
+{
+	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
+	// compute direction
+	std::string ghostName = "Pacman.json:blue_ghost";
+	thisghost->getGraphicRepresentation()->setValue("TextureName", ghostName);
+	thisghost->setHunted(true);
+
+	// lower speed a bit
+	thisghost->setSpeed(LOW_SPEED);
+
+
+}
+// destroy UpgradorData and remove dynamic attributes 
+void	CoreFSMStateClass(Ghost, Hunted)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+{
+	Ghost* thisghost = static_cast<Ghost*>(toDowngrade);
+	std::string ghostName = "Pacman.json:";
+	ghostName += thisghost->getValue<std::string>("Name");
+	thisghost->getGraphicRepresentation()->setValue("TextureName", ghostName);
+	thisghost->setHunted(false);
+
+	// go back to "normal" speed
+	thisghost->setSpeed(DEFAULT_SPEED);
+
+
+}
+
+DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, Hunted), checkDead)
+{
+	if(mIsDead)
+		return true;
+
+	return false;
+}
+
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunted))
+{
+
+	SP<CoreFSMDelayTransition> delaytrans = GetUpgrador()->getTransition("HuntedEnd");
+	if (delaytrans)
+	{
+		// less than 2 seconds, make the ghost flash
+		double remain=delaytrans->getRemainingTime();
+		if (remain < 2.0f)
+		{
+			int texture = round(remain * 8.0f);
+			std::string ghostName = "Pacman.json:blue_ghost";
+			if (texture & 1)
+			{
+				ghostName = "Pacman.json:";
+				ghostName += (std::string) mName;
+			}
+			getGraphicRepresentation()->setValue("TextureName", ghostName);
+		}
+	}
+
+	v2f newpos = mCurrentPos;
+	v2i	currenPos = getRoundPos();
+
+	v2i pmpos = mBoard->ghostSeePacman(currenPos);
+
+	int prevdirection = mDirection;
+
+	if (pmpos.x != -1)
+	{
+		prevdirection = mBoard->directionFromDelta(currenPos - pmpos);
+	}
+
+	if (mDirection >= 0)
+	{
+		bool destReached = moveToDest(timer, newpos);
+
+		if (destReached)
+		{
+			checkForNewDirectionNeed();
+		}
+
+		if (mDirection == -1)
+		{
+			newpos = mCurrentPos;
+		}
+
+		setCurrentPos(newpos);
+	}
+
+	if (mDirection == -1) // no given direction
+	{
+		chooseNewDirection(prevdirection, 8);
+	}
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Die))
+{
+
+}

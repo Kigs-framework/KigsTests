@@ -5,8 +5,9 @@ class Case
 {
 protected:
 
-	u32	mInitType;
-	u32	mCurrentType;
+	u32		mInitType;
+	u32		mCurrentType;
+	CMSP	mGraphicRep =nullptr;
 public:
 
 	Case() : mInitType(-1), mCurrentType(-1)
@@ -39,7 +40,7 @@ public:
 		mCurrentType = cType;
 	}
 
-	u32 getType()
+	u32 getType() const
 	{
 		return mCurrentType;
 	}
@@ -47,5 +48,15 @@ public:
 	void reset()
 	{
 		mCurrentType = mInitType;
+	}
+
+	void	setGraphicRepresentation(CMSP rep)
+	{
+		mGraphicRep = rep;
+	}
+
+	CMSP getGraphicRepresentation()
+	{
+		return mGraphicRep;
 	}
 };
