@@ -6,6 +6,8 @@
 #include "ModuleThread.h"
 #include "Thread.h"
 
+//#define REALLY_SIMPLE
+
 volatile bool	Arbres::mIsLocked=true;
 
 IMPLEMENT_CLASS_INFO(Arbres);
@@ -76,7 +78,11 @@ void	Arbres::generateLabyrinthe()
 {
 
 	// create Case Array
+#ifdef REALLY_SIMPLE
+	mLabyrintheSize.Set(7, 7);
+#else
 	mLabyrintheSize.Set(35, 25);
+#endif
 	mLabyrinthe = new Case * [mLabyrintheSize.y];
 	for (int i = 0; i < mLabyrintheSize.y; i++)
 	{
@@ -574,7 +580,11 @@ void	Arbres::launchLaby()
 void	Arbres::firstfound()
 {
 	mAI = new FirstFound();
+#ifdef REALLY_SIMPLE
+	setupLabyrinthe(2, 0);
+#else
 	setupLabyrinthe(60,0);	
+#endif
 }
 void	Arbres::bestfound()
 {
@@ -591,7 +601,11 @@ void	Arbres::dijkstra()
 void	Arbres::astar()
 {
 	mAI = new AStar();
+#ifdef REALLY_SIMPLE
+	setupLabyrinthe(2, 3);
+#else
 	setupLabyrinthe(80,800);
+#endif
 }
 
 void	Arbres::showHideControls(bool show)
