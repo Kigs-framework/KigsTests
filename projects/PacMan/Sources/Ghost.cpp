@@ -211,21 +211,19 @@ void	Ghost::chooseNewDirection(int prevdirection, int prevdirweight)
 
 // FSM
 
-// create and init Upgrador if needed and add dynamic attributes
-void	CoreFSMStateClass(Ghost, Appear)::Init(CoreModifiable* toUpgrade)
+void CoreFSMStartMethod(Ghost, Appear)
 {
-	Ghost* gh = static_cast<Ghost*>(toUpgrade);
-	Board* b = gh->getBoard();
+	Board* b = getBoard();
 	// set ghost pos
 	if (b)
 	{
-		v2i pos=b->getAppearPosForGhost();
-		gh->initAtPos(pos);
-		gh->setDead(false); // happy resurection
+		v2i pos = b->getAppearPosForGhost();
+		initAtPos(pos);
+		setDead(false); // happy resurection
 	}
 }
-// destroy UpgradorData and remove dynamic attributes 
-void	CoreFSMStateClass(Ghost, Appear)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+
+void CoreFSMStopMethod(Ghost, Appear)
 {
 
 }
@@ -234,7 +232,16 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Appear))
 {
 	// empty update
 }
-// 
+
+void	CoreFSMStartMethod(Ghost, FreeMove)
+{
+	getGraphicRepresentation()->setValue("RotationAngle", 0);
+}
+void	CoreFSMStopMethod(Ghost, FreeMove)
+{
+
+}
+
 DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, FreeMove), seePacMan)
 {
 	v2i rpos = getRoundPos();
@@ -275,45 +282,25 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 	}
 }
 
-// create and init Upgrador if needed and add dynamic attributes
-void	CoreFSMStateClass(Ghost, FreeMove)::Init(CoreModifiable* toUpgrade)
+void	CoreFSMStartMethod(Ghost, Hunting)
 {
-	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
-	thisghost->getGraphicRepresentation()->setValue("RotationAngle", 0);
-}
-// destroy UpgradorData and remove dynamic attributes 
-void	CoreFSMStateClass(Ghost, FreeMove)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
-{
-
-}
-
-// create and init Upgrador if needed and add dynamic attributes
-void	CoreFSMStateClass(Ghost, Hunting)::Init(CoreModifiable* toUpgrade)
-{
-	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
-	mPacmanSeenPos =thisghost->getBoard()->ghostSeePacman(thisghost->getCurrentPos());
+	GetUpgrador()->mPacmanSeenPos = getBoard()->ghostSeePacman(getCurrentPos());
 	// compute direction
-	thisghost->getGraphicRepresentation()->setValue("RotationAngle",PI);
+	getGraphicRepresentation()->setValue("RotationAngle", PI);
 
-	toUpgrade->AddDynamicAttribute(CoreModifiable::ATTRIBUTE_TYPE::BOOL, "PacManNotVisible", false);
+	AddDynamicAttribute(CoreModifiable::ATTRIBUTE_TYPE::BOOL, "PacManNotVisible", false);
 
 	// higher speed a bit
-	thisghost->setSpeed(HIGH_SPEED);
-
+	setSpeed(HIGH_SPEED);
 }
-
-// destroy UpgradorData and remove dynamic attributes 
-void	CoreFSMStateClass(Ghost, Hunting)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+void	CoreFSMStopMethod(Ghost, Hunting)
 {
-	toDowngrade->RemoveDynamicAttribute("PacManNotVisible");
-	Ghost* thisghost = static_cast<Ghost*>(toDowngrade);
-	thisghost->getGraphicRepresentation()->setValue("RotationAngle", 0.0f);
+	RemoveDynamicAttribute("PacManNotVisible");
+	getGraphicRepresentation()->setValue("RotationAngle", 0.0f);
 
 	// go back to normal speed 
-	thisghost->setSpeed(DEFAULT_SPEED);
-
+	setSpeed(DEFAULT_SPEED);
 }
-
 
 // update
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunting))
@@ -362,33 +349,24 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunting))
 }
 
 
-// create and init Upgrador if needed and add dynamic attributes
-void	CoreFSMStateClass(Ghost, Hunted)::Init(CoreModifiable* toUpgrade)
+void	CoreFSMStartMethod(Ghost, Hunted)
 {
-	Ghost* thisghost = static_cast<Ghost*>(toUpgrade);
-	// compute direction
 	std::string ghostName = "Pacman.json:blue_ghost";
-	thisghost->getGraphicRepresentation()->setValue("TextureName", ghostName);
-	thisghost->setHunted(true);
+	getGraphicRepresentation()->setValue("TextureName", ghostName);
+	setHunted(true);
 
 	// lower speed a bit
-	thisghost->setSpeed(LOW_SPEED);
-
-
+	setSpeed(LOW_SPEED);
 }
-// destroy UpgradorData and remove dynamic attributes 
-void	CoreFSMStateClass(Ghost, Hunted)::Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted)
+void	CoreFSMStopMethod(Ghost, Hunted)
 {
-	Ghost* thisghost = static_cast<Ghost*>(toDowngrade);
 	std::string ghostName = "Pacman.json:";
-	ghostName += thisghost->getValue<std::string>("Name");
-	thisghost->getGraphicRepresentation()->setValue("TextureName", ghostName);
-	thisghost->setHunted(false);
+	ghostName += getValue<std::string>("Name");
+	getGraphicRepresentation()->setValue("TextureName", ghostName);
+	setHunted(false);
 
 	// go back to "normal" speed
-	thisghost->setSpeed(DEFAULT_SPEED);
-
-
+	setSpeed(DEFAULT_SPEED);
 }
 
 DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, Hunted), checkDead)
@@ -398,7 +376,6 @@ DEFINE_UPGRADOR_METHOD(CoreFSMStateClass(Ghost, Hunted), checkDead)
 
 	return false;
 }
-
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunted))
 {
@@ -454,6 +431,17 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunted))
 	{
 		chooseNewDirection(prevdirection, 8);
 	}
+}
+
+
+void CoreFSMStartMethod(Ghost, Die)
+{
+	
+}
+
+void CoreFSMStopMethod(Ghost, Die)
+{
+
 }
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Die))

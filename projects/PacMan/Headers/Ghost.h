@@ -38,35 +38,22 @@ protected:
 
 
 START_DECLARE_COREFSMSTATE(Ghost, Appear)
-// create and init Upgrador if needed and add dynamic attributes
-virtual void	Init(CoreModifiable* toUpgrade) override;
-// destroy UpgradorData and remove dynamic attributes 
-virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
-UPGRADOR_WITHOUT_METHODS()
+COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, FreeMove)
-// create and init Upgrador if needed and add dynamic attributes
-virtual void	Init(CoreModifiable* toUpgrade) override;
-// destroy UpgradorData and remove dynamic attributes 
-virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
-UPGRADOR_METHODS(seePacMan)
+COREFSMSTATE_METHODS(seePacMan)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunting)
-virtual void	Init(CoreModifiable* toUpgrade) override;
-// destroy UpgradorData and remove dynamic attributes 
-virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
 v2i	mPacmanSeenPos;
-UPGRADOR_WITHOUT_METHODS();
+COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Hunted)
-virtual void	Init(CoreModifiable* toUpgrade) override;
-virtual void	Destroy(CoreModifiable* toDowngrade, bool toDowngradeDeleted) override;
-UPGRADOR_METHODS(checkDead)
+COREFSMSTATE_METHODS(checkDead)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(Ghost, Die)
-UPGRADOR_WITHOUT_METHODS()
+COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
