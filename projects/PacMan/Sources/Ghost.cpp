@@ -40,7 +40,7 @@ void	Ghost::InitModifiable()
 		SP<CoreFSMTransition> wait = KigsCore::GetInstanceOf("wait", "CoreFSMDelayTransition");
 		wait->setState("FreeMove");
 		wait->Init();
-		fsm->getState("Appear")->AddTransition(wait);
+		fsm->getState("Appear")->addTransition(wait);
 
 		// FreeMove state
 		fsm->addState("FreeMove", new CoreFSMStateClass(Ghost, FreeMove)());
@@ -48,12 +48,12 @@ void	Ghost::InitModifiable()
 		pacmanHunting->setValue("EventName", "PacManHunting");
 		pacmanHunting->setState("Hunted");
 		pacmanHunting->Init();
-		fsm->getState("FreeMove")->AddTransition(pacmanHunting);
+		fsm->getState("FreeMove")->addTransition(pacmanHunting);
 		SP<CoreFSMTransition> hunt = KigsCore::GetInstanceOf("hunt", "CoreFSMOnMethodTransition");
 		hunt->setValue("MethodName", "seePacMan");
 		hunt->setState("Hunting");
 		hunt->Init();
-		fsm->getState("FreeMove")->AddTransition(hunt);
+		fsm->getState("FreeMove")->addTransition(hunt);
 
 
 		// pacman die transition
@@ -64,32 +64,32 @@ void	Ghost::InitModifiable()
 
 		// Hunting state
 		fsm->addState("Hunting", new CoreFSMStateClass(Ghost, Hunting)());
-		fsm->getState("Hunting")->AddTransition(pacmanHunting);
-		fsm->getState("Hunting")->AddTransition(pacmanDie);
+		fsm->getState("Hunting")->addTransition(pacmanHunting);
+		fsm->getState("Hunting")->addTransition(pacmanDie);
 		SP<CoreFSMTransition> pacmanNotVisible = KigsCore::GetInstanceOf("pacmanNotVisible", "CoreFSMOnValueTransition");
 		pacmanNotVisible->setValue("ValueName", "PacManNotVisible");
 		pacmanNotVisible->setState("FreeMove");
 		pacmanNotVisible->Init();
-		fsm->getState("Hunting")->AddTransition(pacmanNotVisible);
+		fsm->getState("Hunting")->addTransition(pacmanNotVisible);
 
 		// Hunted state
 		fsm->addState("Hunted", new CoreFSMStateClass(Ghost, Hunted)());
 		SP<CoreFSMTransition> die = KigsCore::GetInstanceOf("die", "CoreFSMOnMethodTransition");
 		die->setValue("MethodName", "checkDead");
 		die->setState("Die");
-		fsm->getState("Hunted")->AddTransition(die);
+		fsm->getState("Hunted")->addTransition(die);
 		SP<CoreFSMTransition> HuntedEnd = KigsCore::GetInstanceOf("HuntedEnd", "CoreFSMDelayTransition");
 		HuntedEnd->setState("FreeMove");
 		HuntedEnd->setValue("Delay", 7.0f);
 		HuntedEnd->Init();
-		fsm->getState("Hunted")->AddTransition(HuntedEnd);
+		fsm->getState("Hunted")->addTransition(HuntedEnd);
 
 		// Die state
 		fsm->addState("Die", new CoreFSMStateClass(Ghost, Die)());
 		SP<CoreFSMTransition> waitresurect = KigsCore::GetInstanceOf("waitresurect", "CoreFSMDelayTransition");
 		waitresurect->setState("Appear");
 		waitresurect->Init();
-		fsm->getState("Die")->AddTransition(waitresurect);
+		fsm->getState("Die")->addTransition(waitresurect);
 
 
 		fsm->setStartState("Appear");
