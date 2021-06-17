@@ -296,8 +296,10 @@ void	CoreFSMStartMethod(Ghost, Hunting)
 void	CoreFSMStopMethod(Ghost, Hunting)
 {
 	RemoveDynamicAttribute("PacManNotVisible");
-	getGraphicRepresentation()->setValue("RotationAngle", 0.0f);
-
+	if (getGraphicRepresentation())
+	{
+		getGraphicRepresentation()->setValue("RotationAngle", 0.0f);
+	}
 	// go back to normal speed 
 	setSpeed(DEFAULT_SPEED);
 }
@@ -360,9 +362,12 @@ void	CoreFSMStartMethod(Ghost, Hunted)
 }
 void	CoreFSMStopMethod(Ghost, Hunted)
 {
-	std::string ghostName = "Pacman.json:";
-	ghostName += getValue<std::string>("Name");
-	getGraphicRepresentation()->setValue("TextureName", ghostName);
+	if (getGraphicRepresentation())
+	{
+		std::string ghostName = "Pacman.json:";
+		ghostName += getValue<std::string>("Name");
+		getGraphicRepresentation()->setValue("TextureName", ghostName);
+	}
 	setHunted(false);
 
 	// go back to "normal" speed

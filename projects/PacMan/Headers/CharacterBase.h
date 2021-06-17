@@ -75,14 +75,13 @@ public:
 		return mDestPos;
 	}
 
-	float getSpeed()
-	{
-		return mSpeed;
-	}
-
 	void setSpeed(float s)
 	{
 		mSpeed = s;
+	}
+	void	setSpeedCoef(float sc)
+	{
+		mSpeedCoef = sc;
 	}
 
 	int getDirection()
@@ -94,6 +93,8 @@ public:
 	{
 		mDestPos = dp;
 	}
+
+	virtual ~CharacterBase();
 
 protected:
 	
@@ -111,4 +112,5 @@ protected:
 	v2i			mDestPos;
 
 	float		mSpeed = 4.0f;
+	float		mSpeedCoef = 1.0;
 };

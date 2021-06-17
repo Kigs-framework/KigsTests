@@ -70,14 +70,22 @@ void	Board::manageTouchGhost()
 			if (mGhosts[i]->isHunted())
 			{
 				mGhosts[i]->setDead();
-				mScore += 200;
+				mDeltaScore += 200;
 			}
 			else 
 			{
 				KigsCore::GetNotificationCenter()->postNotificationName("PacManDie");
 				mPlayer->setDead();
-				if(mLives)
-					mLives -= 1;
+				int lives = KigsCore::GetCoreApplication()->getValue<int>("Lives");
+				if (lives)
+				{
+					lives -= 1;
+					KigsCore::GetCoreApplication()->setValue("Lives",lives);
+					if (lives ==0)
+					{
+						KigsCore::GetNotificationCenter()->postNotificationName("GameOver");
+					}
+				}
 				break;
 			}
 		}
@@ -107,6 +115,10 @@ Board::Board(const std::string& filename, SP<UIItem> minterface) : mParentInterf
 				{
 					mGhostAppearPos.push_back({ j,i });
 				}
+				else if ((int)cases[caseIndex] == 2)
+				{
+					mTotalEatCount++;
+				}
 
 				caseIndex++;
 			}
@@ -116,7 +128,7 @@ Board::Board(const std::string& filename, SP<UIItem> minterface) : mParentInterf
 	mScreenSize = mParentInterface->getValue<v2f>("Size");
 }
 
-void	Board::InitGhosts()
+void	Board::InitGhosts(float speedcoef)
 {
 	// Init Ghosts
 	for (int i = 0; i < 4; i++)
@@ -124,20 +136,31 @@ void	Board::InitGhosts()
 		mGhosts.push_back(KigsCore::GetInstanceOf("gg", "Ghost"));
 		mGhosts.back()->setBoard(this);
 		mGhosts.back()->setValue("Name", ghostNames[i]);
+		mGhosts.back()->setSpeedCoef(speedcoef);
 		mGhosts.back()->Init();
 	}
 }
 
-void	Board::InitPlayer()
+void	Board::InitPlayer(float speedcoef)
 {
 	mPlayer= KigsCore::GetInstanceOf("player", "Player");
 	mPlayer->setBoard(this);
+	mPlayer->setSpeedCoef(speedcoef);
 	mPlayer->Init();
 }
 
+Board::~Board()
+{
+	mGhosts.clear();
+	mParentInterface->removeItem(mLabyBG);
+	mLabyBG = nullptr;
+	mPlayer = nullptr;
+}
+
+
 void	Board::Update()
 {
-	if (mLives == 0)
+	if (KigsCore::GetCoreApplication()->getValue<int>("Lives") == 0)
 		return;
 	const auto& t=KigsCore::GetCoreApplication()->GetApplicationTimer();
 	for (auto g : mGhosts)
@@ -147,8 +170,17 @@ void	Board::Update()
 
 	manageTouchGhost();
 
-	mParentInterface["Score"]("Text") = "Score : " + std::to_string(mScore);
-	mParentInterface["Lives"]("Text") = "Lives : " + std::to_string(mLives);
+	// update application score
+
+	int score = KigsCore::GetCoreApplication()->getValue<int>("Score");
+	score += mDeltaScore;
+	mDeltaScore = 0;
+	KigsCore::GetCoreApplication()->setValue("Score",score);
+
+	if (mEatCount == mTotalEatCount)
+	{
+		KigsCore::GetNotificationCenter()->postNotificationName("LevelWon");
+	}
 }
 
 bool	Board::manageTeleport(const v2i& pos, int direction, CharacterBase* character)
@@ -374,9 +406,11 @@ void	Board::checkEat(const v2i& pos)
 	{
 	case 4:
 		mPlayer->startHunting();
-		mScore += 90;
+		mDeltaScore += 90;
+		mEatCount--;
 	case 2:
-		mScore += 10;
+		mDeltaScore += 10;
+		mEatCount++;
 		needRemoveGraphicRep = true;
 		break;
 	}
@@ -387,6 +421,7 @@ void	Board::checkEat(const v2i& pos)
 		mCases[pos.y][pos.x].setType(0);
 		mCases[pos.y][pos.x].setGraphicRepresentation(nullptr);
 	}
+
 }
 
 

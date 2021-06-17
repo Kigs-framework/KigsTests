@@ -9,6 +9,16 @@ CharacterBase::CharacterBase(const kstl::string& name, CLASS_NAME_TREE_ARG) : Co
 
 }
 
+CharacterBase::~CharacterBase()
+{
+	if (mBoard && mGraphicRepresentation)
+	{
+		mBoard->getGraphicInterface()->removeItem(mGraphicRepresentation);
+		mBoard = nullptr;
+		mGraphicRepresentation = nullptr;
+	}
+}
+
 void	CharacterBase::setCurrentPos(const v2f& pos)
 {
 	mCurrentPos = pos;
@@ -35,10 +45,10 @@ bool	CharacterBase::moveToDest(const Timer& timer,v2f& newpos)
 		dt = 0.1;
 	}
 	v2f dtmove(movesVector[mDirection].x, movesVector[mDirection].y);
-	newpos += dtmove * dt * mSpeed;
+	newpos += dtmove * dt * mSpeed*mSpeedCoef;
 
 	// dest reached ?
-	v2f dpos = (newpos + dtmove * dt * mSpeed) - mCurrentPos;
+	v2f dpos = (newpos + dtmove * dt * mSpeed * mSpeedCoef) - mCurrentPos;
 	v2f dDest = v2f(mDestPos.x, mDestPos.y) - mCurrentPos;
 
 	if (Dot(dDest, dpos) < 0.0f)

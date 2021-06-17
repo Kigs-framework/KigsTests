@@ -29,15 +29,18 @@ protected:
 	bool	checkColumnVisibility(int x, int y1, int y2);
 	bool	checkRowVisibility(int y, int x1, int x2);
 
-	u32		mScore = 0;
-	u32		mLives = 3;
 
 	void	manageTouchGhost();
 
+	u32		mTotalEatCount=0;
+	u32		mEatCount = 0;
+
+	u32		mDeltaScore = 0;
 
 public:
 
 	Board(const std::string& filename,SP<UIItem> minterface);
+	virtual ~Board();
 
 	const v2i& getBoardSize()
 	{
@@ -63,8 +66,6 @@ public:
 	int		directionFromDelta(const v2i& deltap);
 	bool	manageTeleport(const v2i& pos, int direction, CharacterBase* character);
 
-
-
 	SP<UIItem>	getGraphicInterface()
 	{
 		return mParentInterface;
@@ -72,8 +73,8 @@ public:
 
 	v2f		convertBoardPosToDock(const v2f& p);
 
-	void							InitGhosts();
-	void							InitPlayer();
+	void							InitGhosts(float speedcoef);
+	void							InitPlayer(float speedcoef);
 
 	bool	checkForGhostOnCase(const v2i& pos,const Ghost* me=nullptr);
 	bool	checkForWallOnCase(const v2i& pos);
