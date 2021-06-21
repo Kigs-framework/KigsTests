@@ -222,6 +222,12 @@ void CoreFSMStartMethod(Ghost, Appear)
 		initAtPos(pos);
 		setDead(false); // happy resurection
 	}
+	getGraphicRepresentation()->setValue("RotationAngle", 0);
+
+#ifdef DEBUG_COREFSM
+	SP<CoreFSM>	fsm = GetFirstSonByName("CoreFSM", "fsm");
+	fsm->dumpLastStates();
+#endif
 }
 
 void CoreFSMStopMethod(Ghost, Appear)
@@ -452,5 +458,10 @@ void CoreFSMStopMethod(Ghost, Die)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Die))
 {
-
+	SP<CoreFSMDelayTransition> delaytrans = GetUpgrador()->getTransition("waitresurect");
+	if (delaytrans)
+	{
+		double elapsed = delaytrans->getElapsedTime();
+		getGraphicRepresentation()->setValue("RotationAngle", 1.6f*sqrtf(elapsed));
+	}
 }
