@@ -24,6 +24,7 @@ void	Player::InitModifiable()
 		mGraphicRepresentation->setValue("CurrentAnimation", "pacman");
 		mGraphicRepresentation->setValue("Loop", "true");
 		mGraphicRepresentation->setValue("FramePerSecond", "4");
+		mGraphicRepresentation->setValue("PreScale", "{1.2,1.2}");
 		mBoard->getGraphicInterface()->addItem(mGraphicRepresentation);
 		mGraphicRepresentation->Init();
 
