@@ -238,6 +238,7 @@ void CoreFSMStopMethod(Ghost, Appear)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Appear))
 {
 	// empty update
+	return false;
 }
 
 void	CoreFSMStartMethod(Ghost, FreeMove)
@@ -287,6 +288,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, FreeMove))
 	{
 		chooseNewDirection(prevdirection);
 	}
+	return false;
 }
 
 void	CoreFSMStartMethod(Ghost, Hunting)
@@ -355,6 +357,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunting))
 		chooseNewDirection(prevdirection,12); 
 		//printf("choosed direction = %d \n", mDirection);
 	}
+	return false;
 }
 
 
@@ -443,6 +446,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Hunted))
 	{
 		chooseNewDirection(prevdirection, 8);
 	}
+	return false;
 }
 
 
@@ -464,4 +468,5 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(Ghost, Die))
 		double elapsed = delaytrans->getElapsedTime();
 		getGraphicRepresentation()->setValue("RotationAngle", 1.6f*sqrtf(elapsed));
 	}
+	return false;
 }
