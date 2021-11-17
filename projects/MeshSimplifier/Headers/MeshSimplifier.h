@@ -16,6 +16,8 @@ protected:
 	void	ProtectedUpdate() override;
 	void	ProtectedClose() override;
 
+	void NotifyUpdate(const unsigned int /* labelid */) override;
+
 	
 	void	ProtectedInitSequence(const kstl::string& sequence) override;
 	void	ProtectedCloseSequence(const kstl::string& sequence) override;
@@ -34,4 +36,6 @@ protected:
 	SmartPointer<ModernMesh>	getCube(u32 flag);
 
 	std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
+
+	maInt						mDisplayCubeCount = BASE_ATTRIBUTE(DisplayCubeCount, 100000);
 };

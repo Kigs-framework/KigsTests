@@ -102,11 +102,11 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag)
 
 	// +y
 	indices.push_back(7);
-	indices.push_back(6);
-	indices.push_back(3);
 	indices.push_back(3);
 	indices.push_back(6);
+	indices.push_back(3);
 	indices.push_back(2);
+	indices.push_back(6);
 
 	// -z
 	indices.push_back(0);
@@ -126,7 +126,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag)
 
 	// for each face
 
-	v4f	colors[3] = { {1.0,0.0,0.0,0.5},{0.0,1.0,0.0,0.5},{0.0,0.0,1.0,0.5} };
+	v4f	colors[6] = { {1.0,0.0,0.0,0.8},{1.0,1.0,0.0,0.8},{0.0,1.0,0.0,0.8},{0.0,1.0,1.0,0.8},{0.0,0.0,1.0,0.8},{1.0,0.0,1.0,0.8} };
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -136,9 +136,9 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag)
 			v4f			 C;
 		};
 
-		v4f color = colors[i / 2];
+		v4f color = colors[i];
 
-		if (flag && (1 << i))
+		if (flag & (1 << i))
 		{
 			vPlusc realvertices[6];
 			realvertices[0].v = vertices[indices[i * 6 + 0]];
@@ -222,18 +222,19 @@ void	MeshSimplifier::ProtectedInit()
 
 	std::vector<v3f> vertices;
 
-	importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, vertices);
+	importRaw3DFile("coude.raw3d", mMeshVertexIndices, vertices);
 
 	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.01f,true);
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
-	mCubeMaterial->SetSpecularColor(0.8, 0.8, 0.8);
+	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
 	mCubeMaterial->SetAmbientColor(0.1, 0.1, 0.1);
 	mCubeMaterial->SetDiffuseColor(1.0, 1.0, 1.0);
 	mCubeMaterial->setValue("Shininess", 1.0);
 	mCubeMaterial->setValue("BlendEnabled", true);
 	mCubeMaterial->Init();
 
+	mDisplayCubeCount.changeNotificationLevel(Owner);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
@@ -282,7 +283,6 @@ void	MeshSimplifier::ProtectedUpdate()
 				mScene3D->addItem(EnvNode);
 			}
 			
-
 		}
 	}
 	DataDrivenBaseApplication::ProtectedUpdate();
@@ -315,3 +315,26 @@ void	MeshSimplifier::ProtectedCloseSequence(const kstl::string& sequence)
 	}
 }
 
+void MeshSimplifier::NotifyUpdate(const unsigned int  labelid )
+{
+	if (labelid == mDisplayCubeCount.getID())
+	{
+		if (mScene3D)
+		{
+			for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+			{
+				SP<Node3D> EnvNode = mScene3D->GetFirstSonByName("Node3D","EnvNode_" + std::to_string(i));
+
+				if (i <= mDisplayCubeCount)
+				{
+					EnvNode->setValue("Show",1);
+				}
+				else
+				{
+					EnvNode->setValue("Show", 0);
+				}
+			}
+		}
+
+	}
+}
