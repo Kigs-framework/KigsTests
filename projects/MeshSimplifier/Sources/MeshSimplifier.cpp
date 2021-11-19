@@ -4,6 +4,7 @@
 #include "CollisionMeshSimplification.h"
 #include "Scene3D.h"
 #include "Material.h"
+#include "GLSLDebugDraw.h"
 
 bool	importRaw3DFile(const char* fname, std::vector<u32>& indices, std::vector<v3f>& vertices)
 {
@@ -209,6 +210,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 	return Mesh;
 }
 
+
 void	MeshSimplifier::ProtectedInit()
 {
 	// Base modules have been created at this point
@@ -221,10 +223,10 @@ void	MeshSimplifier::ProtectedInit()
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
 	std::vector<v3f> vertices;
-
 	importRaw3DFile("coude.raw3d", mMeshVertexIndices, vertices);
 
-	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.01f,true);
+	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.01f, false);
+
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
@@ -235,6 +237,10 @@ void	MeshSimplifier::ProtectedInit()
 	mCubeMaterial->Init();
 
 	mDisplayCubeCount.changeNotificationLevel(Owner);
+	mDebugCubePos.changeNotificationLevel(Owner);
+
+	mShowObject.changeNotificationLevel(Owner);
+	mShowEnveloppe.changeNotificationLevel(Owner);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
@@ -246,51 +252,69 @@ void	MeshSimplifier::ProtectedUpdate()
 	{
 		if (!mMeshNode)
 		{
+			
 			auto m = buildMesh(mMeshVertexIndices, mMeshSimplification->getOctreeCoordVertices(), "InOctreeCoordMesh");
 
 			mMeshNode = KigsCore::GetInstanceOf("MeshNode", "Node3D");
 			mMeshNode->addItem(m);
-				
-			BBox tst = mMeshSimplification->getOctreeBoundingBox();
 
-			mRecenterMatrix.SetIdentity();
-			mRecenterMatrix.SetTranslation(-tst.Center());
+			BBox tst = mMeshSimplification->getOctreeBoundingBox();
+			mRecenterTranslate = -tst.Center();
+
+			Matrix3x4 topos;
+			topos.SetIdentity();
+			topos.SetTranslation(mRecenterTranslate);
 
 			mMeshNode->Init();
-			mMeshNode->ChangeMatrix(mRecenterMatrix);
+			mMeshNode->ChangeMatrix(topos);
 
 			mScene3D->addItem(mMeshNode);
 			
+
 			// enveloppe
 			for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
 			{
-				u32 flag=0;
-				v3i pos=mMeshSimplification->getEnveloppePos(i, flag);
+				u32 flag = 0;
+				v3i pos = mMeshSimplification->getEnveloppePos(i, flag);
 				pos /= 2;
 
-				SP<Node3D> EnvNode = KigsCore::GetInstanceOf("EnvNode_"+std::to_string(i), "Node3D");
+				SP<Node3D> EnvNode = KigsCore::GetInstanceOf("EnvNode_" + std::to_string(i), "Node3D");
 
 				EnvNode->addItem(getCube(flag));
 
-				Matrix3x4 topos;
-
-				topos.SetIdentity();
-				topos.SetTranslation(v3f(pos.x,pos.y,pos.z) - tst.Center());
+				topos.SetTranslation(v3f(pos.x, pos.y, pos.z) + mRecenterTranslate);
 
 				EnvNode->Init();
 				EnvNode->ChangeMatrix(topos);
 
 				mScene3D->addItem(EnvNode);
 			}
+
+			mDebugCubeNode = KigsCore::GetInstanceOf("DebugCube", "Node3D");
+			mDebugCubeNode->addItem(getCube(0xFF));
+
+			mScene3D->addItem(mDebugCubeNode);
+			moveDebugCube();
 			
 		}
+
+		if (mShowEdges)
+		{
+			drawEdges();
+		}
+
+		drawEnveloppeVertices();
 	}
 	DataDrivenBaseApplication::ProtectedUpdate();
 }
 
 void	MeshSimplifier::ProtectedClose()
 {
+
 	delete mMeshSimplification;
+
+
+	CoreDestroyModule(ModuleThread);
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
@@ -315,26 +339,72 @@ void	MeshSimplifier::ProtectedCloseSequence(const kstl::string& sequence)
 	}
 }
 
+void	MeshSimplifier::drawEnveloppeVertices()
+{
+	auto vertices = mMeshSimplification->getEnveloppeVertices();
+
+	for (const auto& v : vertices)
+	{
+		dd::sphere(v + mRecenterTranslate, v3f(1.0, 0.0, 0.0),0.05f);
+	}
+}
+
+void	MeshSimplifier::drawEdges()
+{
+	auto edgeList=mMeshSimplification->getEdges();
+
+	for (const auto& e : edgeList)
+	{
+		dd::line(e.first+ mRecenterTranslate, e.second + mRecenterTranslate, v3f(0.0, 1.0, 0.0));
+	}
+}
+
+void MeshSimplifier::showEnveloppe(bool show)
+{
+	for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+	{
+		SP<Node3D> EnvNode = mScene3D->GetFirstSonByName("Node3D", "EnvNode_" + std::to_string(i));
+
+		if (i <= mDisplayCubeCount)
+		{
+			EnvNode->setValue("Show", show);
+		}
+		else
+		{
+			EnvNode->setValue("Show", false);
+		}
+	}
+}
 void MeshSimplifier::NotifyUpdate(const unsigned int  labelid )
 {
-	if (labelid == mDisplayCubeCount.getID())
+	if (!mScene3D)
 	{
-		if (mScene3D)
-		{
-			for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
-			{
-				SP<Node3D> EnvNode = mScene3D->GetFirstSonByName("Node3D","EnvNode_" + std::to_string(i));
-
-				if (i <= mDisplayCubeCount)
-				{
-					EnvNode->setValue("Show",1);
-				}
-				else
-				{
-					EnvNode->setValue("Show", 0);
-				}
-			}
-		}
-
+		return;
 	}
+	if ( (labelid == mDisplayCubeCount.getID()) || (labelid == mShowEnveloppe.getID()))
+	{
+		showEnveloppe(mShowEnveloppe);
+	}
+	else if (labelid == mDebugCubePos.getID())
+	{
+		moveDebugCube();
+	}
+	else if (labelid == mShowObject.getID())
+	{
+		mMeshNode->setValue("Show", mShowObject);
+	}
+	
+
+}
+
+void	MeshSimplifier::moveDebugCube()
+{
+	Matrix3x4 topos;
+	v3i pos = (v3i)mDebugCubePos;
+	pos /= 2;
+	v3f posf(pos.x, pos.y, pos.z);
+	topos.SetIdentity();
+	topos.SetTranslation(posf + mRecenterTranslate);
+
+	mDebugCubeNode->ChangeMatrix(topos);
 }

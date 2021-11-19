@@ -27,9 +27,10 @@ protected:
 
 	SmartPointer<Scene3D>		mScene3D;
 	SmartPointer<Node3D>		mMeshNode;
+	SmartPointer<Node3D>		mDebugCubeNode;
 	SmartPointer<Material>		mCubeMaterial;
 	
-	Matrix3x4					mRecenterMatrix;
+	v3f							mRecenterTranslate;
 
 	SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName);
 
@@ -38,4 +39,14 @@ protected:
 	std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
 
 	maInt						mDisplayCubeCount = BASE_ATTRIBUTE(DisplayCubeCount, 100000);
+	maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1,1,1);
+	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
+	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
+	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, true);
+
+	void						showEnveloppe(bool show);
+	void						moveDebugCube();
+
+	void						drawEdges();
+	void						drawEnveloppeVertices();
 };
