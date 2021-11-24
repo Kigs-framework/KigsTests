@@ -227,7 +227,6 @@ void	MeshSimplifier::ProtectedInit()
 
 	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.01f, false);
 
-
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
 	mCubeMaterial->SetAmbientColor(0.1, 0.1, 0.1);
@@ -342,10 +341,18 @@ void	MeshSimplifier::ProtectedCloseSequence(const kstl::string& sequence)
 void	MeshSimplifier::drawEnveloppeVertices()
 {
 	auto vertices = mMeshSimplification->getEnveloppeVertices();
-
-	for (const auto& v : vertices)
+	for (size_t i = 0; i < vertices.size(); i++)
 	{
-		dd::sphere(v + mRecenterTranslate, v3f(1.0, 0.0, 0.0),0.05f);
+		auto& v = vertices[i];
+		if (i < mDisplayVerticeCount)
+		{
+			float r = 0.05f;
+			if (mSelectedVerticeIndex == i)
+			{
+				r *= 3.0f;
+			}
+			dd::sphere(v + mRecenterTranslate, v3f(1.0, 0.0, 0.0), r);
+		}
 	}
 }
 
@@ -353,9 +360,19 @@ void	MeshSimplifier::drawEdges()
 {
 	auto edgeList=mMeshSimplification->getEdges();
 
-	for (const auto& e : edgeList)
+	for (size_t i = 0; i < edgeList.size(); i++)
 	{
-		dd::line(e.first+ mRecenterTranslate, e.second + mRecenterTranslate, v3f(0.0, 1.0, 0.0));
+		auto& e = edgeList[i];
+	
+		if (i < mDisplayEdgeCount)
+		{
+			v3f color(0.0, 1.0, 0.0);
+			if (mSelectedEdgeIndex == i)
+			{
+				color.Set(1.0,1.0,0.0);
+			}
+			dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color);
+		}
 	}
 }
 

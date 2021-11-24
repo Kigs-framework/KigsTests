@@ -39,7 +39,11 @@ protected:
 	std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
 
 	maInt						mDisplayCubeCount = BASE_ATTRIBUTE(DisplayCubeCount, 100000);
+	maInt						mDisplayVerticeCount = BASE_ATTRIBUTE(DisplayVerticeCount, 100000);
+	maInt						mDisplayEdgeCount = BASE_ATTRIBUTE(DisplayEdgeCount, 100000);
 	maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1,1,1);
+	maInt						mSelectedVerticeIndex = BASE_ATTRIBUTE(SelectedVerticeIndex, 0);
+	maInt						mSelectedEdgeIndex = BASE_ATTRIBUTE(SelectedEdgeIndex, 0);
 	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
 	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
 	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, true);
