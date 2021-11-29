@@ -44,9 +44,9 @@ protected:
 	maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1,1,1);
 	maInt						mSelectedVerticeIndex = BASE_ATTRIBUTE(SelectedVerticeIndex, 0);
 	maInt						mSelectedEdgeIndex = BASE_ATTRIBUTE(SelectedEdgeIndex, 0);
-	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
+	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, false);
 	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
-	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, true);
+	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
 
 	void						showEnveloppe(bool show);
 	void						moveDebugCube();

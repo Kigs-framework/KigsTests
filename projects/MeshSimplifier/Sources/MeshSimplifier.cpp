@@ -223,9 +223,9 @@ void	MeshSimplifier::ProtectedInit()
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
 	std::vector<v3f> vertices;
-	importRaw3DFile("coude.raw3d", mMeshVertexIndices, vertices);
+	importRaw3DFile("complex.raw3d", mMeshVertexIndices, vertices);
 
-	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.01f, false);
+	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.10f, false);
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
@@ -300,9 +300,10 @@ void	MeshSimplifier::ProtectedUpdate()
 		if (mShowEdges)
 		{
 			drawEdges();
+			drawEnveloppeVertices();
 		}
 
-		drawEnveloppeVertices();
+
 	}
 	DataDrivenBaseApplication::ProtectedUpdate();
 }

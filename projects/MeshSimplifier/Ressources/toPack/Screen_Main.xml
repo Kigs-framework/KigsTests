@@ -27,7 +27,7 @@
 	<Inst N="myScene" T="Scene3D">
 		<Inst N="Camera" T="Camera">
 			<Attr N="VerticalFOV" V="26.991467"/>
-			<Attr N="FarPlane" V="99.999992"/>
+			<Attr N="FarPlane" V="1000.0"/>
 			<Attr N="UpVector" V="{0.000000,1.000000,0.000000}"/>
 			<Attr N="ViewVector" V="{0.000000,0.0,-1.000000}"/>
 			<Attr N="RenderingScreen" V="RenderingScreen:theRenderingScreen"/>
