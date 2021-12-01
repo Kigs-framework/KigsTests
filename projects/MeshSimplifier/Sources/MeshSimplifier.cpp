@@ -197,8 +197,8 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 
 	SmartPointer<Material> GeneratedMaterial = KigsCore::GetInstanceOf(meshName + "_M", "Material");
 	GeneratedMaterial->SetSpecularColor(0.8,0.8,0.8);
-	GeneratedMaterial->SetAmbientColor(0.1,0.1,0.1);
-	GeneratedMaterial->SetDiffuseColor(1.0,0.0,0.0);
+	GeneratedMaterial->SetAmbientColor(0.8,0.8,0.8);
+	GeneratedMaterial->SetDiffuseColor(1.0,0.5,0.5);
 	GeneratedMaterial->setValue("Shininess", 1.0);
 	GeneratedMaterial->Init();
 
@@ -223,13 +223,13 @@ void	MeshSimplifier::ProtectedInit()
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
 	std::vector<v3f> vertices;
-	importRaw3DFile("complex.raw3d", mMeshVertexIndices, vertices);
+	importRaw3DFile("coude.raw3d", mMeshVertexIndices, vertices);
 
-	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.10f, false);
+	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, vertices, 0.02f, false);
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
-	mCubeMaterial->SetAmbientColor(0.1, 0.1, 0.1);
+	mCubeMaterial->SetAmbientColor(0.8, 0.8, 0.8);
 	mCubeMaterial->SetDiffuseColor(1.0, 1.0, 1.0);
 	mCubeMaterial->setValue("Shininess", 1.0);
 	mCubeMaterial->setValue("BlendEnabled", true);
@@ -300,6 +300,9 @@ void	MeshSimplifier::ProtectedUpdate()
 		if (mShowEdges)
 		{
 			drawEdges();
+		}
+		if(mShowVertices)
+		{
 			drawEnveloppeVertices();
 		}
 
@@ -351,8 +354,9 @@ void	MeshSimplifier::drawEnveloppeVertices()
 			if (mSelectedVerticeIndex == i)
 			{
 				r *= 3.0f;
+				dd::sphere(v + mRecenterTranslate, v3f(1.0f,0.0f,0.0), r);
 			}
-			dd::sphere(v + mRecenterTranslate, v3f(1.0, 0.0, 0.0), r);
+			dd::cross(v + mRecenterTranslate,r);
 		}
 	}
 }

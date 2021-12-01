@@ -47,6 +47,7 @@ protected:
 	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, false);
 	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
 	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
+	maBool						mShowVertices = BASE_ATTRIBUTE(ShowVertices, false);
 
 	void						showEnveloppe(bool show);
 	void						moveDebugCube();
