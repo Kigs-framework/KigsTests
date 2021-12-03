@@ -22,11 +22,15 @@ protected:
 	void	ProtectedInitSequence(const kstl::string& sequence) override;
 	void	ProtectedCloseSequence(const kstl::string& sequence) override;
 
-	CollisionMeshSimplification*	mMeshSimplification;
+	void	rebuildMesh();
+
+	CollisionMeshSimplification*	mMeshSimplification=nullptr;
 	std::vector<u32>				mMeshVertexIndices;
+	std::vector<v3f>				mMeshVertices;
 
 	SmartPointer<Scene3D>		mScene3D;
 	SmartPointer<Node3D>		mMeshNode;
+	SP<Node3D>					mRootEnvNode;
 	SmartPointer<Node3D>		mDebugCubeNode;
 	SmartPointer<Material>		mCubeMaterial;
 	
@@ -34,7 +38,7 @@ protected:
 
 	SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName);
 
-	SmartPointer<ModernMesh>	getCube(u32 flag);
+	SmartPointer<ModernMesh>	getCube(u32 flag,u32 debugflag);
 
 	std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
 
@@ -48,7 +52,7 @@ protected:
 	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
 	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
 	maBool						mShowVertices = BASE_ATTRIBUTE(ShowVertices, false);
-
+	maFloat						mPrecision = BASE_ATTRIBUTE(Precision, 0.02f);
 	void						showEnveloppe(bool show);
 	void						moveDebugCube();
 
