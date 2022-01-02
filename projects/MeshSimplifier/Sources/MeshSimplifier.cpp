@@ -228,7 +228,10 @@ void	MeshSimplifier::ProtectedInit()
 	pathManager->AddToPath(".", "xml");
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
-	importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
+	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.002f;
+	importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.1f;
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
