@@ -230,8 +230,13 @@ void	MeshSimplifier::ProtectedInit()
 
 	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.002f;
-	importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.1f;
+	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.1f;
+	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.001f;
+	importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.01f;
+	
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
@@ -377,14 +382,23 @@ void	MeshSimplifier::drawEnveloppeVertices()
 	auto vertices = mMeshSimplification->getEnveloppeVertices();
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
-		auto& v = vertices[i];
+		auto& v = vertices[i].V;
 		if (i < mDisplayVerticeCount)
 		{
 			float r = 0.05f;
 			if (mSelectedVerticeIndex == i)
 			{
-				r *= 3.0f;
-				dd::sphere(v + mRecenterTranslate, v3f(1.0f,0.0f,0.0), r);
+				dd::sphere(v + mRecenterTranslate, v3f(1.0f,0.0f,0.0), r*3.0f);
+
+				v3f ncolor(1.0f, 1.0f, 0.0f);
+				ncolor /= vertices[i].N.size();
+				v3f currentncolor = ncolor;
+
+				for (auto n : vertices[i].N)
+				{
+					dd::sphere(n + mRecenterTranslate, currentncolor, r/2.0f);
+					currentncolor += ncolor;
+				}
 			}
 			dd::cross(v + mRecenterTranslate,r);
 		}
