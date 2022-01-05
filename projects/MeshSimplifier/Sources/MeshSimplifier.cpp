@@ -235,8 +235,7 @@ void	MeshSimplifier::ProtectedInit()
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.001f;
 	importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.01f;
-	
+	mPrecision = 0.001f;
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
