@@ -58,4 +58,6 @@ protected:
 
 	void						drawEdges();
 	void						drawEnveloppeVertices();
+
+	bool						mConstructMesh = true;
 };

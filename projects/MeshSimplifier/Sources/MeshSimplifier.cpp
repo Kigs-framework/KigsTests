@@ -180,7 +180,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag,u32 debugflag)
 
 SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName)
 {
-	
+
 	SmartPointer<ModernMesh> Mesh = KigsCore::GetInstanceOf(meshName, "ModernMesh");
 
 	Mesh->StartMeshBuilder();
@@ -228,14 +228,19 @@ void	MeshSimplifier::ProtectedInit()
 	pathManager->AddToPath(".", "xml");
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
-	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.002f;
+	importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.02f;
 	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.1f;
+	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.02f;
+	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.001f;
-	importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.001f;
+	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.001f;
+	
+	
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
@@ -263,26 +268,27 @@ void	MeshSimplifier::rebuildMesh()
 	{
 		delete mMeshSimplification;
 	}
-	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision, false);
-	auto m = buildMesh(mMeshVertexIndices, mMeshSimplification->getOctreeCoordVertices(), "InOctreeCoordMesh");
-
-	if(mMeshNode)
+	if (mMeshNode)
 		mScene3D->removeItem(mMeshNode);
 
-	mMeshNode = KigsCore::GetInstanceOf("MeshNode", "Node3D");
-	mMeshNode->addItem(m);
-
+	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision, false);
 	BBox tst = mMeshSimplification->getOctreeBoundingBox();
-	mRecenterTranslate = -tst.Center();
-
+	mRecenterTranslate = -tst.Center(); 
 	Matrix3x4 topos;
 	topos.SetIdentity();
 	topos.SetTranslation(mRecenterTranslate);
+	mMeshNode = KigsCore::GetInstanceOf("MeshNode", "Node3D");
+	if (mConstructMesh)
+	{
+		auto m = buildMesh(mMeshVertexIndices, mMeshSimplification->getOctreeCoordVertices(), "InOctreeCoordMesh");
+		
+		mMeshNode->addItem(m);
+		
+		mMeshNode->Init();
+		mMeshNode->ChangeMatrix(topos);
 
-	mMeshNode->Init();
-	mMeshNode->ChangeMatrix(topos);
-
-	mScene3D->addItem(mMeshNode);
+		mScene3D->addItem(mMeshNode);
+	}
 
 	if(mRootEnvNode)
 		mScene3D->removeItem(mRootEnvNode);
