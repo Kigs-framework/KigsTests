@@ -23,6 +23,9 @@ bool	importRaw3DFile(const char* fname, std::vector<u32>& indices, std::vector<v
 		Platform_fread(indices.data(), sizeof(u32), icount, handle.get());
 		Platform_fread(vertices.data(), sizeof(v3f), vcount, handle.get());
 
+		std::cout << "In vertice count" << vcount << std::endl;
+		std::cout << "In triangle count" << icount/3 << std::endl;
+
 
 		Platform_fclose(handle.get()); 
 		return true;
@@ -228,13 +231,13 @@ void	MeshSimplifier::ProtectedInit()
 	pathManager->AddToPath(".", "xml");
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
-	importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.02f;
+	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.02f;
 	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.1f;
-	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.02f;
-	//mConstructMesh = false;
+	importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.02f;
+	mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.001f;
 	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
@@ -271,7 +274,17 @@ void	MeshSimplifier::rebuildMesh()
 	if (mMeshNode)
 		mScene3D->removeItem(mMeshNode);
 
+	auto timer=GetApplicationTimer();
+	auto startTime = timer->GetTime();
 	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision, false);
+	auto deltaTime = timer->GetTime() - startTime;
+
+	std::cout << "simplification time :" << deltaTime << std::endl;
+
+	std::cout << "out vertice count" << mMeshSimplification->getEnveloppeVertices().size() << std::endl;
+	std::cout << "In triangle count" << mMeshSimplification->getTriangleCount() << std::endl;
+
+
 	BBox tst = mMeshSimplification->getOctreeBoundingBox();
 	mRecenterTranslate = -tst.Center(); 
 	Matrix3x4 topos;
@@ -336,7 +349,9 @@ void	MeshSimplifier::ProtectedUpdate()
 
 			mScene3D->addItem(mDebugCubeNode);
 			moveDebugCube();
-			
+			setValue("ShowEdges", true);
+			setValue("ShowObject", false);
+			setValue("ShowEnveloppe", false);
 		}
 
 		if (mShowEdges)
