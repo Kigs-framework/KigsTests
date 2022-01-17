@@ -233,11 +233,11 @@ void	MeshSimplifier::ProtectedInit()
 
 	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.02f;
-	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.1f;
-	importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.02f;
-	mConstructMesh = false;
+	importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.1f;
+	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.02f;
+	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.001f;
 	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
