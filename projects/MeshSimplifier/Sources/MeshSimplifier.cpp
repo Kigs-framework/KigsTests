@@ -232,17 +232,16 @@ void	MeshSimplifier::ProtectedInit()
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
 
 	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.02f;
-	importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.1f;
-	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.02f;
+	//mPrecision = 0.01f;
+	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.1f;
+	importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.02f;
 	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.001f;
 	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.001f;
-	
+	//mPrecision = 0.01f;
 	
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
