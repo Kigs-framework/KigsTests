@@ -4,7 +4,7 @@
 #include "ModernMesh.h"
 
 
-class CollisionMeshSimplification;
+class MeshSimplification;
 class MeshSimplifier : public DataDrivenBaseApplication
 {
 public:
@@ -24,7 +24,7 @@ protected:
 
 	void	rebuildMesh();
 
-	CollisionMeshSimplification*	mMeshSimplification=nullptr;
+	MeshSimplification*	mMeshSimplification=nullptr;
 	std::vector<u32>				mMeshVertexIndices;
 	std::vector<v3f>				mMeshVertices;
 
@@ -48,7 +48,7 @@ protected:
 	maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1,1,1);
 	maInt						mSelectedVerticeIndex = BASE_ATTRIBUTE(SelectedVerticeIndex, 0);
 	maInt						mSelectedEdgeIndex = BASE_ATTRIBUTE(SelectedEdgeIndex, 0);
-	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, false);
+	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
 	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
 	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
 	maBool						mShowVertices = BASE_ATTRIBUTE(ShowVertices, false);

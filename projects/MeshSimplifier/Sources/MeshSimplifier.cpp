@@ -1,7 +1,7 @@
 #include <MeshSimplifier.h>
 #include <FilePathManager.h>
 #include <NotificationCenter.h>
-#include "CollisionMeshSimplification.h"
+#include "MeshSimplification.h"
 #include "Scene3D.h"
 #include "Material.h"
 #include "GLSLDebugDraw.h"
@@ -23,8 +23,8 @@ bool	importRaw3DFile(const char* fname, std::vector<u32>& indices, std::vector<v
 		Platform_fread(indices.data(), sizeof(u32), icount, handle.get());
 		Platform_fread(vertices.data(), sizeof(v3f), vcount, handle.get());
 
-		std::cout << "In vertice count" << vcount << std::endl;
-		std::cout << "In triangle count" << icount/3 << std::endl;
+		std::cout << "In vertice count: " << vcount << std::endl;
+		std::cout << "In triangle count: " << icount/3 << std::endl;
 
 
 		Platform_fclose(handle.get()); 
@@ -181,7 +181,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag,u32 debugflag)
 }
 
 
-SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName)
+SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indices,const std::vector<v3f>& vertices, const std::string& meshName)
 {
 
 	SmartPointer<ModernMesh> Mesh = KigsCore::GetInstanceOf(meshName, "ModernMesh");
@@ -198,11 +198,11 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 	Mesh->StartMeshGroup((CoreVector*)description.get());
 	Mesh->setValue("Optimize", false);
 
-	for (size_t i = 0; i < indices.size(); i += 3)
+	/*for (size_t i = 0; i < indices.size(); i += 3)
 	{
 		Mesh->AddTriangle((void*)&vertices[indices[i]], (void*)&vertices[indices[i+1]], (void*)&vertices[indices[i+2]]);
-	}
-	auto group=Mesh->EndMeshGroup();
+	}*/
+	auto group=Mesh->EndMeshGroup(vertices.size(),(v3f*)vertices.data(),nullptr,nullptr,nullptr,indices.size()/3,(v3u*)indices.data());
 
 	SmartPointer<Material> GeneratedMaterial = KigsCore::GetInstanceOf(meshName + "_M", "Material");
 	GeneratedMaterial->SetSpecularColor(0.8,0.8,0.8);
@@ -236,13 +236,12 @@ void	MeshSimplifier::ProtectedInit()
 	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.1f;
 	importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.02f;
+	mPrecision = 0.04f;
 	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.001f;
+	//mPrecision = 0.01f;
 	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.01f;
-	
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);
@@ -275,13 +274,13 @@ void	MeshSimplifier::rebuildMesh()
 
 	auto timer=GetApplicationTimer();
 	auto startTime = timer->GetTime();
-	mMeshSimplification = new CollisionMeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision, false);
+	mMeshSimplification = new MeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision);
 	auto deltaTime = timer->GetTime() - startTime;
 
 	std::cout << "simplification time :" << deltaTime << std::endl;
 
-	std::cout << "out vertice count" << mMeshSimplification->getEnveloppeVertices().size() << std::endl;
-	std::cout << "In triangle count" << mMeshSimplification->getTriangleCount() << std::endl;
+	std::cout << "out vertice count: " << mMeshSimplification->getVerticeCount() << std::endl;
+	std::cout << "out triangle count: " << mMeshSimplification->getTriangleCount() << std::endl;
 
 
 	BBox tst = mMeshSimplification->getOctreeBoundingBox();
@@ -296,11 +295,17 @@ void	MeshSimplifier::rebuildMesh()
 		
 		mMeshNode->addItem(m);
 		
-		mMeshNode->Init();
-		mMeshNode->ChangeMatrix(topos);
 
-		mScene3D->addItem(mMeshNode);
 	}
+
+	SmartPointer<ModernMesh> outmesh = buildMesh(mMeshSimplification->getFinalTriangles(), mMeshSimplification->getFinalVertices(), "FinalMesh");
+
+	mMeshNode->addItem(outmesh);
+
+	mMeshNode->Init();
+	mMeshNode->ChangeMatrix(topos);
+
+	mScene3D->addItem(mMeshNode);
 
 	if(mRootEnvNode)
 		mScene3D->removeItem(mRootEnvNode);
@@ -349,7 +354,7 @@ void	MeshSimplifier::ProtectedUpdate()
 			mScene3D->addItem(mDebugCubeNode);
 			moveDebugCube();
 			setValue("ShowEdges", true);
-			setValue("ShowObject", false);
+			setValue("ShowObject", true);
 			setValue("ShowEnveloppe", false);
 		}
 
@@ -398,6 +403,7 @@ void	MeshSimplifier::ProtectedCloseSequence(const kstl::string& sequence)
 
 void	MeshSimplifier::drawEnveloppeVertices()
 {
+#ifdef _DEBUG
 	auto vertices = mMeshSimplification->getEnveloppeVertices();
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
@@ -422,10 +428,12 @@ void	MeshSimplifier::drawEnveloppeVertices()
 			dd::cross(v + mRecenterTranslate,r);
 		}
 	}
+#endif
 }
 
 void	MeshSimplifier::drawEdges()
 {
+#ifdef _DEBUG
 	auto edgeList=mMeshSimplification->getEdges();
 
 	for (size_t i = 0; i < edgeList.size(); i++)
@@ -442,6 +450,7 @@ void	MeshSimplifier::drawEdges()
 			dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color);
 		}
 	}
+#endif
 }
 
 void MeshSimplifier::showEnveloppe(bool show)
