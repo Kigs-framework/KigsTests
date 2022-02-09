@@ -1,0 +1,18 @@
+{
+   "TwitterBear3" : "AAAAAAAAAAAAAAAAAAAAAP8BMwEAAAAAa4ubF%2Fe7jT8ndQZzjjwVQ547E30%3DoVmEGRciBATFPjY2kgOzn4AL7DkvhoseThi07N0rTGMEtXE8pp",
+   "TwitterBear1" : "AAAAAAAAAAAAAAAAAAAAADkEJwEAAAAA%2FiO6RdKhRm2XCx1wJaO3nD5vuew%3DrFIJ7ruF5QCR5dZ3d4d6BUADOM4zwoKjynGTcY978f65eAkeJM",
+   "TwitterBear2" : "AAAAAAAAAAAAAAAAAAAAAEQUJgEAAAAAFZ666YxGhtYMt6BBnyzYFRUyvX8%3DhdOvsNTL1vfHbYx4FM7QBTiXSPAmvxYa2I0MKhlMPz5DyM4f30",
+   "UserName" : "Geo_Gavalda",
+   "HashTag" : "",
+   "UserPanelSize" : 500,
+   "MaxUserCount" : 45,
+   "ValidUserPercent" : 0.02,
+   "OldFileLimitInDays" : 20,
+   "WantedTotalPanelSize" : 50000,
+   "UseLikes" : 1,
+   "DetailedLikeStats" : 0,
+   "MaxLikersPerTweet" : 20,
+   "DailyStats" : 0,
+   "FromDate" 	:	"2021-09-01", 
+   "ToDate"	:		"2021-10-31"
+}

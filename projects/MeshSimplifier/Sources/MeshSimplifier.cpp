@@ -233,15 +233,17 @@ void	MeshSimplifier::ProtectedInit()
 
 	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.01f;
-	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.1f;
-	importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	mPrecision = 0.04f;
+	importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
+	mPrecision = 0.1f;
+	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.04f;
 	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.01f;
 	//importRaw3DFile("almostbox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.01f;
+	//importRaw3DFile("crash.raw3d", mMeshVertexIndices, mMeshVertices);
+	//mPrecision = 0.308378041f;
 
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
 	mCubeMaterial->SetSpecularColor(0.0, 0.0, 0.0);

@@ -2,3 +2,5 @@
 projects/**/Android/assets/**
 projects/**/TmpRessources/**
 **/Ressources/AMLastDone.json
+projects/TwitterAnalyser/Android/Cache/**
+projects/TwitterAnalyser/Android/TwitterAnalyser.exe.WebView2/**
