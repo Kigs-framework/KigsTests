@@ -17,15 +17,32 @@ public:
 
 protected:
 
+	enum class dataType
+	{
+		Likers = 0,
+		Followers = 1,
+		Following = 2,
+		Favorites = 3
+	};
+
 	void	requestDone();
 	void	mainUserDone();
-
+	void	switchForce();
 	void	switchDisplay();
 
-	WRAP_METHODS(requestDone, mainUserDone, switchDisplay);
+	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets);
 
-	void	createLikersFSM();
-	void	createFollowersFSM();
+	void		commonStatesFSM();
+	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
+
+	std::string	searchLikersFSM();
+	std::string	searchFollowersFSM();
+	std::string	searchFollowingFSM();
+
+	void	analyseFavoritesFSM(const std::string& lastState);
+	void	analyseFollowersFSM(const std::string& lastState);
+	void	analyseFollowingFSM(const std::string& lastState);
+
 
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;
@@ -54,7 +71,9 @@ protected:
 	std::map<std::string, u32>			mFoundLiker;
 
 	// analyse type
-	bool			mUseLikes = false;
+	dataType		mPanelType = dataType::Followers;
+	dataType		mAnalysedType = dataType::Followers;
+
 	bool			mUseHashTags = false;
 	std::string		mHashTag;
 	float			mValidUserPercent;
@@ -85,12 +104,30 @@ protected:
 		}
 	}
 
+	void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
+
 	// user detail asked
 	std::vector<u64>			mUserDetailsAsked;
 	std::set<u64>				mAlreadyAskedUserDetail;
 	maBool	mNeedUserListDetail = BASE_ATTRIBUTE(NeedUserListDetail, false);
 
 	CMSP mFsm;
+
+	bool	isUserOf(u64 follower, u64 account) const
+	{
+		const auto& found = mCheckedUserList.find(follower);
+		if (found != mCheckedUserList.end())
+		{
+			for (auto& c : (*found).second)
+			{
+				if (c == account)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 };
 
 // different states

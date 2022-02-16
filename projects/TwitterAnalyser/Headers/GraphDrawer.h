@@ -3,6 +3,7 @@
 #include "CoreModifiable.h"
 #include "CoreBaseApplication.h"
 #include "CoreFSMState.h"
+#include "TwitterConnect.h"
 
 
 class TwitterAnalyser;
@@ -35,6 +36,15 @@ protected:
 	const std::string	mUnits[MEASURE_COUNT] = { "\%","sc","n" };
 
 	u32		mCurrentUnit = 0;
+
+	double mForcedBaseStartingTime = 0.0;
+
+	void	prepareForceGraphData();
+
+	std::unordered_map<u64, TwitterConnect::PerAccountUserMap>	mAccountSubscriberMap;
+
+	maBool	mDrawForce = BASE_ATTRIBUTE(DrawForce, false);
+
 
 public:
 	DECLARE_CLASS_INFO(GraphDrawer, CoreModifiable, GraphDrawer);

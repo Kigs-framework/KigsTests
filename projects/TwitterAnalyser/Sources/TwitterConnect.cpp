@@ -10,6 +10,12 @@
 double		TwitterConnect::mOldFileLimit=0;
 time_t		TwitterConnect::mCurrentTime=0;
 
+std::unordered_map<u64, std::string>		TwitterConnect::mUserIdToName;
+std::map<u32, std::pair<u64, u32>>			TwitterConnect::mDateToTweet;
+
+TwitterConnect::datestruct	TwitterConnect::mDates[2];
+bool						TwitterConnect::mUseDates = false;
+
 TwitterConnect* TwitterConnect::mInstance = nullptr;
 
 IMPLEMENT_CLASS_INFO(TwitterConnect)
@@ -114,6 +120,12 @@ TwitterConnect::TwitterConnect(const kstl::string& name, CLASS_NAME_TREE_ARG) : 
 	mCurrentTime = time(0);
 
 	TwitterConnect::mInstance = this;
+
+	loadTweetCalendar();
+
+	mDates[0].dateAsInt = mDates[1].dateAsInt = 0;
+	mDates[0].dateAsString = mDates[1].dateAsString = "";
+
 }
 
 void	TwitterConnect::initConnection(double oldfiletime)
@@ -209,6 +221,51 @@ std::string	TwitterConnect::GetIDString(u64 id)
 	return idstr;
 }
 
+void	TwitterConnect::saveUserNameFromID(u64 id, const std::string& username, bool checkExist)
+{
+
+	std::string filename = "Cache/UsersByID/";
+	std::string folderName = GetUserFolderFromID(id);
+
+	filename += folderName + "/" + GetIDString(id) + ".json";
+
+	if (checkExist)
+	{
+		CoreItemSP initP = LoadJSon(filename, false, true);
+
+		if (initP) // file already there
+		{
+			return;
+		}
+	}
+
+	JSonFileParserUTF16 L_JsonParser;
+	CoreItemSP initP = MakeCoreMapUS();
+	initP->set("Name", username);
+
+	L_JsonParser.Export((CoreMap<usString>*)initP.get(), filename);
+}
+std::string	TwitterConnect::loadUserNameFromID(u64 id)
+{
+	std::string filename = "Cache/UsersByID/";
+	std::string folderName = GetUserFolderFromID(id);
+
+	filename += folderName + "/" + GetIDString(id) + ".json";
+
+	CoreItemSP initP = LoadJSon(filename, false, true);
+
+	if (!initP) // file not found, return
+	{
+		return "";
+	}
+
+	std::string result= initP["Name"];
+
+	mUserIdToName[id] = result;
+	return result;
+}
+
+
 // load json channel file dans fill ChannelStruct
 bool		TwitterConnect::LoadUserStruct(u64 id, UserStruct& ch, bool requestThumb)
 {
@@ -255,6 +312,9 @@ void		TwitterConnect::SaveUserStruct(u64 id, UserStruct& ch)
 #ifdef LOG_ALL
 	writelog("save user" + std::to_string(id) + "details");
 #endif
+
+	// also save id to name file if needed
+	saveUserNameFromID(id, ch.mName.ToString(), true);
 
 	JSonFileParserUTF16 L_JsonParser;
 	CoreItemSP initP = MakeCoreMapUS();
@@ -308,6 +368,10 @@ bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::str
 	if (!fname.length())
 	{
 		filename = "Cache/UserName/";
+		if (mUseDates)
+		{
+			filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+		}
 		filename += username + ".twts";
 	}
 	std::vector<Twts>	loaded;
@@ -315,6 +379,13 @@ bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::str
 	if (LoadDataFile<Twts>(filename, loaded))
 	{
 		tweetlist = std::move(loaded);
+
+		for (const auto& t : tweetlist)
+		{
+			loadUserNameFromID(t.mAuthorID);
+		}
+
+
 		return true;
 	}
 
@@ -328,6 +399,10 @@ void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const st
 	if (!fname.length())
 	{
 		filename = "Cache/UserName/";
+		if (mUseDates)
+		{
+			filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+		}
 		filename += username + ".twts";
 	}
 
@@ -337,7 +412,13 @@ void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const st
 
 bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav)
 {
-	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/" + username + ".favs";
+	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/";
+		
+	if (mUseDates)
+	{
+		filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+	}
+	filename += username + ".favs";
 	// for dated search, don't use old file limit here
 	if (LoadDataFile<TwitterConnect::favoriteStruct>(filename, fav))
 	{
@@ -349,7 +430,13 @@ bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector
 
 void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs)
 {
-	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/" + username + ".favs";
+	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/";
+	if (mUseDates)
+	{
+		filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+	}
+	filename += username + ".favs";
+
 	SaveDataFile<TwitterConnect::favoriteStruct>(filename, favs);
 }
 
@@ -381,6 +468,18 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 
 	// use since ID, max ID here to retrieve tweets in a given laps of time
 	std::string url = "1.1/favorites/list.json?screen_name=" + user + "&count=200&include_entities=false";
+
+	if (mUseDates)
+	{
+		u64 since = getTweetIdBeforeDate(mDates[0].dateAsString);
+		if(since)
+			url += "&since_id=" + std::to_string(since);
+
+		u64 max_id = getTweetIdAfterDate(mDates[1].dateAsString);
+		if(max_id)
+			url += "&max_id=" + std::to_string(max_id);
+	}
+
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
@@ -403,11 +502,54 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 	}
 }
 
+void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
+{
+	std::string url = "1.1/search/tweets.json?q=" + getHashtagURL(hashtag) + "&count=100&include_entities=false&result_type=recent";
+	std::string filenamenext_token = "Cache/UserName/";
+	filenamenext_token += getHashtagFilename(hashtag) + "_TweetsNextCursor.json";
+	auto nxtTokenJson = LoadJSon(filenamenext_token);
+	std::string nextCursor = "-1";
+	if (nxtTokenJson)
+	{
+		nextCursor = nxtTokenJson["next-cursor"];
+	}
+	if (nextCursor != "-1")
+	{
+		// TODO 
+		url += nextCursor;
+	}
+	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getSearchTweets", this);
+	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
+	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+
+	mRequestCount++;
+	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
+	mNextRequestDelay -= waitdelay;
+
+	if (mNextRequestDelay < 0.0)
+	{
+		mAnswer->Init();
+		mRequestCount++;
+		RequestLaunched(60.5);
+	}
+	else
+	{
+		Upgrade("DelayedFuncUpgrador");
+		setValue("DelayedFunction", "sendRequest");
+		setValue("Delay", mNextRequestDelay);
+	}
+}
+
+
 void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& username)
 {
-	std::string url = "2/users/" + std::to_string(userid) + "/tweets?tweet.fields=public_metrics";
+	std::string url = "2/users/" + std::to_string(userid) + "/tweets?expansions=author_id&tweet.fields=author_id,public_metrics,created_at";
 
 	std::string filenamenext_token = "Cache/UserName/";
+	if (mUseDates)
+	{
+		filenamenext_token += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+	}
 	filenamenext_token += username + "_TweetsNextCursor.json";
 	auto nxtTokenJson=LoadJSon(filenamenext_token);
 	std::string nextCursor = "-1";
@@ -416,12 +558,15 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 		nextCursor = nxtTokenJson["next-cursor"];
 	}
 	
-/*	if (mDailyAnalysis)
+	// all the tweets are from the same user
+	mUserIdToName[userid] = username;
+	saveUserNameFromID(userid, username, true);
+
+	if (mDates[0].dateAsInt && mDates[1].dateAsInt)
 	{
-		std::string yesterday = GetDate(-24 * 60 * 60);
-		url += "&start_time=" + yesterday + "00:00:00Z";
-		url += "&end_time=" + yesterday + +"23:59:59Z";
-	}*/
+		url += "&start_time=" + mDates[0].dateAsString + "T00:00:00Z";
+		url += "&end_time=" + mDates[1].dateAsString + "T23:59:59Z";
+	}
 
 	url += "&max_results=100";
 	if (nextCursor != "-1")
@@ -722,14 +867,23 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 		std::vector<Twts> retrievedTweets;
 		CoreItemSP tweetsArray = json["data"];
 		unsigned int tweetcount = tweetsArray->size();
+
 		for (unsigned int i = 0; i < tweetcount; i++)
 		{
-			u64 tweetid = tweetsArray[i]["id"];
-			u32 like_count = tweetsArray[i]["public_metrics"]["like_count"];
-			u32 rt_count = tweetsArray[i]["public_metrics"]["retweet_count"];
+			CoreItemSP currentTweet = tweetsArray[i];
+			
+			std::string tweetdate=currentTweet["created_at"];
+			u64 tweetid = currentTweet["id"];
+
+			updateTweetCalendar(tweetdate, tweetid);
+
+			u64 authorid = currentTweet["author_id"];
+			
+			u32 like_count = currentTweet["public_metrics"]["like_count"];
+			u32 rt_count = currentTweet["public_metrics"]["retweet_count"];
 			if (like_count > 1)
 			{
-				retrievedTweets.push_back({ tweetid,like_count,rt_count });
+				retrievedTweets.push_back({ authorid,tweetid,like_count,rt_count });
 			}
 		}
 
@@ -741,6 +895,61 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 			if (meta["next_token"])
 			{
 				nextStr = meta["next_token"];
+				if (nextStr == "0")
+				{
+					nextStr = "-1";
+				}
+			}
+		}
+
+		EmitSignal("TweetRetrieved", retrievedTweets, nextStr);
+
+	}
+	
+
+	return true;
+}
+
+DEFINE_METHOD(TwitterConnect, getSearchTweets)
+{
+	auto json = RetrieveJSON(sender);
+
+	if (json)
+	{
+		std::vector<Twts> retrievedTweets;
+		CoreItemSP tweetsArray = json["statuses"];
+		unsigned int tweetcount = tweetsArray->size();
+		for (unsigned int i = 0; i < tweetcount; i++)
+		{
+			CoreItemSP currentTweet = tweetsArray[i];
+			CoreItemSP RTStatus = currentTweet["retweeted_status"];
+			if (RTStatus)
+			{
+				currentTweet = RTStatus;
+			}
+			u64 tweetid = currentTweet["id"];
+			u64 author = currentTweet["user"]["id"];
+
+			mUserIdToName[author] = currentTweet["user"]["screen_name"];
+			saveUserNameFromID(author, mUserIdToName[author], true);
+
+
+			u32 like_count = currentTweet["favorite_count"];
+			u32 rt_count = currentTweet["retweet_count"];
+			if (like_count > 1)
+			{
+				retrievedTweets.push_back({ author, tweetid,like_count,rt_count });
+			}
+		}
+
+		std::string nextStr = "-1";
+
+		CoreItemSP meta = json["search_metadata"];
+		if (meta)
+		{
+			if (meta["next_results"])
+			{
+				nextStr = meta["next_results"];
 				if (nextStr == "0")
 				{
 					nextStr = "-1";
@@ -764,12 +973,19 @@ DEFINE_METHOD(TwitterConnect, getFavorites)
 	{
 		for (const auto& fav : json)
 		{
+			std::string createdDate = fav["created_at"];
 			u64		tweetID = fav["id"];
-			u64		userid = fav["user"]["id"];
-			u32		likes_count = fav["favorite_count"];
-			u32		rt_count = fav["retweet_count"];
+			if (inGoodInterval(createdDate, tweetID))
+			{
+				u64		userid = fav["user"]["id"];
+				u32		likes_count = fav["favorite_count"];
+				u32		rt_count = fav["retweet_count"];
 
-			currentFavorites.push_back({ tweetID ,userid ,likes_count ,rt_count });
+				std::string strdate = creationDateToUTC(createdDate);
+				u32		creationDate = GetU32YYYYMMDD(strdate).first;
+
+				currentFavorites.push_back({ tweetID ,userid ,likes_count ,rt_count,creationDate });
+			}
 		}
 	}
 
@@ -924,4 +1140,192 @@ void	TwitterConnect::thumbnailReceived(CoreRawBuffer* data, CoreModifiable* down
 		}
 	}
 	mDownloaderList = std::move(tmpList);
+}
+
+std::pair<u32,u32>	TwitterConnect::GetU32YYYYMMDD(const std::string& utcdate)
+{
+	int Year, Month, Day, Hour, Minutes, Seconds;
+
+	sscanf(utcdate.c_str(), "%d-%d-%dT%d:%d:%d.000Z", &Year, &Month, &Day, &Hour, &Minutes, &Seconds);
+
+	return {Year*10000 + Month * 100 + Day,((Hour*60)+Minutes*60)+Seconds};
+}
+
+// tweet calendar management
+void	TwitterConnect::updateTweetCalendar(const std::string& tweetdate, u64 tweetid)
+{
+	auto result = GetU32YYYYMMDD(tweetdate);
+
+	if (mDateToTweet.find(result.first) != mDateToTweet.end())
+	{
+		// this one fit best ?
+		if (mDateToTweet[result.first].second < result.second)
+		{
+			return;
+		}
+	}
+	mDateToTweet[result.first].first = tweetid;
+	mDateToTweet[result.first].second = result.second;
+
+	// save updated version
+	saveTweetCalendar();
+}
+
+void	TwitterConnect::loadTweetCalendar()
+{
+	mDateToTweet.clear();
+	std::string filename = "Cache/tweetCalendar.json";
+	CoreItemSP initP = LoadJSon(filename, false, false);
+
+	if (initP) 
+	{
+		CoreItemIterator It = initP.begin();
+		CoreItemIterator ItEnd = initP.end();
+		while (It != ItEnd)
+		{
+			std::string	key;
+			It.getKey(key);
+
+			
+		
+			u64 id=(*It)["id"];
+			u32 seconds= (*It)["delay"];
+
+			mDateToTweet[std::stoul(key)] = {id,seconds};
+
+			It++;
+		}
+	}
+}
+void	TwitterConnect::saveTweetCalendar()
+{
+	if (mDateToTweet.size() == 0)
+		return;
+	std::string filename = "Cache/tweetCalendar.json";
+
+	JSonFileParser L_JsonParser;
+	CoreItemSP initP = MakeCoreMap();
+	for (auto t : mDateToTweet)
+	{
+		CoreItemSP member = MakeCoreMap();
+		member->set("id", t.second.first);
+		member->set("delay", t.second.second);
+
+		initP->set(std::to_string(t.first), member);
+	}
+	L_JsonParser.Export((CoreMap<std::string>*)initP.get(), filename);
+
+}
+
+// fromdate & todate are valid dates in YYYY-MM-DD format
+void	TwitterConnect::initDates(const std::string& fromdate, const std::string& todate)
+{
+	mDates[0].dateAsString = fromdate ;
+	mDates[0].dateAsInt = GetU32YYYYMMDD(mDates[0].dateAsString + "T0:0:0.000Z").first;
+	mDates[1].dateAsString = todate ;
+	mDates[1].dateAsInt = GetU32YYYYMMDD(mDates[1].dateAsString + "T23:59:59.000Z").first;
+	mUseDates = true;
+}
+
+u64	TwitterConnect::getTweetIdBeforeDate(const std::string& date)
+{
+	auto result = GetU32YYYYMMDD(date + "T0:0:0.000Z");
+
+	u64 foundid = 0;
+	for (const auto &d : mDateToTweet)
+	{
+		if (result.first > d.first)
+		{
+			foundid = d.second.first;
+		}
+		else
+		{
+			return foundid;
+		}
+	}
+}
+u64	TwitterConnect::getTweetIdAfterDate(const std::string& date)
+{
+	auto result = GetU32YYYYMMDD(date + "T23:59:59.000Z");
+
+	for (const auto& d : mDateToTweet)
+	{
+		if (result.first < d.first)
+		{
+			return d.second.first;
+		}
+	}
+	return 0;
+}
+
+std::map<std::string, u32>	monthes = { {"Jan",1}, {"Feb",2}, {"Mar",3}, {"Apr",4},
+										{"May",5}, {"Jun",6}, {"Jul",7}, {"Aug",8},
+										{"Sep",9}, {"Oct",10}, {"Nov",11}, {"Dec",12} };
+
+std::string TwitterConnect::creationDateToUTC(const std::string& created_date)
+{
+	char Day[6];
+	char Mon[6];
+
+	int	day_date;
+	int	hours, minutes, seconds;
+	int delta;
+	int	year = 0;
+
+	sscanf(created_date.c_str(), "%s %s %d %d:%d:%d +%d %d", Day, Mon, &day_date, &hours, &minutes, &seconds, &delta, &year);
+
+	std::string result=std::to_string(year) + "-" + std::to_string(monthes[(std::string)Mon]) + "-" + std::to_string(day_date) +"T"+ std::to_string(hours) + ":" + std::to_string(minutes) + ":" + std::to_string(seconds) + ".000Z";
+
+	return result;
+}
+
+bool TwitterConnect::inGoodInterval(const std::string& createdDate, u64 tweetid)
+{
+	if (!mUseDates)
+		return true;
+
+	std::string strdate = creationDateToUTC(createdDate);
+
+	auto result = GetU32YYYYMMDD(strdate);
+
+	updateTweetCalendar(strdate, tweetid);
+
+	if ((result.first >= mDates[0].dateAsInt) && (result.first <= mDates[1].dateAsInt))
+		return true;
+
+	return false;
+}
+
+float	TwitterConnect::PerAccountUserMap::GetNormalisedSimilitude(const PerAccountUserMap& other)
+{
+	unsigned int count = 0;
+	for (int i = 0; i < mSize; i++)
+	{
+		if (other.m[i] & m[i])
+		{
+			count++;
+		}
+	}
+
+	float result = ((float)count) / ((float)(mSubscribedCount + other.mSubscribedCount - count));
+
+	return result;
+}
+
+float	TwitterConnect::PerAccountUserMap::GetNormalisedAttraction(const PerAccountUserMap& other)
+{
+	unsigned int count = 0;
+	for (int i = 0; i < mSize; i++)
+	{
+		if (other.m[i] & m[i])
+		{
+			count++;
+		}
+	}
+
+	float minSCount = (float)std::min(mSubscribedCount, other.mSubscribedCount);
+
+	float result = ((float)count) / minSCount;
+
+	return result;
 }

@@ -3,6 +3,7 @@
 #include "TwitterAnalyser.h"
 #include "UI/UIImage.h"
 #include "CoreFSM.h"
+#include "Histogram.h"
 
 IMPLEMENT_CLASS_INFO(GraphDrawer)
 
@@ -23,7 +24,12 @@ void GraphDrawer::InitModifiable()
 	// need to add fsm to the object to control
 	addItem(fsm);
 
-
+	// go to force state (push)
+	SP<CoreFSMTransition> forcetransition = KigsCore::GetInstanceOf("forcetransition", "CoreFSMOnValueTransition");
+	forcetransition->setValue("TransitionBehavior", "Push");
+	forcetransition->setValue("ValueName", "DrawForce");
+	forcetransition->setState("Force");
+	forcetransition->Init();
 
 	// create Percent state
 	fsm->addState("Percent", new CoreFSMStateClass(GraphDrawer, Percent)());
@@ -42,6 +48,8 @@ void GraphDrawer::InitModifiable()
 		jaccardnexttransition->Init();
 
 		fsm->getState("Jaccard")->addTransition(jaccardnexttransition);
+		fsm->getState("Jaccard")->addTransition(forcetransition);
+
 	}
 	else
 	{
@@ -51,6 +59,7 @@ void GraphDrawer::InitModifiable()
 	percentnexttransition->Init();
 
 	fsm->getState("Percent")->addTransition(percentnexttransition);
+	fsm->getState("Percent")->addTransition(forcetransition);
 
 	// create Normalized state
 	fsm->addState("Normalized", new CoreFSMStateClass(GraphDrawer, Normalized)());
@@ -60,14 +69,24 @@ void GraphDrawer::InitModifiable()
 	normalizednexttransition->setState("Percent");
 	normalizednexttransition->Init();
 	fsm->getState("Normalized")->addTransition(normalizednexttransition);
+	fsm->getState("Normalized")->addTransition(forcetransition);
 
 	/*
 	// create UserStats state
 	fsm->addState("UserStats", new CoreFSMStateClass(GraphDrawer, UserStats)());
-
-	// create UserStats state
-	fsm->addState("Force", new CoreFSMStateClass(GraphDrawer, Force)());
 	*/
+
+	// pop wait state transition
+	SP<CoreFSMTransition> forceendtransition = KigsCore::GetInstanceOf("forceendtransition", "CoreFSMOnValueTransition");
+	forceendtransition->setValue("TransitionBehavior", "Pop");
+	forceendtransition->setValue("ValueName", "DrawForce");
+	forceendtransition->setValue("NotValue", true); // end wait when NeedWait is false
+	forceendtransition->Init();
+
+	// create Force state
+	fsm->addState("Force", new CoreFSMStateClass(GraphDrawer, Force)());
+	fsm->getState("Force")->addTransition(forceendtransition);
+	
 	fsm->setStartState("Percent");
 	fsm->Init();
 
@@ -196,9 +215,254 @@ void	GraphDrawer::drawSpiral(std::vector<std::tuple<unsigned int,float, u64> >&	
 	}
 	
 }
-void	GraphDrawer::drawForce()
+
+void	GraphDrawer::prepareForceGraphData()
 {
 
+	Histogram<float>	hist({ 0.0,1.0 }, 256);
+
+	mAccountSubscriberMap.clear();
+
+	// for each showed channel
+	for (auto& c : mShowedUser)
+	{
+		std::map<u64, std::vector<u64>>& CheckedUserList=mTwitterAnalyser->mCheckedUserList;
+		TwitterConnect::PerAccountUserMap	toAdd(CheckedUserList.size());
+		int sindex = 0;
+		int subcount = 0;
+		for (auto& s : CheckedUserList)
+		{
+			if (mTwitterAnalyser->isUserOf(s.first, c.first))
+			{
+				toAdd.SetSubscriber(sindex);
+			}
+			++sindex;
+		}
+		toAdd.mThumbnail = c.second;
+		c.second["ChannelPercent"]("Text") = "";
+		c.second["ChannelName"]("Text") = "";
+		mAccountSubscriberMap[c.first] = toAdd;
+	}
+
+	for (auto& l1 : mAccountSubscriberMap)
+	{
+		l1.second.mPos = l1.second.mThumbnail->getValue<v2f>("Dock");
+		l1.second.mPos.x = 960 + (rand() % 129) - 64;
+		l1.second.mPos.y = 540 + (rand() % 81) - 40;
+		l1.second.mForce.Set(0.0f, 0.0f);
+		l1.second.mRadius = l1.second.mThumbnail->getValue<float>("Radius");
+
+		int index = 0;
+		for (auto& l2 : mAccountSubscriberMap)
+		{
+			if (&l1 == &l2)
+			{
+				l1.second.mCoeffs.push_back({ index,-1.0f });
+			}
+			else
+			{
+				float coef = l1.second.GetNormalisedSimilitude(l2.second);
+				l1.second.mCoeffs.push_back({ index ,coef });
+				hist.addValue(coef);
+			}
+			++index;
+		}
+
+		// sort mCoeffs by value
+		std::sort(l1.second.mCoeffs.begin(), l1.second.mCoeffs.end(), [](const std::pair<int, float>& a1, const std::pair<int, float>& a2)
+			{
+				if (a1.second == a2.second)
+				{
+					return (a1.first < a2.first);
+				}
+
+				return a1.second < a2.second;
+			}
+		);
+
+
+		// sort again mCoeffs but by index 
+		std::sort(l1.second.mCoeffs.begin(), l1.second.mCoeffs.end(), [](const std::pair<int, float>& a1, const std::pair<int, float>& a2)
+			{
+				return a1.first < a2.first;
+			}
+		);
+	}
+
+	hist.normalize();
+
+	std::vector<float> histlimits = hist.getPercentList({ 0.05f,0.5f,0.96f });
+
+
+	float rangecoef1 = 1.0f / (histlimits[1] - histlimits[0]);
+	float rangecoef2 = 1.0f / (histlimits[2] - histlimits[1]);
+	int index1 = 0;
+	for (auto& l1 : mAccountSubscriberMap)
+	{
+		// recompute coeffs according to histogram
+		int index2 = 0;
+		for (auto& c : l1.second.mCoeffs)
+		{
+			if (index1 != index2)
+			{
+				// first half ?
+				if ((c.second >= histlimits[0]) && (c.second <= histlimits[1]))
+				{
+					c.second -= histlimits[0];
+					c.second *= rangecoef1;
+					c.second -= 1.0f;
+					c.second = c.second * c.second * c.second;
+					c.second += 1.0f;
+					c.second *= (histlimits[1] - histlimits[0]);
+					c.second += histlimits[0];
+				}
+				else if ((c.second > histlimits[1]) && (c.second <= histlimits[2]))
+				{
+					c.second -= histlimits[1];
+					c.second *= rangecoef2;
+					c.second = c.second * c.second * c.second;
+					c.second *= (histlimits[2] - histlimits[1]);
+					c.second += histlimits[1];
+				}
+				c.second -= histlimits[1];
+				c.second *= 2.0f;
+
+			}
+			++index2;
+		}
+		++index1;
+	}
+}
+
+void	GraphDrawer::drawForce()
+{
+	
+	v2f center(1920.0 / 2.0, 1080.0 / 2.0);
+
+	const float timeDelay = 10.0f;
+	const float timeDivisor = 0.04f;
+
+	float currentTime = ((KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mForcedBaseStartingTime) - timeDelay) * timeDivisor;
+	if (currentTime > 1.0f)
+	{
+		currentTime = 1.0f;
+	}
+
+	// first compute attraction force on each thumb
+	for (auto& l1 : mAccountSubscriberMap)
+	{
+		TwitterConnect::PerAccountUserMap& current = l1.second;
+
+		// always a  bit of attraction to center
+		v2f	v(center);
+		v -= current.mPos;
+
+		// add a bit of random
+		v.x += (rand() % 32) - 16;
+		v.y += (rand() % 32) - 16;
+
+		current.mForce *= 0.1f;
+		current.mForce = v * 0.001f;
+
+		int i = 0;
+		for (auto& l2 : mAccountSubscriberMap)
+		{
+			if (&l1 == &l2)
+			{
+				i++;
+				continue;
+			}
+
+			v2f	v(l2.second.mPos - current.mPos);
+			float dist = Norm(v);
+			v.Normalize();
+			float coef = current.mCoeffs[i].second;
+			if (currentTime < 0.0f)
+			{
+				coef += -currentTime / (timeDelay * timeDivisor);
+			}
+			if (coef > 0.0f)
+			{
+				if (dist <= (current.mRadius + l2.second.mRadius)) // if not already touching
+				{
+					coef = 0.0f;
+				}
+			}
+
+			current.mForce += v * coef * (l2.second.mRadius + current.mRadius) / ((l2.second.mRadius + current.mRadius) + (dist * dist) * 0.001);
+
+			i++;
+		}
+	}
+	// then move according to forces
+	for (auto& l1 : mAccountSubscriberMap)
+	{
+		TwitterConnect::PerAccountUserMap& current = l1.second;
+		current.mPos += current.mForce;
+	}
+
+	if (currentTime > 0.0f)
+	{
+		// then adjust position with contact
+		for (auto& l1 : mAccountSubscriberMap)
+		{
+			TwitterConnect::PerAccountUserMap& current = l1.second;
+
+			for (auto& l2 : mAccountSubscriberMap)
+			{
+				if (&l1 == &l2)
+				{
+					continue;
+				}
+
+				v2f	v(l2.second.mPos - current.mPos);
+				float dist = Norm(v);
+				v.Normalize();
+
+				float r = (current.mRadius + l2.second.mRadius) * currentTime;
+				if (dist < r)
+				{
+					float coef = (r - dist) * 0.5f;
+					current.mPos -= v * coef;
+					l2.second.mPos += v * coef;
+				}
+			}
+		}
+	}
+	// then check if they don't get out of the screen
+	for (auto& l1 : mAccountSubscriberMap)
+	{
+
+		TwitterConnect::PerAccountUserMap& current = l1.second;
+		v2f	v(current.mPos);
+		v -= center;
+		float l1 = Norm(v);
+
+		float angle = atan2f(v.y, v.x);
+		v.Normalize();
+
+		v2f ellipse(center);
+		ellipse.x *= 0.9 * cosf(angle);
+		ellipse.y *= 0.9 * sinf(angle);
+
+		v2f tst = ellipse.Normalized();
+
+		ellipse -= tst * current.mRadius;
+		float l2 = Norm(ellipse);
+
+		if (l1 > l2)
+		{
+			current.mPos -= v * (l1 - l2);
+		}
+
+		v2f dock(current.mPos);
+		dock.x /= 1920.0f;
+		dock.y /= 1080.0f;
+
+		current.mThumbnail("Dock") = dock;
+	}
+
+	
 }
 void	GraphDrawer::drawStats()
 {
@@ -213,7 +477,7 @@ void	GraphDrawer::nextDrawType()
 void	GraphDrawer::drawGeneralStats()
 {
 	char textBuffer[256];
-	if (mTwitterAnalyser->mUseLikes)
+	if (mTwitterAnalyser->mPanelType == TwitterAnalyser::dataType::Likers)
 	{
 		sprintf(textBuffer, "Treated Likers : %d", mTwitterAnalyser->mTreatedUserCount);
 	}
@@ -223,7 +487,7 @@ void	GraphDrawer::drawGeneralStats()
 	}
 	mMainInterface["TreatedFollowers"]("Text") = textBuffer;
 
-	if (mTwitterAnalyser->mUseLikes)
+	if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Likers)
 	{
 		sprintf(textBuffer, "Liked user count : %d", (int)mTwitterAnalyser->mUsersUserCount.size());
 	}
@@ -233,7 +497,7 @@ void	GraphDrawer::drawGeneralStats()
 	}
 	mMainInterface["FoundFollowings"]("Text") = textBuffer;
 
-	if (mTwitterAnalyser->mUseLikes)
+	if (mTwitterAnalyser->mPanelType == TwitterAnalyser::dataType::Likers)
 	{
 		sprintf(textBuffer, "Invalid likers count : %d", mTwitterAnalyser->mTreatedUserCount - mTwitterAnalyser->mValidUserCount);
 	}
@@ -280,8 +544,17 @@ void	GraphDrawer::drawGeneralStats()
 		if (!tmp->HasTexture())
 		{
 			tmp->addItem(mTwitterAnalyser->mRetreivedUsers[0].mThumb.mTexture);
-			mMainInterface["thumbnail"]["UserName"]("Text") = mTwitterAnalyser->mRetreivedUsers[0].mName;
+
+			usString	thumbname = mTwitterAnalyser->mRetreivedUsers[0].mName;
+
+			if (mTwitterAnalyser->mUseHashTags)
+			{
+				thumbname = std::string(" ");
+				thumbname +=mTwitterAnalyser->mRetreivedUsers[0].mName;
+			}
+			mMainInterface["thumbnail"]["UserName"]("Text") = thumbname;
 		}
+
 	}
 	else if (mMainInterface["thumbnail"])
 	{
@@ -601,5 +874,23 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 	}
 
 	drawSpiral(toShow);
+	return false;
+}
+
+void CoreFSMStartMethod(GraphDrawer, Force)
+{
+	mForcedBaseStartingTime = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime();
+	prepareForceGraphData();
+	mTwitterAnalyser->ChangeAutoUpdateFrequency(this, 50.0);
+}
+
+void CoreFSMStopMethod(GraphDrawer, Force)
+{
+	mTwitterAnalyser->ChangeAutoUpdateFrequency(this, 1.0);
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Force))
+{
+	drawForce();
 	return false;
 }

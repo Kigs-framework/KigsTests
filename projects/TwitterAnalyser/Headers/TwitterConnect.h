@@ -38,6 +38,7 @@ public:
 		u64		userID;
 		u32		likes_count;
 		u32		retweet_count;
+		u32		creation_date;
 	};
 
 	class UserStruct
@@ -59,13 +60,91 @@ public:
 		u32							mLikerBothFollowCount;
 		u32							mLikesCount;
 	};
+	// structures
+	class PerAccountUserMap
+	{
+	public:
+		PerAccountUserMap() :m(nullptr), mSubscribedCount(0), mSize(0)
+		{
+
+		}
+
+		PerAccountUserMap(int SSize)
+		{
+			mSize = SSize;
+			m = new unsigned char[mSize];
+			memset(m, 0, mSize * sizeof(unsigned char));
+		}
+		PerAccountUserMap(const PerAccountUserMap& other)
+		{
+			if (m)
+			{
+				delete[] m;
+			}
+			mSize = other.mSize;
+			m = new unsigned char[mSize];
+			memcpy(m, other.m, mSize * sizeof(unsigned char));
+			mSubscribedCount = other.mSubscribedCount;
+		}
+
+		PerAccountUserMap& operator=(const PerAccountUserMap& other)
+		{
+			if (m)
+			{
+				delete[] m;
+			}
+			mSize = other.mSize;
+			m = new unsigned char[mSize];
+			memcpy(m, other.m, mSize * sizeof(unsigned char));
+			mSubscribedCount = other.mSubscribedCount;
+			mThumbnail = other.mThumbnail;
+			return *this;
+		}
+
+		~PerAccountUserMap()
+		{
+			delete[] m;
+		}
+
+		void	SetSubscriber(int index)
+		{
+			m[index] = 1;
+			mSubscribedCount++;
+		}
+
+		unsigned char* m = nullptr;
+		std::vector<std::pair<int, float>>	mCoeffs;
+		unsigned int		mSubscribedCount = 0;
+		unsigned int		mSize = 0;
+
+		CMSP				mThumbnail;
+		v2f					mForce;
+		v2f					mPos;
+		float				mRadius;
+
+		float	GetNormalisedSimilitude(const PerAccountUserMap& other);
+		float	GetNormalisedAttraction(const PerAccountUserMap& other);
+	};
 
 	struct Twts
 	{
+		u64		mAuthorID;
 		u64		mTweetID;
 		u32		mLikeCount;
 		u32		mRetweetCount;
 	};
+
+	static bool searchDuplicateTweet(u64 twtid,const std::vector< Twts>& tweets) // return true if the same tweet already in the list
+	{
+		for (const auto& t : tweets)
+		{
+			if (t.mTweetID == twtid)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
 	unsigned int				NextBearer()
 	{
@@ -167,11 +246,12 @@ public:
 	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb, const std::string& signal = "done");
 	void	launchGetFollowing(UserStruct& ch, const std::string& signal = "done");
 	void	launchGetFavoritesRequest(const std::string& user);
-
+	void	launchGetTweetRequest(u64 userid, const std::string& username);
+	void	launchSearchTweetRequest(const std::string& hashtag);
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
 	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
-	void	launchGetTweetRequest(u64 userid, const std::string& username);
+	
 
 	u32		getRequestCount()
 	{
@@ -202,8 +282,65 @@ public:
 	static CoreItemSP	LoadLikersFile(u64 tweetid, const std::string& username);
 	static void			SaveLikersFile(const std::vector<std::string>& tweetLikers, u64 tweetid, const std::string& username);
 
-	static bool					LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav);
-	static void					SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs);
+	static bool			LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav);
+	static void			SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs);
+
+
+	static std::string getHashtagFilename(const std::string& HashTag)
+	{
+		std::string result = "HashTag" + HashTag;
+		if (HashTag[0] == '#')
+		{
+			result = "HashTag" + HashTag.substr(1);
+		}
+		return result;
+	}
+
+	static std::string getHashtagURL(const std::string& HashTag)
+	{
+		std::string result = HashTag;
+		if (HashTag[0] == '#')
+		{
+			result = "%23" + HashTag.substr(1);
+		}
+		return result;
+	}
+
+	static void	saveUserNameFromID(u64 id, const std::string& username,bool checkExist=false);
+	static std::string	loadUserNameFromID(u64 id);
+
+	static std::string	userNameFromId(u64 id)
+	{
+		auto f = mUserIdToName.find(id);
+		if (f != mUserIdToName.end())
+		{
+			return (*f).second;
+		}
+		
+		auto n = loadUserNameFromID(id);
+		if(n != "")
+		{
+			return n;
+		}
+		return "";
+	}
+
+	static void	initDates(const std::string& fromdate, const std::string& todate );
+
+	static bool useDates()
+	{
+		return mUseDates;
+	}
+
+	static std::string getDate(u32 index)
+	{
+		return mDates[index].dateAsString;
+	}
+
+	static u64	getTweetIdBeforeDate(const std::string& date);
+	static u64	getTweetIdAfterDate(const std::string& date);
+
+
 protected:
 
 	void	sendRequest(); // send waiting request
@@ -217,10 +354,11 @@ protected:
 
 	DECLARE_METHOD(getUserDetails);
 	DECLARE_METHOD(getTweets);
+	DECLARE_METHOD(getSearchTweets);
 	DECLARE_METHOD(getFollowing);
 	DECLARE_METHOD(getFavorites);
 	
-	COREMODIFIABLE_METHODS(getUserDetails, getFollowing, getTweets, getFavorites);
+	COREMODIFIABLE_METHODS(getUserDetails, getFollowing, getTweets, getSearchTweets, getFavorites);
 	CoreItemSP	RetrieveJSON(CoreModifiable* sender);
 
 	std::vector<std::pair<CMSP, std::pair<u64, UserStruct*>> >		mDownloaderList;
@@ -235,6 +373,34 @@ protected:
 
 	std::vector<u64>	mCurrentIDVector;
 
+	static std::unordered_map<u64, std::string>		mUserIdToName;
+
+	static void	updateTweetCalendar(const std::string& tweetdate, u64 tweetid);
+
+	static void	loadTweetCalendar();
+	static void	saveTweetCalendar();
+
+	// return date in a u32 YYYYMMDD in result.first and seconds until start of this day in result.second
+	static std::pair<u32, u32>	GetU32YYYYMMDD(const std::string& utcdate);
+
+	static std::string creationDateToUTC(const std::string& created_date);
+
+	static bool inGoodInterval(const std::string& createdDate,u64 tweetid);
+
+	static std::map<u32, std::pair<u64, u32>>		mDateToTweet;
+
 	void	thumbnailReceived(CoreRawBuffer* data, CoreModifiable* downloader);
+
+	struct datestruct
+	{
+		u32	dateAsInt;
+		std::string dateAsString;
+	};
+
+	// from and to dates
+	static  datestruct	mDates[2];
+	static  bool		mUseDates;
+
+
 
 };

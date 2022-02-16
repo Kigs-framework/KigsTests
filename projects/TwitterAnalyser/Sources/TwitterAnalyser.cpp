@@ -4,6 +4,7 @@
 #include "HTTPRequestModule.h"
 #include "JSonFileParser.h"
 #include "CoreFSM.h"
+#include "TextureFileManager.h"
 
 IMPLEMENT_CLASS_INFO(TwitterAnalyser);
 
@@ -11,6 +12,62 @@ IMPLEMENT_CONSTRUCTOR(TwitterAnalyser)
 {
 
 }
+
+void		TwitterAnalyser::commonStatesFSM()
+{
+	SP<CoreFSM> fsm = mFsm;
+
+	// go to wait state (push)
+	SP<CoreFSMTransition> waittransition = KigsCore::GetInstanceOf("waittransition", "CoreFSMOnValueTransition");
+	waittransition->setValue("TransitionBehavior", "Push");
+	waittransition->setValue("ValueName", "NeedWait");
+	waittransition->setState("Wait");
+	waittransition->Init();
+
+	mTransitionList["waittransition"] = waittransition;
+
+	// this one is needed for all cases
+	fsm->addState("GetUserListDetail", new CoreFSMStateClass(TwitterAnalyser, GetUserListDetail)());
+	// only wait or pop
+	fsm->getState("GetUserListDetail")->addTransition(waittransition);
+
+	// go to GetUserListDetail state (push)
+	SP<CoreFSMTransition> userlistdetailtransition = KigsCore::GetInstanceOf("userlistdetailtransition", "CoreFSMOnValueTransition");
+	userlistdetailtransition->setValue("TransitionBehavior", "Push");
+	userlistdetailtransition->setValue("ValueName", "NeedUserListDetail");
+	userlistdetailtransition->setState("GetUserListDetail");
+	userlistdetailtransition->Init();
+
+	mTransitionList["userlistdetailtransition"] = userlistdetailtransition;
+
+	// this one is needed for all cases
+	fsm->addState("Done", new CoreFSMStateClass(TwitterAnalyser, Done)());
+	// only wait or pop
+	fsm->getState("Done")->addTransition(userlistdetailtransition);
+
+	// pop wait state transition
+	SP<CoreFSMTransition> waitendtransition = KigsCore::GetInstanceOf("waitendtransition", "CoreFSMOnValueTransition");
+	waitendtransition->setValue("TransitionBehavior", "Pop");
+	waitendtransition->setValue("ValueName", "NeedWait");
+	waitendtransition->setValue("NotValue", true); // end wait when NeedWait is false
+	waitendtransition->Init();
+
+	mTransitionList["waitendtransition"] = waitendtransition;
+
+	// create Wait state
+	fsm->addState("Wait", new CoreFSMStateClass(TwitterAnalyser, Wait)());
+	// Wait state can pop back to previous state
+	fsm->getState("Wait")->addTransition(waitendtransition);
+
+	// transition to done state
+	SP<CoreFSMTransition> donetransition = KigsCore::GetInstanceOf("donetransition", "CoreFSMInternalSetTransition");
+	donetransition->setState("Done");
+	donetransition->Init();
+
+	mTransitionList["donetransition"] = donetransition;
+
+}
+
 
 void	TwitterAnalyser::ProtectedInit()
 {
@@ -54,15 +111,38 @@ void	TwitterAnalyser::ProtectedInit()
 	if (mHashTag.length())
 	{
 		mUseHashTags = true;
+		TwitterConnect::UserStruct	mainuser;
+		mainuser.mID = 0;
+		mRetreivedUsers.push_back(mainuser);
+		auto textureManager = KigsCore::Singleton<TextureFileManager>();
+		mRetreivedUsers[0].mThumb.mTexture = textureManager->GetTexture("keyw.png");
+		mRetreivedUsers[0].mName = mHashTag;
 	}
 	else
 	{
+		// look for dates (only if not hashtag)
+
+		std::string fromdate, todate;
+		SetMemberFromParam(fromdate, "FromDate");
+		SetMemberFromParam(todate, "ToDate");
+
+		if (fromdate.length() && todate.length())
+		{
+			TwitterConnect::initDates(fromdate, todate);
+		}
+
 		TwitterConnect::UserStruct	mainuser;
 		mainuser.mID = 0;
 		mRetreivedUsers.push_back(mainuser);
 		SetMemberFromParam(mRetreivedUsers[0].mName, "UserName");
 	}
-	SetMemberFromParam(mUseLikes, "UseLikes");
+	u32 PanelType;
+	u32 AnalysedType;
+	SetMemberFromParam(PanelType, "PanelType");
+	mPanelType = (dataType)PanelType;
+	SetMemberFromParam(AnalysedType, "AnalysedType");
+	mAnalysedType = (dataType)AnalysedType;
+
 	SetMemberFromParam(mUserPanelSize, "UserPanelSize");
 	SetMemberFromParam(mValidUserPercent, "ValidUserPercent");
 	SetMemberFromParam(mWantedTotalPanelSize, "WantedTotalPanelSize");
@@ -70,14 +150,41 @@ void	TwitterAnalyser::ProtectedInit()
 
 	initCoreFSM();
 
-	if (mUseLikes)
+	std::string lastState;
+
+	// add FSM
+	SP<CoreFSM> fsm = KigsCore::GetInstanceOf("fsm", "CoreFSM");
+	// need to add fsm to the object to control
+	addItem(fsm);
+	mFsm = fsm;
+
+	commonStatesFSM();
+
+	switch (mPanelType)
 	{
-		createLikersFSM();
+	case dataType::Likers:
+		lastState = searchLikersFSM();
 		SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
+		break;
+	case dataType::Followers:
+		lastState = searchFollowersFSM();
+		break;
+	case dataType::Following:
+		lastState = searchFollowingFSM();
+		break;
 	}
-	else
+
+	switch (mAnalysedType)
 	{
-		createFollowersFSM();
+	case dataType::Favorites:
+		analyseFavoritesFSM(lastState);
+		break;
+	case dataType::Followers:
+		analyseFollowersFSM(lastState);
+		break;
+	case dataType::Following:
+		analyseFollowingFSM(lastState);
+		break;
 	}
 	
 	mTwitterConnect->initConnection(60.0 * 60.0 * 24.0 * (double)oldFileLimitInDays);
@@ -106,7 +213,7 @@ void	TwitterAnalyser::ProtectedInitSequence(const kstl::string& sequence)
 		mMainInterface = GetFirstInstanceByName("UIItem", "Interface");
 		mMainInterface["switchForce"]("IsHidden") = true;
 		mMainInterface["switchForce"]("IsTouchable") = false;
-		if (mUseLikes)
+		if (mPanelType == dataType::Likers)
 			mMainInterface["heart"]("IsHidden") = false;
 
 		// launch fsm
@@ -159,7 +266,116 @@ void	TwitterAnalyser::switchDisplay()
 	mGraphDrawer->nextDrawType();
 }
 
+void	TwitterAnalyser::switchForce()
+{
+	bool currentDrawForceState=mGraphDrawer->getValue<bool>("DrawForce");
+	if (!currentDrawForceState)
+	{
+		mMainInterface["thumbnail"]("Dock") = v2f(0.94f, 0.08f);
 
+		mMainInterface["switchV"]("IsHidden") = true;
+		mMainInterface["switchV"]("IsTouchable") = false;
+
+		mMainInterface["switchForce"]("Dock") = v2f(0.050f, 0.950f);
+
+	}
+	else
+	{
+		mMainInterface["thumbnail"]("Dock") = v2f(0.52f, 0.44f);
+
+		mMainInterface["switchV"]("IsHidden") = false;
+		mMainInterface["switchV"]("IsTouchable") = true;
+
+		mMainInterface["switchForce"]("IsHidden") = true;
+		mMainInterface["switchForce"]("IsTouchable") = false;
+		mMainInterface["switchForce"]("Dock") = v2f(0.950f, 0.050f);
+	}
+	currentDrawForceState = !currentDrawForceState;
+	mGraphDrawer->setValue("DrawForce", currentDrawForceState);
+
+}
+
+
+void	TwitterAnalyser::manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken)
+{
+	bool newtweet = false;
+	if (twtlist.size())
+	{
+		TwitterConnect::randomizeVector(twtlist);
+		for (const auto& twt : twtlist)
+		{
+			if (!TwitterConnect::searchDuplicateTweet(twt.mTweetID, mTweets))
+			{
+				mTweets.push_back(twt);
+				newtweet = true;
+			}
+		}
+
+	}
+	if((newtweet == false) && (nexttoken == "-1"))// no more tweets can be retreived
+	{
+		mUserPanelSize = mValidUserCount;
+	}
+	KigsCore::Disconnect(mTwitterConnect.get(), "TweetRetrieved", this, "manageRetrievedTweets");
+	requestDone();
+
+	std::string userfilename = mRetreivedUsers[0].mName.ToString();
+
+	if (mUseHashTags)
+	{
+		userfilename = TwitterConnect::getHashtagFilename(mRetreivedUsers[0].mName.ToString());
+	}
+
+	TwitterConnect::SaveTweetsFile(mTweets, userfilename);
+
+	{
+		std::string filename = "Cache/UserName/";
+		if (TwitterConnect::useDates())
+		{
+			filename += "_" + TwitterConnect::getDate(0) + "_" + TwitterConnect::getDate(1) + "_";
+		}
+		filename += userfilename + "_TweetsNextCursor.json";
+
+		if (nexttoken != "-1")
+		{
+
+			CoreItemSP currentUserJson = MakeCoreMap();
+			currentUserJson->set("next-cursor", nexttoken);
+			TwitterConnect::SaveJSon(filename, currentUserJson);
+		}
+		else
+		{
+			ModuleFileManager::RemoveFile(filename.c_str());
+		}
+	}
+
+}
+
+void CoreFSMStartMethod(TwitterAnalyser, InitHashTag)
+{
+	mNameToUserIndex[mRetreivedUsers[0].mName.ToString()] = 0;
+}
+
+void CoreFSMStopMethod(TwitterAnalyser, InitHashTag)
+{
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitHashTag))
+{
+	// nothing more to do, just go to next state
+	auto availableTransitions = GetUpgrador()->getTransitionList();
+	for (const auto& t : availableTransitions)
+	{
+		// Init only have 2 transitions : "waittransition" and another
+		// so active the other one
+		if (t != "waittransition")
+		{
+			GetUpgrador()->activateTransition(t);
+			break;
+		}
+	}
+	return false;
+}
 
 void CoreFSMStartMethod(TwitterAnalyser, InitUser)
 {
@@ -175,7 +391,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitUser))
 	std::string currentUserProgress = "Cache/";
 	currentUserProgress += "UserName/";
 	currentUserProgress += mRetreivedUsers[0].mName.ToString() + ".json";
-	CoreItemSP currentP = mTwitterConnect->LoadJSon(currentUserProgress);
+	CoreItemSP currentP = TwitterConnect::LoadJSon(currentUserProgress);
 
 	if (!currentP) // new user
 	{
@@ -338,3 +554,5 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, Done))
 	
 	return false;
 }
+
+
