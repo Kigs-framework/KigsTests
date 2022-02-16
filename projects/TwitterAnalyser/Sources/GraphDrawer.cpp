@@ -531,8 +531,15 @@ void	GraphDrawer::drawGeneralStats()
 	}
 	else
 	{
-		mMainInterface["RequestCount"]("Text") = "";
-		mMainInterface["RequestWait"]("Text") = "";
+		if (TwitterConnect::useDates())
+		{
+			mMainInterface["RequestCount"]("Text") = "From " + TwitterConnect::getDate(0) + "To " + TwitterConnect::getDate(1);
+		}
+		else
+		{
+			mMainInterface["RequestCount"]("Text") = "";
+		}
+		mMainInterface["RequestWait"]("Text") = ""; 
 		mMainInterface["switchForce"]("IsHidden") = false;
 		mMainInterface["switchForce"]("IsTouchable") = true;
 	}
