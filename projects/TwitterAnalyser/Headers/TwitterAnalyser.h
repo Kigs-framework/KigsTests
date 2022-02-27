@@ -6,6 +6,8 @@
 #include "ScrapperManager.h"
 #include "GraphDrawer.h"
 
+//#define USE_SCRAPPER
+
 class TwitterAnalyser : public DataDrivenBaseApplication
 {
 public:
@@ -53,12 +55,19 @@ protected:
 
 	SP<TwitterConnect>			mTwitterConnect=nullptr;
 	CMSP						mMainInterface=nullptr;
-
+#ifdef USE_SCRAPPER
 	SP<ScrapperManager>		mScrapperManager=nullptr;
+#endif
 	SP<GraphDrawer>			mGraphDrawer = nullptr;
 
 	// list of tweets
 	std::vector<TwitterConnect::Twts>	mTweets;
+
+	// list of users
+	std::vector<u64>					mUserList;
+
+	// retrieved likers count per tweet			
+	std::map<u64, u32>					mTweetRetrievedLikerCount;
 	u32									mCurrentTreatedTweetIndex = 0;
 	// list of likers
 	u32									mCurrentTreatedLikerIndex=0;
@@ -68,7 +77,12 @@ protected:
 	u32									mMaxLikersPerTweet = 0;
 	u32									mMaxUserCount=45;
 	u32									mUserPanelSize=500;
-	std::map<std::string, u32>			mFoundLiker;
+#ifdef USE_SCRAPPER
+	std::set<std::string>			mFoundUser;
+#else
+	std::set<u64>					mFoundUser;
+#endif
+	bool							mCanGetMoreUsers = false;
 
 	// analyse type
 	dataType		mPanelType = dataType::Followers;
@@ -85,7 +99,12 @@ protected:
 
 	// user 0 is main user if needed
 	std::vector<TwitterConnect::UserStruct>		mRetreivedUsers;
-	std::unordered_map<std::string, u32>		mNameToUserIndex;
+
+#ifdef USE_SCRAPPER
+	std::unordered_map<std::string, u32>		mUserToUserIndex;
+#else
+	std::unordered_map<u64, u32>				mUserToUserIndex;
+#endif
 
 	// per user map of favorites or following 
 	std::map <u64, std::map<u64, float> >										mWeightedData;
@@ -102,6 +121,18 @@ protected:
 			mUserDetailsAsked.push_back(userID);
 			mNeedUserListDetail = true;
 		}
+	}
+
+	const TwitterConnect::UserStruct& getRetreivedUser(u64 uid)
+	{
+		for(const auto& u: mRetreivedUsers)
+		{
+			if (u.mID == uid)
+			{
+				return u;
+			}
+		}
+		return mRetreivedUsers[0];
 	}
 
 	void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
@@ -156,6 +187,7 @@ TwitterConnect::UserStruct	mTmpUserStruct;
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
+#ifdef USE_SCRAPPER
 // get user id from user name
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetUserID)
 public:
@@ -164,6 +196,7 @@ public:
 protected:
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
+#endif
 
 // wait state
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, Wait)

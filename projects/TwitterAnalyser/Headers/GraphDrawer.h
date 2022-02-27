@@ -4,6 +4,7 @@
 #include "CoreBaseApplication.h"
 #include "CoreFSMState.h"
 #include "TwitterConnect.h"
+#include "KigsBitmap.h"
 
 
 class TwitterAnalyser;
@@ -17,8 +18,8 @@ protected:
 	TwitterAnalyser* mTwitterAnalyser = nullptr;
 	void	drawSpiral(std::vector<std::tuple<unsigned int, float,u64>>& toShow);
 	void	drawForce();
-	void	drawStats();
-
+	void	drawStats(SP<KigsBitmap> bitmap);
+	
 	void	drawGeneralStats();
 
 	bool	mEverythingDone=false;
@@ -44,7 +45,30 @@ protected:
 	std::unordered_map<u64, TwitterConnect::PerAccountUserMap>	mAccountSubscriberMap;
 
 	maBool	mDrawForce = BASE_ATTRIBUTE(DrawForce, false);
+	bool	mCurrentStateHasForceDraw = false;
 
+	class Diagram
+	{
+		v2i				mZonePos={128,128};
+		v2i				mZoneSize={384,256};
+		v2f				mLimits = { 0.0f, -1.0f };
+		std::string		mTitle="Diagram";
+		SP<KigsBitmap>	mBitmap;
+		u32				mColumnCount = 12;
+		bool			mUseLog;
+
+		KigsBitmap::KigsBitmapPixel	mColumnColor = {0,0,0,255};
+		friend class GraphDrawer;
+
+	public:
+		Diagram(SP<KigsBitmap> bitmap) : mBitmap(bitmap)
+		{
+
+		}
+
+		template<typename T>
+		void	Draw(const std::vector<T>& values);
+	};
 
 public:
 	DECLARE_CLASS_INFO(GraphDrawer, CoreModifiable, GraphDrawer);
@@ -85,6 +109,7 @@ END_DECLARE_COREFSMSTATE()
 
 // user stats drawing
 START_DECLARE_COREFSMSTATE(GraphDrawer, UserStats)
+CMSP	mBitmap;
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 

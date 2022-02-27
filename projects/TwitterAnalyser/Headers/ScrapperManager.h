@@ -41,7 +41,9 @@ protected:
 
 	std::vector<tmpScrappedUserName>								mCurrentScrappedUserNameList;
 	std::vector<std::string>										mTweetLikers;
+	std::string														mLastRetrievedLiker;
 	std::map<std::string, unsigned int>								mTweetLikersMap;
+	u32																mListEndReachCount=0;
 
 	std::string														mCurrentURL;
 

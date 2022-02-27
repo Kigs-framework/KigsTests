@@ -80,10 +80,9 @@ void	ScrapperManager::treatWebScraperMessage(CoreModifiable* sender, std::string
 	{
 	case  GET_LIKES:
 	{
-		if (msg == "") // something went wrong ? do it again
+		if (msg == "") // something went wrong ? 
 		{
-			protectedLaunchScrap();
-			return;
+			break;
 		}
 		if (msg.find("href") != std::string::npos)
 		{
@@ -94,16 +93,9 @@ void	ScrapperManager::treatWebScraperMessage(CoreModifiable* sender, std::string
 				std::string user = msg.substr(possibleUserPos + 12, endUserPos - (possibleUserPos + 12));
 				if (user.find("search?") == std::string::npos) // seams OK
 				{
-					if (mCurrentScrappedUserNameList.size())
+					if (mCurrentScrappedUserNameList.size() && (mCurrentScrappedUserNameList.back().userName == user))
 					{
-						if (mCurrentScrappedUserNameList.back().userName == user)
-						{
-							mCurrentScrappedUserNameList.back().foundCount++;
-						}
-						else
-						{
-							mCurrentScrappedUserNameList.push_back({ user,1 });
-						}
+						mCurrentScrappedUserNameList.back().foundCount++;
 					}
 					else
 					{
@@ -112,28 +104,38 @@ void	ScrapperManager::treatWebScraperMessage(CoreModifiable* sender, std::string
 				}
 			}
 		}
-
-		if (msg.find("scriptDone") != std::string::npos)
+		else if (msg.find("scriptDone") != std::string::npos)
 		{
 			if (mCurrentScrappedUserNameList.size()) // some users were found ?
 			{
+				// get only valid ones
 				std::vector<std::string>	validscrappedlist;
-
 				for (const auto& u : mCurrentScrappedUserNameList)
 				{
-					if (u.foundCount == 2)
+					if (u.foundCount >= 2)
 					{
 						validscrappedlist.push_back(u.userName);
 					}
 				}
 
+				// check if the end of the list was found
 				bool valid = true;
-				if (mTweetLikers.size())
+				if (mLastRetrievedLiker == validscrappedlist.back())
 				{
-					if (validscrappedlist.back() == mTweetLikers.back())
+
+					if (mListEndReachCount < 2) // try it again twice to be sure
 					{
-						valid = false;
+						mListEndReachCount++;
 					}
+					else
+					{
+						valid = false; // ok we reached the end of the list
+					}
+				}
+				else
+				{
+					mLastRetrievedLiker = validscrappedlist.back();
+					mListEndReachCount = 0;	
 				}
 
 				if (valid)
@@ -151,36 +153,42 @@ void	ScrapperManager::treatWebScraperMessage(CoreModifiable* sender, std::string
 						}
 					}
 
-					if (mTweetLikers.size() && oneWasAdded)
+					if (mTweetLikers.size() && ( oneWasAdded || (mListEndReachCount<2)))
 					{
-						if (mTweetLikers.size() < 200) // if enough likers found
+						//if (mTweetLikers.size() < 500) // if enough likers found
 						{
 							mCurrentScrappedUserNameList.clear();
 							mNextScript = "var toscroll=document.querySelector('[href=\"/" + mTweetLikers.back() + "\"]');"\
 								"toscroll.scrollIntoView(true);"\
-								"window.chrome.webview.postMessage(\"scriptDone\");";
+								"setTimeout(function(){window.chrome.webview.postMessage(\"scriptDone\");},";
+							if (mListEndReachCount)
+							{
+								// more delay
+								mNextScript += "1000);";
+							}
+							else
+							{
+								// normal delay
+								mNextScript += "300);";
+							}
 							LaunchScript(sender);
 							mScraperState = SCROLL_LIKES;
 						}
+						
 					}
+					
 				}
+				
 			}
 
 			if (mScraperState != SCROLL_LIKES) // no more likers found
 			{
-				/*u64 tweetID = mTweets[mCurrentTreatedTweetIndex].mTweetID;
-				TwitterConnect::randomizeVector(mTweetLikers);
-
-				std::string username = mUserName;
-				
-
-				SaveLikersFile(tweetID, username);
-				mState = GET_USER_FAVORITES;*/
-
 				EmitSignal("LikersRetreived", mTweetLikers);
 				mTweetLikers.clear();
 				mTweetLikersMap.clear();
 				mLastActiveTime = -1.0;
+				mListEndReachCount = 0;
+				mLastRetrievedLiker = "";
 			}
 		}
 	}

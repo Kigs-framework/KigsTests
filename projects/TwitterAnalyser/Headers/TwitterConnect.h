@@ -19,6 +19,7 @@ protected:
 	static time_t     mCurrentTime;
 	unsigned int		mRequestCount = 0;
 
+	u64					mCurrentTweetID = 0;
 
 public:
 
@@ -246,8 +247,10 @@ public:
 	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb, const std::string& signal = "done");
 	void	launchGetFollowing(UserStruct& ch, const std::string& signal = "done");
 	void	launchGetFavoritesRequest(const std::string& user);
+	void	launchGetFavoritesRequest(u64 userid);
 	void	launchGetTweetRequest(u64 userid, const std::string& username);
 	void	launchSearchTweetRequest(const std::string& hashtag);
+	void	launchGetLikers(u64 tweetid, const std::string& signal = "done");
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
 	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
@@ -282,8 +285,15 @@ public:
 	static CoreItemSP	LoadLikersFile(u64 tweetid, const std::string& username);
 	static void			SaveLikersFile(const std::vector<std::string>& tweetLikers, u64 tweetid, const std::string& username);
 
+	static std::vector<u64> LoadLikersFile(u64 tweetid);
+	static void			SaveLikersFile(const std::vector<u64>& tweetLikers, u64 tweetid);
+
+
 	static bool			LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav);
+	static bool			LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::favoriteStruct>& fav);
+
 	static void			SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs);
+	static void			SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::favoriteStruct>& favs);
 
 
 	static std::string getHashtagFilename(const std::string& HashTag)
@@ -340,6 +350,9 @@ public:
 	static u64	getTweetIdBeforeDate(const std::string& date);
 	static u64	getTweetIdAfterDate(const std::string& date);
 
+	static int	getDateDiffInMonth(const std::string& date1, const std::string& date2);
+
+	static std::string getTodayDate();
 
 protected:
 
@@ -354,11 +367,12 @@ protected:
 
 	DECLARE_METHOD(getUserDetails);
 	DECLARE_METHOD(getTweets);
+	DECLARE_METHOD(getLikers);
 	DECLARE_METHOD(getSearchTweets);
 	DECLARE_METHOD(getFollowing);
 	DECLARE_METHOD(getFavorites);
 	
-	COREMODIFIABLE_METHODS(getUserDetails, getFollowing, getTweets, getSearchTweets, getFavorites);
+	COREMODIFIABLE_METHODS(getUserDetails, getFollowing, getTweets, getLikers, getSearchTweets, getFavorites);
 	CoreItemSP	RetrieveJSON(CoreModifiable* sender);
 
 	std::vector<std::pair<CMSP, std::pair<u64, UserStruct*>> >		mDownloaderList;

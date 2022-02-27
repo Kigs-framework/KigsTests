@@ -314,7 +314,15 @@ void	TwitterAnalyser::manageRetrievedTweets(std::vector<TwitterConnect::Twts>& t
 	}
 	if((newtweet == false) && (nexttoken == "-1"))// no more tweets can be retreived
 	{
-		mUserPanelSize = mValidUserCount;
+		if (mCanGetMoreUsers) // do it again with more users
+		{
+			mCanGetMoreUsers = false;
+			mCurrentTreatedTweetIndex = 0;
+		}
+		else
+		{
+			mUserPanelSize = mValidUserCount;
+		}
 	}
 	KigsCore::Disconnect(mTwitterConnect.get(), "TweetRetrieved", this, "manageRetrievedTweets");
 	requestDone();
@@ -353,7 +361,9 @@ void	TwitterAnalyser::manageRetrievedTweets(std::vector<TwitterConnect::Twts>& t
 
 void CoreFSMStartMethod(TwitterAnalyser, InitHashTag)
 {
-	mNameToUserIndex[mRetreivedUsers[0].mName.ToString()] = 0;
+#ifdef USE_SCRAPPER
+	mUserToUserIndex[mRetreivedUsers[0].mName.ToString()] = 0;
+#endif
 }
 
 void CoreFSMStopMethod(TwitterAnalyser, InitHashTag)
@@ -379,7 +389,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitHashTag))
 
 void CoreFSMStartMethod(TwitterAnalyser, InitUser)
 {
-	mNameToUserIndex[mRetreivedUsers[0].mName.ToString()] = 0;
+#ifdef USE_SCRAPPER
+	mUserToUserIndex[mRetreivedUsers[0].mName.ToString()] = 0;
+#endif
 }
 
 void CoreFSMStopMethod(TwitterAnalyser, InitUser)
@@ -455,6 +467,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserDetail))
 	return false;
 }
 
+#ifdef USE_SCRAPPER
+
 void	CoreFSMStartMethod(TwitterAnalyser, GetUserID)
 {
 	
@@ -491,7 +505,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserID))
 	}
 	return false;
 }
-
+#endif
 
 void	CoreFSMStartMethod(TwitterAnalyser, Wait)
 {

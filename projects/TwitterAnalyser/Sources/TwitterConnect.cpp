@@ -409,6 +409,24 @@ void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const st
 	SaveDataFile<Twts>(filename, tweetlist);
 }
 
+bool			TwitterConnect::LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::favoriteStruct>& fav)
+{
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(userid) + "/" + GetIDString(userid) ;
+
+	if (mUseDates)
+	{
+		filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+	}
+	filename += ".favs";
+	// for dated search, don't use old file limit here
+	if (LoadDataFile<TwitterConnect::favoriteStruct>(filename, fav))
+	{
+		return true;
+	}
+	fav.clear();
+	return false;
+}
+
 
 bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav)
 {
@@ -428,6 +446,20 @@ bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector
 	return false;
 }
 
+void		TwitterConnect::SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::favoriteStruct>& favs)
+{
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(userid) + "/" + GetIDString(userid);
+
+	if (mUseDates)
+	{
+		filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
+	}
+	filename += ".favs";
+
+	SaveDataFile<TwitterConnect::favoriteStruct>(filename, favs);
+}
+
+
 void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs)
 {
 	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/";
@@ -440,6 +472,19 @@ void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::
 	SaveDataFile<TwitterConnect::favoriteStruct>(filename, favs);
 }
 
+std::vector<u64> TwitterConnect::LoadLikersFile(u64 tweetid)
+{
+	std::string filename = "Cache/Tweets/" + GetUserFolderFromID(tweetid) + "/" + GetIDString(tweetid) + ".likers";
+
+	// if dated search, then don't use old file limit here ?
+	std::vector<u64>	result;
+	LoadDataFile<u64>(filename, result);
+	
+	return result;
+}
+
+
+
 CoreItemSP		TwitterConnect::LoadLikersFile(u64 tweetid, const std::string& username)
 {
 	std::string filename = "Cache/Tweets/" + username + "/" + GetIDString(tweetid) + ".json";
@@ -448,6 +493,14 @@ CoreItemSP		TwitterConnect::LoadLikersFile(u64 tweetid, const std::string& usern
 	CoreItemSP likers = LoadJSon(filename);
 	return likers;
 }
+
+void		TwitterConnect::SaveLikersFile(const std::vector<u64>& tweetLikers, u64 tweetid)
+{
+	std::string filename = "Cache/Tweets/" + GetUserFolderFromID(tweetid) + "/" + GetIDString(tweetid) + ".likers";
+
+	SaveDataFile<u64>(filename, tweetLikers);
+}
+
 void		TwitterConnect::SaveLikersFile(const std::vector<std::string>& tweetLikers,u64 tweetid, const std::string& username)
 {
 	// likers are stored in unused mFollowers (when in UseLikes mode)
@@ -461,6 +514,44 @@ void		TwitterConnect::SaveLikersFile(const std::vector<std::string>& tweetLikers
 
 	SaveJSon(filename, likers, false);
 
+}
+
+void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
+{
+	// use since ID, max ID here to retrieve tweets in a given laps of time
+	std::string url = "1.1/favorites/list.json?user_id=" + GetIDString(userid) + "&count=200&include_entities=false";
+
+	if (mUseDates)
+	{
+		u64 since = getTweetIdBeforeDate(mDates[0].dateAsString);
+		if (since)
+			url += "&since_id=" + std::to_string(since);
+
+		u64 max_id = getTweetIdAfterDate(mDates[1].dateAsString);
+		if (max_id)
+			url += "&max_id=" + std::to_string(max_id);
+	}
+
+	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
+	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
+	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+
+	mRequestCount++;
+	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
+	mNextRequestDelay -= waitdelay;
+
+	if (mNextRequestDelay < 0.0)
+	{
+		mAnswer->Init();
+		mRequestCount++;
+		RequestLaunched(20.5);
+	}
+	else
+	{
+		Upgrade("DelayedFuncUpgrador");
+		setValue("DelayedFunction", "sendRequest");
+		setValue("Delay", mNextRequestDelay);
+	}
 }
 
 void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
@@ -656,6 +747,48 @@ void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch, bool re
 		setValue("Delay", mNextRequestDelay);
 	}
 }
+void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
+{
+	mSignal = signal;
+	std::string url = "2/tweets/" + std::to_string(tweetid) + "/liking_users";
+
+	mCurrentTweetID = tweetid;
+
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(tweetid) + "_LikersNextCursor.json";
+	auto nxtTokenJson = LoadJSon(filenamenext_token);
+	std::string nextCursor = "-1";
+	if (nxtTokenJson)
+	{
+		nextCursor = nxtTokenJson["next-cursor"];
+	}
+
+	url += "&max_results=100";
+	if (nextCursor != "-1")
+	{
+		url += "&pagination_token=" + nextCursor;
+	}
+	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
+	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
+	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	
+	mRequestCount++;
+	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
+	mNextRequestDelay -= waitdelay;
+
+	if (mNextRequestDelay < 0.0)
+	{
+		mAnswer->Init();
+		mRequestCount++;
+		RequestLaunched(10.5);
+	}
+	else
+	{
+		Upgrade("DelayedFuncUpgrador");
+		setValue("DelayedFunction", "sendRequest");
+		setValue("Delay", mNextRequestDelay);
+	}
+}
 
 void	TwitterConnect::launchGetFollowing(UserStruct& ch, const std::string& signal)
 {
@@ -734,7 +867,7 @@ CoreItemSP	TwitterConnect::RetrieveJSON(CoreModifiable* sender)
 
 		if (validstring.length() == 0)
 		{
-
+			printf("");
 		}
 		else
 		{
@@ -909,6 +1042,57 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 
 	return true;
 }
+
+DEFINE_METHOD(TwitterConnect, getLikers)
+{
+	auto json = RetrieveJSON(sender);
+
+	if (json)
+	{
+		std::vector<std::pair<u64,std::string>> retrievedLikers;
+		CoreItemSP likersArray = json["data"];
+		unsigned int likerscount = likersArray->size();
+
+		for (unsigned int i = 0; i < likerscount; i++)
+		{
+			CoreItemSP currentLiker = likersArray[i];
+		
+			u64 likerid = currentLiker["id"];
+			retrievedLikers.push_back({ likerid,currentLiker["username"] });
+		}
+
+		std::string nextStr = "-1";
+
+		CoreItemSP meta = json["meta"];
+		if (meta)
+		{
+			if (meta["next_token"])
+			{
+				nextStr = meta["next_token"];
+				if (nextStr == "0")
+				{
+					nextStr = "-1";
+				}
+			}
+		}
+
+		if (nextStr != "-1")
+		{
+
+		}
+		else
+		{
+			EmitSignal("LikersRetrieved", retrievedLikers, nextStr);
+
+		}
+		
+
+	}
+	
+
+	return true;
+}
+
 
 DEFINE_METHOD(TwitterConnect, getSearchTweets)
 {
@@ -1294,6 +1478,50 @@ bool TwitterConnect::inGoodInterval(const std::string& createdDate, u64 tweetid)
 		return true;
 
 	return false;
+}
+
+int	TwitterConnect::getDateDiffInMonth(const std::string& date1, const std::string& date2)
+{
+	u32 result1 = GetU32YYYYMMDD(date1).first;
+	u32 result2 = GetU32YYYYMMDD(date2).first;
+
+	if (result1 > result2)
+	{
+		std::swap(result1, result2);
+	}
+
+	int d1 = result1 % 100;
+	result1 -= d1;
+	result1 /= 100;
+	int d2 = result2 % 100;
+	result2 -= d2;
+	result2 /= 100;
+
+	int m1 = result1 % 100;
+	result1 -= m1;
+	result1 /= 100;
+	int m2 = result2 % 100;
+	result2 -= m2;
+	result2 /= 100;
+
+	int dy = result2 - result1;
+
+	int dm = (12 - m1) + m2-1 + ((d2 >= d1) ? 1 : 0);
+	dm += (dy - 1) * 12;
+
+	return dm;
+}
+
+std::string	TwitterConnect::getTodayDate()
+{
+	char today[64];
+
+	time_t now = time(NULL);
+	struct tm* t = localtime(&now);
+
+	sprintf(today, "%d-%02d-%02dT", 2000 + t->tm_year - 100, t->tm_mon + 1, t->tm_mday);
+
+	return std::string(today)+"T00:00:00.000Z";
 }
 
 float	TwitterConnect::PerAccountUserMap::GetNormalisedSimilitude(const PerAccountUserMap& other)

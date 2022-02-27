@@ -19,7 +19,11 @@ END_DECLARE_COREFSMSTATE()
 // retrieve likes
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetLikes)
 STARTCOREFSMSTATE_WRAPMETHODS();
+#ifdef USE_SCRAPPER
 void	manageRetrievedLikers(std::vector<std::string>&		TweetLikers);
+#else
+void	manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken);
+#endif
 ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedLikers)
 END_DECLARE_COREFSMSTATE()
 
@@ -38,11 +42,12 @@ START_DECLARE_COREFSMSTATE(TwitterAnalyser, UpdateLikesStats)
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
+#ifdef USE_SCRAPPER
 // wait for scrapper
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, WaitScrapper)
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
-
+#endif
 
 
 
@@ -59,14 +64,14 @@ std::string TwitterAnalyser::searchLikersFSM()
 	{
 		fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
 	}
-
+#ifdef USE_SCRAPPER
 	// go to wait state (push)
 	SP<CoreFSMTransition> waitscrappertransition = KigsCore::GetInstanceOf("waitscrappertransition", "CoreFSMOnValueTransition");
 	waitscrappertransition->setValue("TransitionBehavior", "Push");
 	waitscrappertransition->setValue("ValueName", "NeedWait");
 	waitscrappertransition->setState("WaitScrapper");
 	waitscrappertransition->Init();
-
+#endif
 	// go to GetTweets
 	SP<CoreFSMTransition> gettweetstransition = KigsCore::GetInstanceOf("gettweetstransition", "CoreFSMInternalSetTransition");
 	gettweetstransition->setState("GetTweets");
@@ -74,10 +79,11 @@ std::string TwitterAnalyser::searchLikersFSM()
 	// Init can go to Wait or GetTweets
 	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("Init")->addTransition(gettweetstransition);
-
+#ifdef USE_SCRAPPER
 	// create WaitScrapper state
 	fsm->addState("WaitScrapper", new CoreFSMStateClass(TwitterAnalyser, WaitScrapper)());
 	fsm->getState("WaitScrapper")->addTransition(mTransitionList["waitendtransition"]);
+#endif
 
 	// transition to GetLikes (push)
 	SP<CoreFSMTransition> getlikestransition = KigsCore::GetInstanceOf("getlikestransition", "CoreFSMInternalSetTransition");
@@ -107,15 +113,21 @@ std::string TwitterAnalyser::searchLikersFSM()
 	// create GetLikes state
 	fsm->addState("GetLikes", new CoreFSMStateClass(TwitterAnalyser, GetLikes)());
 	// after GetLikes, can go to GetFavorites (or pop)
+#ifdef USE_SCRAPPER
 	fsm->getState("GetLikes")->addTransition(waitscrappertransition);
+#else
+	fsm->getState("GetLikes")->addTransition(mTransitionList["waittransition"]);
+#endif
 	// get likes can also go to NeedUserListDetail
 	fsm->getState("GetLikes")->addTransition(mTransitionList["userlistdetailtransition"]);
 
-
+#ifdef USE_SCRAPPER
 	// create webscrapper
 	mScrapperManager = KigsCore::GetInstanceOf("mScrapperManager", "ScrapperManager");
 	KigsCore::Connect(mScrapperManager.get(), "LikersRetreived", this, "manageRetrievedLikers");
 	mScrapperManager->Init();
+#else
+#endif
 
 	return "GetLikes";
 }
@@ -134,6 +146,7 @@ void	TwitterAnalyser::analyseFavoritesFSM(const std::string& lastState)
 	// create GetFavorites state
 	fsm->addState("GetFavorites", new CoreFSMStateClass(TwitterAnalyser, GetFavorites)());
 
+#ifdef USE_SCRAPPER
 	// create GetUserID transition (Push)
 	SP<CoreFSMTransition> getuseridtransition = KigsCore::GetInstanceOf("getuseridtransition", "CoreFSMInternalSetTransition");
 	getuseridtransition->setValue("TransitionBehavior", "Push");
@@ -141,13 +154,25 @@ void	TwitterAnalyser::analyseFavoritesFSM(const std::string& lastState)
 	getuseridtransition->Init();
 	// getFavorites -> user detail, wait or pop
 	fsm->getState("GetFavorites")->addTransition(getuseridtransition);
+#else
+	// create GetUserDetail transition (Push)
+	SP<CoreFSMTransition> getuserdetailtransition = KigsCore::GetInstanceOf("getuserdetailtransition", "CoreFSMInternalSetTransition");
+	getuserdetailtransition->setValue("TransitionBehavior", "Push");
+	getuserdetailtransition->setState("GetUserDetail");
+	getuserdetailtransition->Init();
+	// getFavorites -> user detail, wait or pop
+	fsm->getState("GetFavorites")->addTransition(getuserdetailtransition);
+#endif
 	fsm->getState("GetFavorites")->addTransition(mTransitionList["waittransition"]);
 	// GetFavorites can also go to NeedUserListDetail
 	fsm->getState("GetFavorites")->addTransition(mTransitionList["userlistdetailtransition"]);
 
-
+#ifdef USE_SCRAPPER
 	// create state GetUserDetail
 	fsm->addState("GetUserID", new CoreFSMStateClass(TwitterAnalyser, GetUserID)());
+#else
+	fsm->addState("GetUserDetail", new CoreFSMStateClass(TwitterAnalyser, GetUserDetail)());
+#endif
 
 	// create updateLikesStatistics transition (Push)
 	SP<CoreFSMTransition> updatelikesstatstransition = KigsCore::GetInstanceOf("updatelikesstatstransition", "CoreFSMInternalSetTransition");
@@ -155,10 +180,15 @@ void	TwitterAnalyser::analyseFavoritesFSM(const std::string& lastState)
 	updatelikesstatstransition->setState("UpdateLikesStats");
 	updatelikesstatstransition->Init();
 
+#ifdef USE_SCRAPPER
 	// GetUserID can go to UpdateLikesStats, wait (or pop)
 	fsm->getState("GetUserID")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("GetUserID")->addTransition(updatelikesstatstransition);
-
+#else
+	// GetUserDetail can go to UpdateLikesStats, wait (or pop)
+	fsm->getState("GetUserDetail")->addTransition(mTransitionList["waittransition"]);
+	fsm->getState("GetUserDetail")->addTransition(updatelikesstatstransition);
+#endif
 		// create UpdateLikesStats state
 	fsm->addState("UpdateLikesStats", new CoreFSMStateClass(TwitterAnalyser, UpdateLikesStats)());
 	// no transition here, only pop
@@ -270,9 +300,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikes))
 		if (mTweets[mCurrentTreatedTweetIndex].mLikeCount)
 		{
 			u64 tweetID = mTweets[mCurrentTreatedTweetIndex].mTweetID;
-
+#ifdef USE_SCRAPPER
 			std::string username = TwitterConnect::userNameFromId(mTweets[mCurrentTreatedTweetIndex].mAuthorID);
-
 			CoreItemSP likers = TwitterConnect::LoadLikersFile(tweetID, username);
 			if (likers)
 			{
@@ -285,6 +314,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikes))
 					tweetLikers.push_back(l);
 				}
 
+				mTweetRetrievedLikerCount[tweetID] = tweetLikers.size();
+
 				//retrieve likers favorites
 				GetUpgrador()->activateTransition("getfavoritestransition");
 			}
@@ -295,6 +326,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikes))
 				mNeedWait = true;
 				GetUpgrador()->activateTransition("waittransition");
 			}
+#else
+			
+#endif 
 		}
 		else
 		{
@@ -312,7 +346,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikes))
 }
 
 
-
+#ifdef USE_SCRAPPER
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetLikes)::manageRetrievedLikers(std::vector<std::string>& TweetLikers)
 {
 	u64 tweetID = mTweets[mCurrentTreatedTweetIndex].mTweetID;
@@ -323,7 +357,32 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetLikes)::manageRetrievedLikers(
 	
 	requestDone();
 }
+#else
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetLikes)::manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken)
+{
+	u64 tweetID = mTweets[mCurrentTreatedTweetIndex].mTweetID;
 
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(tweetID) + "_LikersNextCursor.json";
+	if (nexttoken != "-1")
+	{
+
+		CoreItemSP currentUserJson = MakeCoreMap();
+		currentUserJson->set("next-cursor", nexttoken);
+		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
+	}
+	else
+	{
+		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
+		TwitterConnect::randomizeVector(TweetLikers);
+	}
+
+	KigsCore::Disconnect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedLikers");
+	TwitterConnect::SaveLikersFile(TweetLikers, tweetID);
+
+	requestDone();
+}
+#endif
 
 void	CoreFSMStartMethod(TwitterAnalyser, GetFavorites)
 {
@@ -336,17 +395,23 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetFavorites)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 {
+#ifdef USE_SCRAPPER
 	std::vector<std::string>& tweetLikers = mScrapperManager->getTweetLikers();
+#else
+	std::vector<u64>& tweetLikers = mUserList;
+#endif
 	if ((mCurrentTreatedLikerIndex < tweetLikers.size()) && ((mValidTreatedLikersForThisTweet < mMaxLikersPerTweet) || (!mMaxLikersPerTweet)))
 	{
-		std::string user = tweetLikers[mCurrentTreatedLikerIndex];
-		auto found = mFoundLiker.find(user);
-		if (found != mFoundLiker.end()) // this one was already treated
+
+		auto user = tweetLikers[mCurrentTreatedLikerIndex];
+		auto found = mFoundUser.find(user);
+
+		if (found != mFoundUser.end()) // this one was already treated
 		{
-			(*found).second++;
 			mCurrentTreatedLikerIndex++; // goto next one
 			return false;
 		}
+
 		// enough user
 		if (mValidUserCount == mUserPanelSize)
 		{
@@ -356,7 +421,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 
 		if (TwitterConnect::LoadFavoritesFile(user, GetUpgrador()->mFavorites))
 		{
-			mFoundLiker[user] = 0;
+			mFoundUser.insert(user);
 			// if favorites were retrieved
 			if (GetUpgrador()->mFavorites.size())
 			{
@@ -364,14 +429,20 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 				newuser.mID = 0;
 				mRetreivedUsers.push_back(newuser);
 				mCurrentUserIndex = mRetreivedUsers.size() - 1;
-				mNameToUserIndex[user] = mCurrentUserIndex;
+				mUserToUserIndex[user] = mCurrentUserIndex;
 
 				SP<CoreFSM> fsm = mFsm;
+#ifdef USE_SCRAPPER
 				CoreFSMStateClass(TwitterAnalyser, GetUserID)* userIDState = (CoreFSMStateClass(TwitterAnalyser, GetUserID)*)fsm->getState("GetUserID");
 				userIDState->userName = user;
 				userIDState->nextTransition = "updatelikesstatstransition";
-
 				GetUpgrador()->activateTransition("getuseridtransition");
+#else
+				CoreFSMStateClass(TwitterAnalyser, GetUserDetail)* userDetailState = (CoreFSMStateClass(TwitterAnalyser, GetUserDetail)*)fsm->getState("GetUserDetail");
+				userDetailState->nextTransition = "updatelikesstatstransition";
+				GetUpgrador()->activateTransition("getuserdetailtransition");
+#endif
+				
 			}
 			else
 			{
@@ -389,6 +460,10 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 	}
 	else // treat next tweet
 	{
+		if (mCurrentTreatedLikerIndex < tweetLikers.size())
+		{
+			mCanGetMoreUsers = true;
+		}
 		mCurrentTreatedTweetIndex++;
 		tweetLikers.clear();
 		mCurrentTreatedLikerIndex = 0;
@@ -402,8 +477,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::manageRetrievedFavorites(std::vector<TwitterConnect::favoriteStruct>& favs)
 {
+#ifdef USE_SCRAPPER
 	std::string user = mScrapperManager->getTweetLikers()[mCurrentTreatedLikerIndex];
 	TwitterConnect::SaveFavoritesFile(user,favs);
+#else
+#endif
 	KigsCore::Disconnect(mTwitterConnect.get(), "FavoritesRetrieved", this, "manageRetrievedFavorites");
 	requestDone();
 }
@@ -420,12 +498,17 @@ void	CoreFSMStopMethod(TwitterAnalyser, UpdateLikesStats)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateLikesStats))
 {
 
-
+#ifdef USE_SCRAPPER
 	std::vector<std::string>& tweetLikers = mScrapperManager->getTweetLikers();
-	std::string user = tweetLikers[mCurrentTreatedLikerIndex];
-	u64 userID = mRetreivedUsers[mNameToUserIndex[user]].mID;
 
-	if (!TwitterConnect::LoadUserStruct(userID, mRetreivedUsers[mNameToUserIndex[user]], false))
+#else
+	std::vector<u64>& tweetLikers = mUserList;
+#endif
+
+	auto user = tweetLikers[mCurrentTreatedLikerIndex];
+	u64 userID = mRetreivedUsers[mUserToUserIndex[user]].mID;
+
+	if (!TwitterConnect::LoadUserStruct(userID, mRetreivedUsers[mUserToUserIndex[user]], false))
 	{
 		askUserDetail(userID);
 	}
@@ -503,7 +586,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateLikesStats))
 
 	return false;
 }
-
+#ifdef USE_SCRAPPER
 void	CoreFSMStartMethod(TwitterAnalyser, WaitScrapper)
 {
 
@@ -522,3 +605,4 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, WaitScrapper))
 	}
 	return false;
 }
+#endif

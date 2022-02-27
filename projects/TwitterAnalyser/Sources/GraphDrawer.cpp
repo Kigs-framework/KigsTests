@@ -5,6 +5,7 @@
 #include "CoreFSM.h"
 #include "Histogram.h"
 
+
 IMPLEMENT_CLASS_INFO(GraphDrawer)
 
 GraphDrawer::GraphDrawer(const kstl::string& name, CLASS_NAME_TREE_ARG) : CoreModifiable(name, PASS_CLASS_NAME_TREE_ARG)
@@ -66,15 +67,20 @@ void GraphDrawer::InitModifiable()
 
 	SP<CoreFSMTransition> normalizednexttransition = KigsCore::GetInstanceOf("normalizednexttransition", "CoreFSMOnValueTransition");
 	normalizednexttransition->setValue("ValueName", "GoNext");
-	normalizednexttransition->setState("Percent");
+	normalizednexttransition->setState("UserStats");
 	normalizednexttransition->Init();
 	fsm->getState("Normalized")->addTransition(normalizednexttransition);
 	fsm->getState("Normalized")->addTransition(forcetransition);
 
-	/*
+	
 	// create UserStats state
 	fsm->addState("UserStats", new CoreFSMStateClass(GraphDrawer, UserStats)());
-	*/
+
+	SP<CoreFSMTransition> userstatnexttransition = KigsCore::GetInstanceOf("userstatnexttransition", "CoreFSMOnValueTransition");
+	userstatnexttransition->setValue("ValueName", "GoNext");
+	userstatnexttransition->setState("Percent");
+	userstatnexttransition->Init();
+	fsm->getState("UserStats")->addTransition(userstatnexttransition);
 
 	// pop wait state transition
 	SP<CoreFSMTransition> forceendtransition = KigsCore::GetInstanceOf("forceendtransition", "CoreFSMOnValueTransition");
@@ -464,8 +470,329 @@ void	GraphDrawer::drawForce()
 
 	
 }
-void	GraphDrawer::drawStats()
+
+template<typename T>
+void	GraphDrawer::Diagram::Draw(const std::vector<T>& values)
 {
+	KigsBitmap::KigsBitmapPixel	black(0, 0, 0, 255);
+	// print title
+	mBitmap->Print(mTitle, mZonePos.x + mZoneSize.x / 2.0f, mZonePos.y, 1, mZoneSize.x, 32, "Calibri.ttf", 1, black);
+
+	std::vector<T> sortedV = values;
+	std::sort(sortedV.begin(), sortedV.end());
+	
+	float minv = sortedV[0];
+	float maxv = sortedV.back();
+
+	// given limits ?
+	if (mLimits.x < mLimits.y)
+	{
+		minv = mLimits.x;
+		maxv = mLimits.y;
+	}
+
+	if (mUseLog)
+	{
+		if (minv < 1.0)
+		{
+			minv = 1.0f;
+		}
+		minv = log10f(minv);
+		maxv = log10f(maxv);
+	}
+
+	float average = 0.0f;
+
+	Histogram<float>	hist({ minv,maxv }, mColumnCount);
+	for (auto v : values)
+	{
+		float transformV=v;
+		if (mUseLog)
+		{
+			if (transformV < 1.0)
+				transformV = 1.0f;
+			transformV = log10f(transformV);
+		}
+		
+		hist.addValue(transformV);
+		average += v;
+	}
+
+	average /= (float)(values.size());
+
+	// keep some space for title, axis...
+	v2i	DiagramSize = mZoneSize;
+	DiagramSize -= v2i(64, 64);
+
+	v2i DiagramPos = mZonePos;
+	DiagramPos += v2i(48, 32);
+
+	hist.normalize();
+
+	u32 higherColumn=hist.getMaxValueColumnIndex();
+	u32 RoundedHigherPercent = (u32)(hist.getColumnValue(higherColumn)*100.0f+9.99f);
+	RoundedHigherPercent /= 10;
+	RoundedHigherPercent *= 10;
+
+	float columnSizeCoef = 1.0f / (0.01f*(float)RoundedHigherPercent);
+	
+	int columnSizeX = DiagramSize.x / mColumnCount;
+	columnSizeX -= 4;
+	if (columnSizeX < 10)
+	{
+		columnSizeX = 10;
+	}
+
+	int columnSpaceX = (DiagramSize.x / mColumnCount) - columnSizeX;
+
+	for (u32 i = 0; i < mColumnCount; i++)
+	{
+		int columnSizeY = (float)DiagramSize.y * hist.getColumnValue(i) * columnSizeCoef;
+		
+		mBitmap->Box(columnSpaceX/2+DiagramPos.x + (float)i * (float)DiagramSize.x / (float)mColumnCount, DiagramPos.y + DiagramSize.y- columnSizeY, columnSizeX, columnSizeY, mColumnColor);
+	}
+
+	// print percents
+	for (u32 i = 0; i <= RoundedHigherPercent; i += 10)
+	{
+		u32 linePosY = DiagramPos.y + DiagramSize.y - (float)i * 0.01f * columnSizeCoef * DiagramSize.y;
+		mBitmap->Line(DiagramPos.x-1, linePosY, DiagramPos.x + DiagramSize.x+1, linePosY, { 0,0,0,128 });
+		std::string printedPercent = std::to_string(i) + "%";
+		mBitmap->Print(printedPercent, DiagramPos.x - 16, linePosY - 9, 1, 48, 18, "Calibri.ttf", 1, black);
+	}
+
+	// Y axis
+	mBitmap->Line(DiagramPos.x, DiagramPos.y-1, DiagramPos.x, DiagramPos.y + DiagramSize.y +1, { 0,0,0,128 });
+
+	// avegare line
+	//
+	{
+		std::string printedLegend;
+		float averageLegend = average;
+		if (mUseLog)
+		{
+			if (average < 1.0)
+				average = 1.0f;
+
+			average = log10f(average);
+			printedLegend = std::to_string((u32)averageLegend);
+		}
+		else
+		{
+			char buffer[20];  // maximum expected length of the float
+			std::snprintf(buffer, 20, "%.1f", averageLegend);
+			printedLegend=buffer;
+		}
+		float averagePos = (float)DiagramPos.x + (float)DiagramSize.x * (average - minv) / (maxv - minv);
+		mBitmap->Line(averagePos, DiagramPos.y - 1, averagePos, DiagramPos.y + DiagramSize.y + 14, { 255,0,0,128 });
+		mBitmap->Print(printedLegend, averagePos, DiagramPos.y + DiagramSize.y + 14, 1, 96, 12, "Calibri.ttf", 1, { 128,0,0,128 });
+	}
+	// median line
+	//
+	{
+		std::string printedLegend;
+		float median = sortedV[sortedV.size()/2];
+		if (mUseLog)
+		{
+			printedLegend = std::to_string((u32)median);
+			if (median < 1.0)
+				median = 1.0f;
+
+			median = log10f(median);
+		}
+		else
+		{
+			char buffer[20];  // maximum expected length of the float
+			std::snprintf(buffer, 20, "%.1f", median);
+			printedLegend = buffer;
+		}
+		float medianPos = (float)DiagramPos.x + (float)DiagramSize.x * (median - minv) / (maxv - minv);
+		mBitmap->Line(medianPos, DiagramPos.y - 1, medianPos, DiagramPos.y + DiagramSize.y + 24, { 0,200,0,128 });
+		mBitmap->Print(printedLegend, medianPos, DiagramPos.y + DiagramSize.y + 26, 1, 96, 12, "Calibri.ttf", 1, { 0,128,0,128 });
+	}
+
+	// X legend
+	if (mUseLog)
+	{
+		for (u32 i = 1; i < mColumnCount; i++)
+		{
+			u32 printPosX = DiagramPos.x + (float)i * (float)DiagramSize.x / (float)mColumnCount;
+			u32 legend = 1 + pow(10.f, minv + (float)i * ((maxv - minv) / (float)mColumnCount));
+			std::string printedLegend = std::to_string(legend);
+
+			if (i == mColumnCount - 1)
+				printedLegend += " & more";
+
+			mBitmap->Print(printedLegend, printPosX, DiagramPos.y + DiagramSize.y + 2, 1, 96, 12, "Calibri.ttf", 0, black);
+		}
+	}
+	else
+	{
+		for (u32 i = 0; i <= mColumnCount; i++)
+		{
+			u32 printPosX = DiagramPos.x + (float)i * (float)DiagramSize.x / (float)mColumnCount;
+			float legend = minv + (float)i * ((maxv - minv) / (float)mColumnCount);
+			
+			char buffer[20];  // maximum expected length of the float
+			std::snprintf(buffer, 20, "%.1f", legend);
+			std::string printedLegend(buffer);
+
+
+			mBitmap->Print(printedLegend, printPosX, DiagramPos.y + DiagramSize.y + 2, 1, 96, 12, "Calibri.ttf", 1, black);
+		}
+	}
+}
+
+void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
+{
+	drawGeneralStats();
+	bitmap->Clear({ 0,0,0,0 });
+
+	// title
+	bitmap->Print("Sample statistics", 1920 / 2, 16, 1, 1920, 92, "Calibri.ttf", 1, {0,0,0,128});
+
+	// followers
+	std::vector<float> currentData;
+	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	{
+		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
+		currentData.push_back(userdata.mFollowersCount);
+	}
+
+	Diagram	diagram(bitmap);
+	diagram.mZonePos.Set(64, 256);
+	diagram.mColumnCount = 10;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set( 10.0f, 10000.0f );
+	diagram.mUseLog = true;
+	diagram.mTitle = "Followers Count";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(currentData);
+
+	// followings
+	currentData.clear();
+	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	{
+		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
+		currentData.push_back(userdata.mFollowingCount);
+	}
+
+	diagram.mZonePos.Set(1920/2-256, 256);
+	diagram.mColumnCount = 8;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set(10.0f, 5000.0f);
+	diagram.mUseLog = true;
+	diagram.mTitle = "Following Count";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(currentData);
+
+
+	// user account "age"
+	currentData.clear();
+
+	std::vector<float>	activityIndice;
+
+	std::string endDate = TwitterConnect::getTodayDate();
+	if (TwitterConnect::useDates())
+	{
+		std::string endDate = TwitterConnect::getDate(1) + "T00:00:00.000Z";
+	}
+	
+	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	{
+		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
+
+		std::string creationDate = userdata.UTCTime;
+		
+		int age= TwitterConnect::getDateDiffInMonth(creationDate, endDate);
+
+		activityIndice.push_back((float)userdata.mStatuses_count/(float)(age+1));
+
+		currentData.push_back(age);
+		
+	}
+
+	diagram.mZonePos.Set(64, 512+64);
+	diagram.mColumnCount = 8;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set(2.0f, 120.0f);
+	diagram.mUseLog = true;
+	diagram.mTitle = "Account ages in months";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(currentData);
+
+	// favorite diversity indice
+	currentData.clear();
+
+	std::vector<float>	favoritesUserCount;
+
+	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	{
+		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
+
+		std::vector<TwitterConnect::favoriteStruct>	favs;
+		if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
+		{
+			std::set<u64>	users;
+			for (auto& f: favs)
+			{
+				users.insert(f.userID);
+			}
+
+			float indice = ((float)users.size()) / ((float)favs.size());
+
+			currentData.push_back(indice);
+			favoritesUserCount.push_back((float)users.size());
+		}
+	}
+
+	diagram.mZonePos.Set(1920/2 - 256, 512+64);
+	diagram.mColumnCount = 10;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set(0.0f, 1.0f);
+	diagram.mUseLog = false;
+	diagram.mTitle = "Favorites diversity indice";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(currentData);
+
+
+	// favorites user count
+
+	diagram.mZonePos.Set(1920 - 64 - 512, 256);
+	diagram.mColumnCount = 10;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set(1.0f, 200.0f);
+	diagram.mUseLog = true;
+	diagram.mTitle = "Unique favorites count";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(favoritesUserCount);
+
+	// activity indice
+
+	diagram.mZonePos.Set(1920 - 64 - 512, 512+64);
+	diagram.mColumnCount = 10;
+	diagram.mZoneSize.Set(512, 288);
+	diagram.mLimits.Set(10.0f, 2000.0f);
+	diagram.mUseLog = true;
+	diagram.mTitle = "Average activity per month";
+	diagram.mColumnColor = { 94,169,221,255 };
+	diagram.Draw(activityIndice);
+
+	// print inaccessible likers %
+
+	u32 totalLikerCount = 0;
+	u32 retrievedLikerCount = 0;
+	for (u32 i = 0; i < mTwitterAnalyser->mTweetRetrievedLikerCount.size(); i++)
+	{
+		totalLikerCount += mTwitterAnalyser->mTweets[i].mLikeCount;
+		retrievedLikerCount += mTwitterAnalyser->mTweetRetrievedLikerCount[mTwitterAnalyser->mTweets[i].mTweetID];
+	}
+	if (totalLikerCount)
+	{
+		std::string inaccessibleLikers = "Inaccessible likers : " + std::to_string(100 - (100 * retrievedLikerCount) / totalLikerCount) + "%";
+
+		bitmap->Print(inaccessibleLikers, 128, 900, 1, 512, 36, "Calibri.ttf", 0, { 0,0,0,255 });
+	}
 
 }
 
@@ -533,15 +860,17 @@ void	GraphDrawer::drawGeneralStats()
 	{
 		if (TwitterConnect::useDates())
 		{
-			mMainInterface["RequestCount"]("Text") = "From " + TwitterConnect::getDate(0) + "To " + TwitterConnect::getDate(1);
+			mMainInterface["RequestCount"]("Text") = "From: " + TwitterConnect::getDate(0) + "  To: " + TwitterConnect::getDate(1);
 		}
 		else
 		{
 			mMainInterface["RequestCount"]("Text") = "";
 		}
 		mMainInterface["RequestWait"]("Text") = ""; 
-		mMainInterface["switchForce"]("IsHidden") = false;
-		mMainInterface["switchForce"]("IsTouchable") = true;
+		
+		mMainInterface["switchForce"]("IsHidden") = !mCurrentStateHasForceDraw;
+		mMainInterface["switchForce"]("IsTouchable") = mCurrentStateHasForceDraw;
+		
 	}
 
 	if (mTwitterAnalyser->mRetreivedUsers[0].mThumb.mTexture && mMainInterface["thumbnail"])
@@ -574,6 +903,7 @@ void CoreFSMStartMethod(GraphDrawer, Percent)
 {
 	mGoNext = false;
 	mCurrentUnit = 0;
+	mCurrentStateHasForceDraw = true;
 }
 
 void CoreFSMStopMethod(GraphDrawer, Percent)
@@ -668,6 +998,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Percent))
 void CoreFSMStartMethod(GraphDrawer, Jaccard)
 {
 	mGoNext = false;
+	mCurrentStateHasForceDraw = true;
 }
 
 void CoreFSMStopMethod(GraphDrawer, Jaccard)
@@ -762,6 +1093,7 @@ void CoreFSMStartMethod(GraphDrawer, Normalized)
 {
 	mGoNext = false;
 	mCurrentUnit = 2;
+	mCurrentStateHasForceDraw = true;
 }
 
 void CoreFSMStopMethod(GraphDrawer, Normalized)
@@ -889,6 +1221,7 @@ void CoreFSMStartMethod(GraphDrawer, Force)
 	mForcedBaseStartingTime = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime();
 	prepareForceGraphData();
 	mTwitterAnalyser->ChangeAutoUpdateFrequency(this, 50.0);
+	mCurrentStateHasForceDraw = true;
 }
 
 void CoreFSMStopMethod(GraphDrawer, Force)
@@ -899,5 +1232,60 @@ void CoreFSMStopMethod(GraphDrawer, Force)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Force))
 {
 	drawForce();
+	return false;
+}
+
+void CoreFSMStartMethod(GraphDrawer, UserStats)
+{
+	mGoNext = false;
+	mCurrentStateHasForceDraw = false;
+	for (auto& u : mShowedUser)
+	{
+		const CMSP& toSetup = u.second;
+		toSetup("IsHidden") = true;
+	}
+
+	// move logo
+	mMainInterface["thumbnail"]("Dock") = v2f(0.94f, 0.08f);
+
+	CMSP uiImage = KigsCore::GetInstanceOf("drawuiImage", "UIImage");
+	uiImage->setValue("Priority", 10);
+	uiImage->setValue("Anchor", v2f(0.0f, 0.0f));
+	uiImage->setValue("Dock", v2f(0.0f, 0.0f));
+	uiImage->setValue("Color", v3f(1.0f, 1.0f, 1.0f));
+	CMSP drawtexture = KigsCore::GetInstanceOf("drawTexture", "Texture");
+	drawtexture->setValue("FileName", "");
+
+	GetUpgrador()->mBitmap = KigsCore::GetInstanceOf("mBitmap", "KigsBitmap");
+	GetUpgrador()->mBitmap->setValue("Size", v2f(2048, 2048));
+	drawtexture->addItem(GetUpgrador()->mBitmap);
+
+	mMainInterface->addItem(uiImage);
+	uiImage->Init();
+
+	drawtexture->Init();
+	GetUpgrador()->mBitmap->Init();
+	uiImage->addItem(drawtexture);
+
+}
+
+void CoreFSMStopMethod(GraphDrawer, UserStats)
+{
+	for (auto& u : mShowedUser)
+	{
+		const CMSP& toSetup = u.second;
+		toSetup("IsHidden") = false;
+	}
+	GetUpgrador()->mBitmap = nullptr;
+
+	CMSP uiImage = mMainInterface->GetFirstSonByName("UIImage","drawuiImage");
+	mMainInterface->removeItem(uiImage);
+	// move logo
+	mMainInterface["thumbnail"]("Dock") = v2f(0.52f, 0.44f);
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, UserStats))
+{
+	drawStats(GetUpgrador()->mBitmap);
 	return false;
 }
