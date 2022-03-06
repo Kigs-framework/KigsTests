@@ -63,7 +63,7 @@ protected:
 	// list of tweets
 	std::vector<TwitterConnect::Twts>	mTweets;
 
-	// list of users
+	// list of users (for panel)
 	std::vector<u64>					mUserList;
 
 	// retrieved likers count per tweet			

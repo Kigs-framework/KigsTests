@@ -536,7 +536,6 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 
-	mRequestCount++;
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
@@ -575,7 +574,6 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 
-	mRequestCount++;
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
@@ -613,7 +611,6 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 
-	mRequestCount++;
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
@@ -668,7 +665,6 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 
-	mRequestCount++;
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
@@ -763,7 +759,7 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 		nextCursor = nxtTokenJson["next-cursor"];
 	}
 
-	url += "&max_results=100";
+	url += "?max_results=100";
 	if (nextCursor != "-1")
 	{
 		url += "&pagination_token=" + nextCursor;
@@ -771,8 +767,7 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	
-	mRequestCount++;
+
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
@@ -999,24 +994,27 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 	{
 		std::vector<Twts> retrievedTweets;
 		CoreItemSP tweetsArray = json["data"];
-		unsigned int tweetcount = tweetsArray->size();
-
-		for (unsigned int i = 0; i < tweetcount; i++)
+		if (tweetsArray)
 		{
-			CoreItemSP currentTweet = tweetsArray[i];
-			
-			std::string tweetdate=currentTweet["created_at"];
-			u64 tweetid = currentTweet["id"];
+			unsigned int tweetcount = tweetsArray->size();
 
-			updateTweetCalendar(tweetdate, tweetid);
-
-			u64 authorid = currentTweet["author_id"];
-			
-			u32 like_count = currentTweet["public_metrics"]["like_count"];
-			u32 rt_count = currentTweet["public_metrics"]["retweet_count"];
-			if (like_count > 1)
+			for (unsigned int i = 0; i < tweetcount; i++)
 			{
-				retrievedTweets.push_back({ authorid,tweetid,like_count,rt_count });
+				CoreItemSP currentTweet = tweetsArray[i];
+
+				std::string tweetdate = currentTweet["created_at"];
+				u64 tweetid = currentTweet["id"];
+
+				updateTweetCalendar(tweetdate, tweetid);
+
+				u64 authorid = currentTweet["author_id"];
+
+				u32 like_count = currentTweet["public_metrics"]["like_count"];
+				u32 rt_count = currentTweet["public_metrics"]["retweet_count"];
+				if (like_count > 1)
+				{
+					retrievedTweets.push_back({ authorid,tweetid,like_count,rt_count });
+				}
 			}
 		}
 
@@ -1049,16 +1047,19 @@ DEFINE_METHOD(TwitterConnect, getLikers)
 
 	if (json)
 	{
-		std::vector<std::pair<u64,std::string>> retrievedLikers;
+		std::vector<u64> retrievedLikers;
 		CoreItemSP likersArray = json["data"];
-		unsigned int likerscount = likersArray->size();
-
-		for (unsigned int i = 0; i < likerscount; i++)
+		if (likersArray)
 		{
-			CoreItemSP currentLiker = likersArray[i];
-		
-			u64 likerid = currentLiker["id"];
-			retrievedLikers.push_back({ likerid,currentLiker["username"] });
+			unsigned int likerscount = likersArray->size();
+
+			for (unsigned int i = 0; i < likerscount; i++)
+			{
+				CoreItemSP currentLiker = likersArray[i];
+
+				u64 likerid = currentLiker["id"];
+				retrievedLikers.push_back(likerid);
+			}
 		}
 
 		std::string nextStr = "-1";
@@ -1076,16 +1077,7 @@ DEFINE_METHOD(TwitterConnect, getLikers)
 			}
 		}
 
-		if (nextStr != "-1")
-		{
-
-		}
-		else
-		{
-			EmitSignal("LikersRetrieved", retrievedLikers, nextStr);
-
-		}
-		
+		EmitSignal("LikersRetrieved", retrievedLikers, nextStr);
 
 	}
 	

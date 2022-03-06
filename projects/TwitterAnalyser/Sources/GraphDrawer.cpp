@@ -658,7 +658,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 		currentData.push_back(userdata.mFollowersCount);
 	}
-
+	
 	Diagram	diagram(bitmap);
 	diagram.mZonePos.Set(64, 256);
 	diagram.mColumnCount = 10;
@@ -667,8 +667,11 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = true;
 	diagram.mTitle = "Followers Count";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(currentData);
-
+	if (currentData.size())
+	{
+		diagram.Draw(currentData);
+	}
+	
 	// followings
 	currentData.clear();
 	for (auto u : mTwitterAnalyser->mCheckedUserList)
@@ -684,7 +687,10 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = true;
 	diagram.mTitle = "Following Count";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(currentData);
+	if (currentData.size())
+	{
+		diagram.Draw(currentData);
+	}
 
 
 	// user account "age"
@@ -719,7 +725,10 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = true;
 	diagram.mTitle = "Account ages in months";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(currentData);
+	if (currentData.size())
+	{
+		diagram.Draw(currentData);
+	}
 
 	// favorite diversity indice
 	currentData.clear();
@@ -731,7 +740,11 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 
 		std::vector<TwitterConnect::favoriteStruct>	favs;
+#ifdef USE_SCRAPPER
 		if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
+#else
+		if (TwitterConnect::LoadFavoritesFile(userdata.mID, favs))
+#endif
 		{
 			std::set<u64>	users;
 			for (auto& f: favs)
@@ -753,7 +766,10 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = false;
 	diagram.mTitle = "Favorites diversity indice";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(currentData);
+	if (currentData.size())
+	{
+		diagram.Draw(currentData);
+	}
 
 
 	// favorites user count
@@ -765,7 +781,10 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = true;
 	diagram.mTitle = "Unique favorites count";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(favoritesUserCount);
+	if (favoritesUserCount.size())
+	{
+		diagram.Draw(favoritesUserCount);
+	}
 
 	// activity indice
 
@@ -776,7 +795,10 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	diagram.mUseLog = true;
 	diagram.mTitle = "Average activity per month";
 	diagram.mColumnColor = { 94,169,221,255 };
-	diagram.Draw(activityIndice);
+	if (activityIndice.size())
+	{
+		diagram.Draw(activityIndice);
+	}
 
 	// print inaccessible likers %
 
