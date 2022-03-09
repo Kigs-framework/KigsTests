@@ -785,24 +785,17 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 	}
 }
 
-void	TwitterConnect::launchGetFollowing(UserStruct& ch, const std::string& signal)
-{
-	mCurrentUserStruct = &ch;
-	mSignal = signal;
 
-	if (mNextCursor == "-1")
-	{
-		mCurrentIDVector.clear();
-	}
-	std::string url = "1.1/friends/ids.json?";
+void	TwitterConnect::launchGetFollow(u64 userid,const std::string& followtype)
+{
+
+	std::string url = "2/users/"+ GetIDString(userid) +"/"+ followtype +"?max_results=1000";
 	if (mNextCursor != "-1")
 	{
-		url += "cursor=" + mNextCursor + "&";
+		url += "&pagination_token=" + mNextCursor;
 	}
-	url += "user_id=" + GetIDString(ch.mID) + "&count=5000";
 
-	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFollowing", this);
-	mAnswer->AddDynamicAttribute<maULong, u64>("UserID", ch.mID);
+	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFollow", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5f);
@@ -810,8 +803,8 @@ void	TwitterConnect::launchGetFollowing(UserStruct& ch, const std::string& signa
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
 
-	if (mNextRequestDelay<0.0)
-	{	
+	if (mNextRequestDelay < 0.0)
+	{
 		mAnswer->Init();
 		mRequestCount++;
 		RequestLaunched(60.5);
@@ -820,7 +813,7 @@ void	TwitterConnect::launchGetFollowing(UserStruct& ch, const std::string& signa
 	{
 		Upgrade("DelayedFuncUpgrador");
 		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay); 
+		setValue("Delay", mNextRequestDelay);
 	}
 }
 
@@ -836,9 +829,31 @@ std::vector<u64>		TwitterConnect::LoadIDVectorFile(const std::string& filename,b
 	return loaded;
 }
 
+bool		TwitterConnect::LoadFollowingFile(u64 id, std::vector<u64>& following)
+{
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_following.ids";
+	bool fileexist = false;
+	following = LoadIDVectorFile(filename, fileexist);
+	return fileexist;
+}
+
 void		TwitterConnect::SaveFollowingFile(u64 id, const std::vector<u64>& v)
 {
-	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + ".ids";
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_following.ids";
+	SaveIDVectorFile(v, filename);
+}
+
+bool		TwitterConnect::LoadFollowersFile(u64 id, std::vector<u64>& followers)
+{
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_followers.ids";
+	bool fileexist = false;
+	followers = LoadIDVectorFile(filename, fileexist);
+	return fileexist;
+}
+
+void		TwitterConnect::SaveFollowersFile(u64 id, const std::vector<u64>& v)
+{
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_followers.ids";
 	SaveIDVectorFile(v, filename);
 }
 
@@ -1174,55 +1189,40 @@ DEFINE_METHOD(TwitterConnect, getFavorites)
 }
 
 
-
-DEFINE_METHOD(TwitterConnect, getFollowing)
+DEFINE_METHOD(TwitterConnect, getFollow)
 {
 	auto json = RetrieveJSON(sender);
 
+	std::vector<u64>	follow;
+	std::string nextStr = "-1";
+
 	if (json)
 	{
-
-		mCurrentUserStruct->mID = sender->getValue<u64>("UserID");
-
-		CoreItemSP followingArray = json["ids"];
-		unsigned int idcount = followingArray->size();
+		CoreItemSP followArray = json["data"];
+		unsigned int idcount = followArray->size();
 		for (unsigned int i = 0; i < idcount; i++)
 		{
-			u64 id = followingArray[i];
-			mCurrentIDVector.push_back(id);
+			u64 id = followArray[i]["id"];
+			follow.push_back(id);
 		}
 
-		mNextCursor = json["next_cursor_str"];
-		if (mNextCursor == "0")
+		CoreItemSP meta = json["meta"];
+		if (meta)
 		{
-			mNextCursor = "-1";
+			if (meta["next_token"])
+			{
+				nextStr = meta["next_token"];
+				if (nextStr == "0")
+				{
+					nextStr = "-1";
+				}
+			}
 		}
-
-		if (mNextCursor == "-1")
-		{
-			SaveFollowingFile(mCurrentUserStruct->mID, mCurrentIDVector);
-			mCurrentUserStruct->mFollowing = mCurrentIDVector;
-			EmitSignal(mSignal);
-			mAnswer = nullptr;
-		}
-		else
-		{
-			// do it again
-			launchGetFollowing(*mCurrentUserStruct,mSignal);
-		}
-
 	}
-	else
+
+	if (!mWaitQuota)
 	{
-		if (!mWaitQuota)
-		{
-			// this user is not available, go to next one
-			
-			SaveFollowingFile(mCurrentUserStruct->mID, mCurrentIDVector);
-			EmitSignal(mSignal);
-			mAnswer = nullptr;
-			
-		}
+		EmitSignal("FollowRetrieved", follow, nextStr);
 	}
 
 	return true;

@@ -692,7 +692,6 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		diagram.Draw(currentData);
 	}
 
-
 	// user account "age"
 	currentData.clear();
 
@@ -733,57 +732,66 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	// favorite diversity indice
 	currentData.clear();
 
-	std::vector<float>	favoritesUserCount;
-
-	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Favorites)
 	{
-		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
-
-		std::vector<TwitterConnect::favoriteStruct>	favs;
-#ifdef USE_SCRAPPER
-		if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
-#else
-		if (TwitterConnect::LoadFavoritesFile(userdata.mID, favs))
-#endif
+		std::vector<float>	favoritesUserCount;
+		for (auto u : mTwitterAnalyser->mCheckedUserList)
 		{
-			std::set<u64>	users;
-			for (auto& f: favs)
+			const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
+
+			std::vector<TwitterConnect::favoriteStruct>	favs;
+#ifdef USE_SCRAPPER
+			if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
+#else
+			if (TwitterConnect::LoadFavoritesFile(userdata.mID, favs))
+#endif
 			{
-				users.insert(f.userID);
+				std::set<u64>	users;
+				for (auto& f : favs)
+				{
+					users.insert(f.userID);
+				}
+
+				float indice = ((float)users.size()) / ((float)favs.size());
+
+				currentData.push_back(indice);
+				favoritesUserCount.push_back((float)users.size());
 			}
+		}
 
-			float indice = ((float)users.size()) / ((float)favs.size());
+		diagram.mZonePos.Set(1920 / 2 - 256, 512 + 64);
+		diagram.mColumnCount = 10;
+		diagram.mZoneSize.Set(512, 288);
+		diagram.mLimits.Set(0.0f, 1.0f);
+		diagram.mUseLog = false;
+		diagram.mTitle = "Favorites diversity indice";
+		diagram.mColumnColor = { 94,169,221,255 };
+		if (currentData.size())
+		{
+			diagram.Draw(currentData);
+		}
 
-			currentData.push_back(indice);
-			favoritesUserCount.push_back((float)users.size());
+		// favorites user count
+
+		diagram.mZonePos.Set(1920 - 64 - 512, 256);
+		diagram.mColumnCount = 10;
+		diagram.mZoneSize.Set(512, 288);
+		diagram.mLimits.Set(1.0f, 200.0f);
+		diagram.mUseLog = true;
+		diagram.mTitle = "Unique favorites count";
+		diagram.mColumnColor = { 94,169,221,255 };
+		if (favoritesUserCount.size())
+		{
+			diagram.Draw(favoritesUserCount);
 		}
 	}
-
-	diagram.mZonePos.Set(1920/2 - 256, 512+64);
-	diagram.mColumnCount = 10;
-	diagram.mZoneSize.Set(512, 288);
-	diagram.mLimits.Set(0.0f, 1.0f);
-	diagram.mUseLog = false;
-	diagram.mTitle = "Favorites diversity indice";
-	diagram.mColumnColor = { 94,169,221,255 };
-	if (currentData.size())
+	else if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Followers)
 	{
-		diagram.Draw(currentData);
+
 	}
-
-
-	// favorites user count
-
-	diagram.mZonePos.Set(1920 - 64 - 512, 256);
-	diagram.mColumnCount = 10;
-	diagram.mZoneSize.Set(512, 288);
-	diagram.mLimits.Set(1.0f, 200.0f);
-	diagram.mUseLog = true;
-	diagram.mTitle = "Unique favorites count";
-	diagram.mColumnColor = { 94,169,221,255 };
-	if (favoritesUserCount.size())
+	else if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Following)
 	{
-		diagram.Draw(favoritesUserCount);
+
 	}
 
 	// activity indice

@@ -21,10 +21,14 @@ protected:
 
 	enum class dataType
 	{
-		Likers = 0,
-		Followers = 1,
-		Following = 2,
-		Favorites = 3
+		// panel types
+		Likers = 0,				// with or without hashtag, with or without period
+		Posters = 1,			// with hashtag, with or without period
+		// panel or analysed types
+		Followers = 2,			// no hashtag, no period here
+		Following = 3,			// no hashtag, no period here
+		// analysed types only
+		Favorites = 4,			// with or without hashtag, with or without period
 	};
 
 	void	requestDone();
@@ -70,7 +74,7 @@ protected:
 	std::map<u64, u32>					mTweetRetrievedLikerCount;
 	u32									mCurrentTreatedTweetIndex = 0;
 	// list of likers
-	u32									mCurrentTreatedLikerIndex=0;
+	u32									mCurrentTreatedUserIndex=0;
 	u32									mValidTreatedLikersForThisTweet = 0;
 	u32									mValidUserCount=0;
 	u32									mTreatedUserCount = 0;

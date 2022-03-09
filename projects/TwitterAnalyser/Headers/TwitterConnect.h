@@ -200,8 +200,11 @@ public:
 	static std::string	GetIDString(u64 id);
 	static std::string  CleanURL(const std::string& url);
 	static std::vector<u64>		LoadIDVectorFile(const std::string& filename, bool& fileExist,bool oldfilelimit=true);
-	static void		SaveFollowingFile(u64 id, const std::vector<u64>& v);
-	static void		SaveIDVectorFile(const std::vector<u64>& v, const std::string& filename);
+	static void					SaveFollowingFile(u64 id, const std::vector<u64>& v);
+	static bool					LoadFollowingFile(u64 id, std::vector<u64>& followers);
+	static void					SaveFollowersFile(u64 id, const std::vector<u64>& v);
+	static bool					LoadFollowersFile(u64 id, std::vector<u64>& followers);
+	static void					SaveIDVectorFile(const std::vector<u64>& v, const std::string& filename);
 
 	template<typename T>
 	static bool	LoadDataFile(const std::string& filename, std::vector<T>& loaded, bool useOldFileLimit = true)
@@ -245,7 +248,8 @@ public:
 
 	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb,const std::string& signal="done");
 	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb, const std::string& signal = "done");
-	void	launchGetFollowing(UserStruct& ch, const std::string& signal = "done");
+	// followers or following
+	void	launchGetFollow(u64 userid,const std::string& followtype);
 	void	launchGetFavoritesRequest(const std::string& user);
 	void	launchGetFavoritesRequest(u64 userid);
 	void	launchGetTweetRequest(u64 userid, const std::string& username);
@@ -369,10 +373,10 @@ protected:
 	DECLARE_METHOD(getTweets);
 	DECLARE_METHOD(getLikers);
 	DECLARE_METHOD(getSearchTweets);
-	DECLARE_METHOD(getFollowing);
+	DECLARE_METHOD(getFollow);
 	DECLARE_METHOD(getFavorites);
 	
-	COREMODIFIABLE_METHODS(getUserDetails, getFollowing, getTweets, getLikers, getSearchTweets, getFavorites);
+	COREMODIFIABLE_METHODS(getUserDetails, getFollow, getTweets, getLikers, getSearchTweets, getFavorites);
 	CoreItemSP	RetrieveJSON(CoreModifiable* sender);
 
 	std::vector<std::pair<CMSP, std::pair<u64, UserStruct*>> >		mDownloaderList;
