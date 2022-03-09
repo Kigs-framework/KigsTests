@@ -503,7 +503,6 @@ void		TwitterConnect::SaveLikersFile(const std::vector<u64>& tweetLikers, u64 tw
 
 void		TwitterConnect::SaveLikersFile(const std::vector<std::string>& tweetLikers,u64 tweetid, const std::string& username)
 {
-	// likers are stored in unused mFollowers (when in UseLikes mode)
 	std::string filename = "Cache/Tweets/" + username + "/" + GetIDString(tweetid) + ".json";
 
 	CoreItemSP likers = MakeCoreVector();
@@ -535,6 +534,7 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 20.5);
 
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
@@ -573,6 +573,7 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 20.5);
 
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
@@ -610,6 +611,7 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getSearchTweets", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5);
 
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
@@ -664,6 +666,7 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getTweets", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5);
 
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
@@ -767,6 +770,7 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
 	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 10.5);
 
 	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
 	mNextRequestDelay -= waitdelay;
@@ -829,31 +833,17 @@ std::vector<u64>		TwitterConnect::LoadIDVectorFile(const std::string& filename,b
 	return loaded;
 }
 
-bool		TwitterConnect::LoadFollowingFile(u64 id, std::vector<u64>& following)
+bool		TwitterConnect::LoadFollowFile(u64 id, std::vector<u64>& following, const std::string& followtype)
 {
-	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_following.ids";
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_" + followtype + ".ids";
 	bool fileexist = false;
 	following = LoadIDVectorFile(filename, fileexist);
 	return fileexist;
 }
 
-void		TwitterConnect::SaveFollowingFile(u64 id, const std::vector<u64>& v)
+void		TwitterConnect::SaveFollowFile(u64 id, const std::vector<u64>& v, const std::string& followtype)
 {
-	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_following.ids";
-	SaveIDVectorFile(v, filename);
-}
-
-bool		TwitterConnect::LoadFollowersFile(u64 id, std::vector<u64>& followers)
-{
-	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_followers.ids";
-	bool fileexist = false;
-	followers = LoadIDVectorFile(filename, fileexist);
-	return fileexist;
-}
-
-void		TwitterConnect::SaveFollowersFile(u64 id, const std::vector<u64>& v)
-{
-	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_followers.ids";
+	std::string filename = "Cache/Users/" + GetUserFolderFromID(id) + "/" + GetIDString(id) + "_" + followtype + ".ids";
 	SaveIDVectorFile(v, filename);
 }
 

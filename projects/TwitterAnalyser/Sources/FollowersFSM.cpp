@@ -3,31 +3,21 @@
 #include "CoreFSM.h"
 
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollowers)
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollow)
 public:
-	// the user to retrieve followers
+	// the user to retrieve follows 
 	u64						userid;
 	std::vector<u64>		userlist;
+	std::string				followtype;
+	int						limitCount = -1;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
-void	manageRetrievedFollowers(std::vector<u64>& followers, const std::string& nexttoken);
+void	manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken);
 void	copyUserList(std::vector<u64>& touserlist);
-ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFollowers, copyUserList)
+ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFollow, copyUserList)
 END_DECLARE_COREFSMSTATE()
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollowing)
-public:
-	// the user to retrieve followers
-	u64						userid;
-	std::vector<u64>		userlist;
-protected:
-STARTCOREFSMSTATE_WRAPMETHODS();
-void	manageRetrievedFollowing(std::vector<u64>& following, const std::string& nexttoken);
-void	copyUserList(std::vector<u64>& touserlist);
-ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFollowing, copyUserList)
-END_DECLARE_COREFSMSTATE()
-
-std::string TwitterAnalyser::searchFollowersFSM()
+std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 {
 	SP<CoreFSM> fsm = mFsm;
 
@@ -36,119 +26,85 @@ std::string TwitterAnalyser::searchFollowersFSM()
 	fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
 
 	// go to GetTweets
-	SP<CoreFSMTransition> getfollowersstransition = KigsCore::GetInstanceOf("getfollowersstransition", "CoreFSMInternalSetTransition");
-	getfollowersstransition->setState("GetFollowers");
-	getfollowersstransition->Init();
+	SP<CoreFSMTransition> getfollowtransition = KigsCore::GetInstanceOf("getfollowtransition", "CoreFSMInternalSetTransition");
+	getfollowtransition->setState("GetFollow");
+	getfollowtransition->Init();
 
-	// when going to GetFollowers, set userid first
-	KigsCore::Connect(getfollowersstransition.get(), "ExecuteTransition", this, "setUserID", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
+	// when going to GetFollow, set userid first
+	KigsCore::Connect(getfollowtransition.get(), "ExecuteTransition", this, "setUserID", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
-			auto  followersState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, GetFollowers);
-			followersState->userid = mRetreivedUsers[0].mID;
+			auto  followState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, GetFollow);
+			followState->userid = mRetreivedUsers[0].mID;
+			followState->limitCount = mWantedTotalPanelSize;
 		});
 
-	// Init can go to Wait or GetFollowers
+	// Init can go to Wait or GetFollow
 	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
-	fsm->getState("Init")->addTransition(getfollowersstransition);
+	fsm->getState("Init")->addTransition(getfollowtransition);
 
-	// create GetLikers state
-	fsm->addState("GetFollowers", new CoreFSMStateClass(TwitterAnalyser, GetFollowers)());
-	// after GetFollowers, can go to get user data (or pop)
-	fsm->getState("GetFollowers")->addTransition(mTransitionList["waittransition"]);
-	// get likes can also go to NeedUserListDetail
-	fsm->getState("GetFollowers")->addTransition(mTransitionList["userlistdetailtransition"]);
+	// create GetFollow state
+	fsm->addState("GetFollow", new CoreFSMStateClass(TwitterAnalyser, GetFollow)());
+	// after GetFollow, can go to get user data (or pop)
+	fsm->getState("GetFollow")->addTransition(mTransitionList["waittransition"]);
+	// GetFollow can also go to NeedUserListDetail or done
+	fsm->getState("GetFollow")->addTransition(mTransitionList["userlistdetailtransition"]);
+	fsm->getState("GetFollow")->addTransition(mTransitionList["donetransition"]);
 
-	return "GetFollowers";
+	auto toinit=getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, GetFollow);
+	toinit->followtype = followtype;
+
+	return "GetFollow";
 	
 }
 
-std::string	TwitterAnalyser::searchFollowingFSM()
-{
-	SP<CoreFSM> fsm = mFsm;
-
-	// Init state, check if user was already started and launch next steps
-	// no hashtag for follower
-	fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
-
-	// go to GetTweets
-	SP<CoreFSMTransition> getfollowingtransition = KigsCore::GetInstanceOf("getfollowingtransition", "CoreFSMInternalSetTransition");
-	getfollowingtransition->setState("GetFollowing");
-	getfollowingtransition->Init();
-
-	// when going to GetFollowing, set userid first
-	KigsCore::Connect(getfollowingtransition.get(), "ExecuteTransition", this, "setUserID", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
-		{
-			auto  followingState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, GetFollowing);
-			followingState->userid = mRetreivedUsers[0].mID;
-		});
-
-	// Init can go to Wait or GetFollowers
-	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
-	fsm->getState("Init")->addTransition(getfollowingtransition);
-
-	// create GetLikers state
-	fsm->addState("GetFollowing", new CoreFSMStateClass(TwitterAnalyser, GetFollowing)());
-	// after GetFollowers, can go to get user data (or pop)
-	fsm->getState("GetFollowing")->addTransition(mTransitionList["waittransition"]);
-	// get likes can also go to NeedUserListDetail
-	fsm->getState("GetFollowing")->addTransition(mTransitionList["userlistdetailtransition"]);
-
-	return "GetFollowing";
-}
-
-void	TwitterAnalyser::analyseFollowersFSM(const std::string& lastState)
-{
-
-}
-void	TwitterAnalyser::analyseFollowingFSM(const std::string& lastState)
+void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::string& followtype)
 {
 
 }
 
 
-
-void	CoreFSMStartMethod(TwitterAnalyser, GetFollowers)
+void	CoreFSMStartMethod(TwitterAnalyser, GetFollow)
 {
 
 }
-void	CoreFSMStopMethod(TwitterAnalyser, GetFollowers)
+void	CoreFSMStopMethod(TwitterAnalyser, GetFollow)
 {
 
 }
 
-DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollowers))
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 {
 	
 	// enough user
 	if (mValidUserCount == mUserPanelSize)
 	{
-		GetUpgrador()->popState();
+		GetUpgrador()->activateTransition("donetransition");
 		return false;
 	}
 
 	std::string filenamenext_token = "Cache/Users/"+TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid)+"/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_FollowersNextCursor.json";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador() ->followtype +"_NextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
 
 	std::string next_cursor = "-1";
 
 	std::vector<u64>	 v;
-	bool				hasFollowerFile = false;
+	bool				hasFollowFile = false;
 	if (nextt)
 	{
 		next_cursor = nextt["next-cursor"];
 	}
 	else
 	{
-		hasFollowerFile = TwitterConnect::LoadFollowersFile(GetUpgrador()->userid,v);
+		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->userid,v, GetUpgrador()->followtype);
 	}
 
-	if ((!hasFollowerFile) || (next_cursor != "-1"))
+	if ((!hasFollowFile) || (next_cursor != "-1"))
 	{
 		mTwitterConnect->mNextCursor = next_cursor;
-		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollowers");
-		mTwitterConnect->launchGetFollow(GetUpgrador()->userid,"followers");
+		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
+		mTwitterConnect->launchGetFollow(GetUpgrador()->userid, GetUpgrador()->followtype);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -160,14 +116,14 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollowers))
 	return false;
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollowers)::manageRetrievedFollowers(std::vector<u64>& followers, const std::string& nexttoken)
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken)
 {
 	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_FollowersNextCursor.json";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
 
 	std::vector<u64> v;
-	bool fexist = TwitterConnect::LoadFollowersFile(GetUpgrador()->userid,v);
-	v.insert(v.end(), followers.begin(), followers.end());
+	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->userid,v, GetUpgrador()->followtype);
+	v.insert(v.end(), follow.begin(), follow.end());
 
 	if (nexttoken != "-1")
 	{
@@ -181,97 +137,14 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollowers)::manageRetrievedFol
 		TwitterConnect::randomizeVector(v);
 	}
 
-	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollowers");
-	TwitterConnect::SaveFollowersFile(GetUpgrador()->userid, v);
+	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
+	TwitterConnect::SaveFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
 
 	requestDone();
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollowers)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::copyUserList(std::vector<u64>& touserlist)
 {
 	touserlist = std::move(GetUpgrador()->userlist);
 }
 
-void	CoreFSMStartMethod(TwitterAnalyser, GetFollowing)
-{
-
-}
-void	CoreFSMStopMethod(TwitterAnalyser, GetFollowing)
-{
-
-}
-
-DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollowing))
-{
-
-	// enough user
-	if (mValidUserCount == mUserPanelSize)
-	{
-		GetUpgrador()->popState();
-		return false;
-	}
-
-	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_FollowingNextCursor.json";
-
-	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
-
-	std::string next_cursor = "-1";
-
-	std::vector<u64>	 v;
-	bool				hasFollowingFile = false;
-	if (nextt)
-	{
-		next_cursor = nextt["next-cursor"];
-	}
-	else
-	{
-		hasFollowingFile = TwitterConnect::LoadFollowingFile(GetUpgrador()->userid, v);
-	}
-
-	if ((!hasFollowingFile) || (next_cursor != "-1"))
-	{
-		mTwitterConnect->mNextCursor = next_cursor;
-		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollowing");
-		mTwitterConnect->launchGetFollow(GetUpgrador()->userid,"following");
-		GetUpgrador()->activateTransition("waittransition");
-		mNeedWait = true;
-	}
-	else
-	{
-		GetUpgrador()->userlist = std::move(v);
-		GetUpgrador()->activateTransition("getuserdatatransition");
-	}
-	return false;
-}
-
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollowing)::manageRetrievedFollowing(std::vector<u64>& following, const std::string& nexttoken)
-{
-	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_FollowingNextCursor.json";
-
-	std::vector<u64> v;
-	bool fexist = TwitterConnect::LoadFollowingFile(GetUpgrador()->userid, v);
-	v.insert(v.end(), following.begin(), following.end());
-
-	if (nexttoken != "-1")
-	{
-		CoreItemSP currentUserJson = MakeCoreMap();
-		currentUserJson->set("next-cursor", nexttoken);
-		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
-	}
-	else
-	{
-		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
-		TwitterConnect::randomizeVector(v);
-	}
-
-	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollowing");
-	TwitterConnect::SaveFollowersFile(GetUpgrador()->userid, v);
-
-	requestDone();
-}
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollowing)::copyUserList(std::vector<u64>& touserlist)
-{
-	touserlist = std::move(GetUpgrador()->userlist);
-}

@@ -42,13 +42,10 @@ protected:
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
 
 	std::string	searchLikersFSM();
-	std::string	searchFollowersFSM();
-	std::string	searchFollowingFSM();
+	std::string	searchFollowFSM(const std::string& followtype);
 
 	void	analyseFavoritesFSM(const std::string& lastState);
-	void	analyseFollowersFSM(const std::string& lastState);
-	void	analyseFollowingFSM(const std::string& lastState);
-
+	void	analyseFollowFSM(const std::string& lastState, const std::string& followtype);
 
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;
@@ -90,7 +87,7 @@ protected:
 
 	// analyse type
 	dataType		mPanelType = dataType::Followers;
-	dataType		mAnalysedType = dataType::Followers;
+	dataType		mAnalysedType = dataType::Following;
 
 	bool			mUseHashTags = false;
 	std::string		mHashTag;

@@ -200,10 +200,8 @@ public:
 	static std::string	GetIDString(u64 id);
 	static std::string  CleanURL(const std::string& url);
 	static std::vector<u64>		LoadIDVectorFile(const std::string& filename, bool& fileExist,bool oldfilelimit=true);
-	static void					SaveFollowingFile(u64 id, const std::vector<u64>& v);
-	static bool					LoadFollowingFile(u64 id, std::vector<u64>& followers);
-	static void					SaveFollowersFile(u64 id, const std::vector<u64>& v);
-	static bool					LoadFollowersFile(u64 id, std::vector<u64>& followers);
+	static void					SaveFollowFile(u64 id, const std::vector<u64>& v,const std::string& followtype);
+	static bool					LoadFollowFile(u64 id, std::vector<u64>& follow, const std::string& followtype);
 	static void					SaveIDVectorFile(const std::vector<u64>& v, const std::string& filename);
 
 	template<typename T>
