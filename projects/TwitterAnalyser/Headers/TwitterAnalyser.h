@@ -16,9 +16,6 @@ public:
 
 	// give direct access to members
 	friend class GraphDrawer;
-
-protected:
-
 	enum class dataType
 	{
 		// panel types
@@ -30,13 +27,17 @@ protected:
 		// analysed types only
 		Favorites = 4,			// with or without hashtag, with or without period
 	};
+protected:
+
+
 
 	void	requestDone();
-	void	mainUserDone();
+	void	mainUserDone(TwitterConnect::UserStruct& CurrentUserStruct);
 	void	switchForce();
 	void	switchDisplay();
+	void	manageRetrievedUserDetail(TwitterConnect::UserStruct& CurrentUserStruct);
 
-	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets);
+	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets, manageRetrievedUserDetail);
 
 	void		commonStatesFSM();
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;

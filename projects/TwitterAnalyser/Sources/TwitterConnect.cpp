@@ -515,6 +515,30 @@ void		TwitterConnect::SaveLikersFile(const std::vector<std::string>& tweetLikers
 
 }
 
+void	TwitterConnect::launchGenericRequest(float waitDelay)
+{
+	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
+	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
+	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", waitDelay);
+
+	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
+	mNextRequestDelay -= waitdelay;
+
+	if (mNextRequestDelay < 0.0)
+	{
+		mAnswer->Init();
+		mRequestCount++;
+		RequestLaunched(waitDelay);
+	}
+	else
+	{
+		Upgrade("DelayedFuncUpgrador");
+		setValue("DelayedFunction", "sendRequest");
+		setValue("Delay", mNextRequestDelay);
+	}
+}
+
+
 void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 {
 	// use since ID, max ID here to retrieve tweets in a given laps of time
@@ -532,25 +556,8 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 	}
 
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 20.5);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
-
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(20.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
+	launchGenericRequest(20.5);
 }
 
 void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
@@ -571,25 +578,9 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 	}
 
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 20.5);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
+	launchGenericRequest(20.5);
 
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(20.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
 }
 
 void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
@@ -609,25 +600,9 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
 		url += nextCursor;
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getSearchTweets", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
+	launchGenericRequest(60.5);
 
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(60.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
 }
 
 
@@ -664,91 +639,35 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 		url += "&pagination_token=" + nextCursor;
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getTweets", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
-
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(60.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
+	launchGenericRequest(60.5);
 }
 
-void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb, const std::string& signal)
+void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb)
 {
-
-	mCurrentUserStruct = &ch;
-	mSignal = signal;
 
 	// check classic User Cache
 	std::string url = "2/users/by/username/" + UserName + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 	mAnswer->AddDynamicAttribute<maBool, bool>("RequestThumb", requestThumb);
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 1.1);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
-
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(1.1);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
+	launchGenericRequest(1.1);
 
 }
 
-void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch, bool requestThumb, const std::string& signal)
+void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch, bool requestThumb)
 {
-	mCurrentUserStruct = &ch;
-	mSignal = signal;
 
 	// check classic User Cache
 	std::string url = "2/users/" + std::to_string(UserID) + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
 	mAnswer->AddDynamicAttribute<maBool, bool>("RequestThumb", requestThumb);
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 1.1);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
-
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(1.1);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
+	launchGenericRequest(1.1);
+	
 }
 void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 {
-	mSignal = signal;
 	std::string url = "2/tweets/" + std::to_string(tweetid) + "/liking_users";
 
 	mCurrentTweetID = tweetid;
@@ -768,25 +687,8 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
 		url += "&pagination_token=" + nextCursor;
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 10.5);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
-
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(10.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
+	launchGenericRequest(10.5);
 }
 
 
@@ -800,25 +702,9 @@ void	TwitterConnect::launchGetFollow(u64 userid,const std::string& followtype)
 	}
 
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFollow", this);
-	mAnswer->AddHeader(mTwitterBear[NextBearer()]);
-	mAnswer->AddDynamicAttribute<maInt, int>("BearerIndex", CurrentBearer());
-	mAnswer->AddDynamicAttribute<maFloat, float>("WaitDelay", 60.5f);
 
-	double waitdelay = KigsCore::GetCoreApplication()->GetApplicationTimer()->GetTime() - mLastRequestTime;
-	mNextRequestDelay -= waitdelay;
+	launchGenericRequest(60.5);
 
-	if (mNextRequestDelay < 0.0)
-	{
-		mAnswer->Init();
-		mRequestCount++;
-		RequestLaunched(60.5);
-	}
-	else
-	{
-		Upgrade("DelayedFuncUpgrador");
-		setValue("DelayedFunction", "sendRequest");
-		setValue("Delay", mNextRequestDelay);
-	}
 }
 
 std::vector<u64>		TwitterConnect::LoadIDVectorFile(const std::string& filename,bool &fileExist,bool useoldfilelimit)
@@ -935,42 +821,27 @@ DEFINE_METHOD(TwitterConnect, getUserDetails)
 		CoreItemSP	data = json["data"];
 		CoreItemSP	public_m = data["public_metrics"];
 
-		mCurrentUserStruct->mID = data["id"];
-		mCurrentUserStruct->mName = data["username"];
-		mCurrentUserStruct->mFollowersCount = public_m["followers_count"];
-		mCurrentUserStruct->mFollowingCount = public_m["following_count"];
-		mCurrentUserStruct->mStatuses_count = public_m["tweet_count"];
-		mCurrentUserStruct->UTCTime = data["created_at"];
-		mCurrentUserStruct->mThumb.mURL = CleanURL(data["profile_image_url"]);
+		UserStruct CurrentUserStruct;
 
-		{
-			// save name to id if needed
-			std::string username = mCurrentUserStruct->mName.ToString();
-			std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/" + username + ".json";
-			// user id doesn't expire
-			CoreItemSP currentUserJson = TwitterConnect::LoadJSon(filename, false);
-			if (!currentUserJson)
-			{
-				JSonFileParser L_JsonParser;
-				CoreItemSP initP = MakeCoreMap();
-				initP->set("id", mCurrentUserStruct->mID);
-				L_JsonParser.Export((CoreMap<std::string>*)initP.get(), filename);
-			}
+		CurrentUserStruct.mID = data["id"];
+		CurrentUserStruct.mName = data["username"];
+		CurrentUserStruct.mFollowersCount = public_m["followers_count"];
+		CurrentUserStruct.mFollowingCount = public_m["following_count"];
+		CurrentUserStruct.mStatuses_count = public_m["tweet_count"];
+		CurrentUserStruct.UTCTime = data["created_at"];
+		CurrentUserStruct.mThumb.mURL = CleanURL(data["profile_image_url"]);
 
-		}
-		SaveUserStruct(mCurrentUserStruct->mID, *mCurrentUserStruct);
 		bool requestThumb;
 		if (sender->getValue("RequestThumb", requestThumb))
 		{
 			if (requestThumb)
-				if (!LoadThumbnail(mCurrentUserStruct->mID, *mCurrentUserStruct))
+				if (!LoadThumbnail(CurrentUserStruct.mID, CurrentUserStruct))
 				{
-					LaunchDownloader(mCurrentUserStruct->mID, *mCurrentUserStruct);
+					LaunchDownloader(CurrentUserStruct.mID, CurrentUserStruct);
 				}
 		}
-		
-		EmitSignal(mSignal);
-		mAnswer = nullptr;
+
+		EmitSignal("UserDetailRetrieved", CurrentUserStruct);
 	}
 	else if (!mWaitQuota)
 	{
@@ -982,7 +853,9 @@ DEFINE_METHOD(TwitterConnect, getUserDetails)
 			suspended.mFollowersCount = 0;
 			suspended.mFollowingCount = 0;
 			suspended.mStatuses_count = 0;
-			SaveUserStruct(id, suspended);
+
+			EmitSignal("UserDetailRetrieved", suspended);
+			
 			mApiErrorCode = 0;
 		}
 
@@ -1409,6 +1282,7 @@ u64	TwitterConnect::getTweetIdBeforeDate(const std::string& date)
 			return foundid;
 		}
 	}
+	return foundid;
 }
 u64	TwitterConnect::getTweetIdAfterDate(const std::string& date)
 {

@@ -51,6 +51,8 @@ void GraphDrawer::InitModifiable()
 		fsm->getState("Jaccard")->addTransition(jaccardnexttransition);
 		fsm->getState("Jaccard")->addTransition(forcetransition);
 
+		percentnexttransition->setState("Jaccard");
+
 	}
 	else
 	{
@@ -962,6 +964,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Percent))
 
 	if (toShow.size() == 0)
 	{
+		drawGeneralStats();
 		return false;
 	}
 	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float,u64>& a1, const std::tuple<unsigned int, float,u64>& a2)
@@ -1028,6 +1031,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Percent))
 void CoreFSMStartMethod(GraphDrawer, Jaccard)
 {
 	mGoNext = false;
+	mCurrentUnit = 1;
 	mCurrentStateHasForceDraw = true;
 }
 
@@ -1037,7 +1041,16 @@ void CoreFSMStopMethod(GraphDrawer, Jaccard)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 {
-	/*float wantedpercent = mTwitterAnalyser->mValidUserPercent;
+	float wantedpercent = mTwitterAnalyser->mValidUserPercent;
+
+	auto getData = [&](const TwitterConnect::UserStruct& strct)->u32
+	{
+		if (mTwitterAnalyser->mPanelType == TwitterAnalyser::dataType::Followers)
+		{
+			return strct.mFollowersCount;
+		}
+		return strct.mFollowingCount;
+	};
 
 	std::vector<std::tuple<unsigned int, float, u64>>	toShow;
 	for (auto c : mTwitterAnalyser->mUsersUserCount)
@@ -1049,7 +1062,15 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 				float percent = (float)c.second.first / (float)mTwitterAnalyser->mValidUserCount;
 				if (percent > wantedpercent)
 				{
-					toShow.push_back({ c.second.first,percent * 100.0f,c.first });
+					const auto& a1User = mTwitterAnalyser->mUsersUserCount[c.first];
+					if (a1User.second.mName.ToString() == "") // not loaded
+					{
+						mTwitterAnalyser->askUserDetail(c.first);
+					}
+					else
+					{
+						toShow.push_back({ c.second.first,percent * 100.0f,c.first });
+					}
 				}
 			}
 		}
@@ -1057,26 +1078,62 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 
 	if (toShow.size() == 0)
 	{
+		drawGeneralStats();
 		return false;
 	}
+
+	float usedData = (float)getData(mTwitterAnalyser->mRetreivedUsers[0]);
+	
 	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float, u64>& a1, const std::tuple<unsigned int, float, u64>& a2)
 		{
-			if (std::get<0>(a1) == std::get<0>(a2))
+
+			const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a1)];
+			const auto& a2User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a2)];
+
+			// apply Jaccard index (https://en.wikipedia.org/wiki/Jaccard_index)
+			// a1 subscribers %
+			float A1_percent = std::get<1>(a1)*0.01f;
+			// a1 intersection size with analysed channel
+			float A1_a_inter_b = usedData * A1_percent;
+			// a1 union size with analysed channel 
+			float A1_a_union_b = usedData + (float)getData(a1User.second) - A1_a_inter_b;
+
+			// a2 subscribers %
+			float A2_percent = std::get<1>(a2) * 0.01f;
+			// a2 intersection size with analysed channel
+			float A2_a_inter_b = usedData * A2_percent;
+			// a2 union size with analysed channel 
+			float A2_a_union_b = usedData + (float)getData(a2User.second) - A2_a_inter_b;
+
+			float k1 = A1_a_inter_b / A1_a_union_b;
+			float k2 = A2_a_inter_b / A2_a_union_b;
+
+			if (k1 == k2)
 			{
 				return std::get<2>(a1) > std::get<2>(a2);
 			}
-			return (std::get<0>(a1) > std::get<0>(a2));
+			return (k1 > k2);
+
 		}
 	);
 
 	std::unordered_map<u64, unsigned int>	currentShowedChannels;
 	int toShowCount = 0;
-	for (const auto& tos : toShow)
+	for (auto& tos : toShow)
 	{
 		currentShowedChannels[std::get<2>(tos)] = 1;
 		toShowCount++;
 
 		const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)];
+
+		// compute jaccard again
+		float fpercent = std::get<1>(tos) * 0.01f;
+		float A1_a_inter_b = usedData * fpercent;
+		// a1 union size with analysed channel 
+		float A1_a_union_b = usedData + (float)getData(a1User.second) - A1_a_inter_b;
+		float k1 = A1_a_inter_b / A1_a_union_b;
+
+		std::get<1>(tos) = k1*100.0f;
 
 		if (toShowCount >= mTwitterAnalyser->mMaxUserCount)
 			break;
@@ -1115,7 +1172,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 		}
 	}
 
-	drawSpiral(toShow);*/
+	drawSpiral(toShow);
 	return false;
 }
 
@@ -1144,16 +1201,23 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 				float percent = (float)c.second.first / (float)mTwitterAnalyser->mValidUserCount;
 				if (percent > wantedpercent)
 				{
-					toShow.push_back({ c.second.first,percent * 100.0f,c.first });
+					const auto& a1User = mTwitterAnalyser->mUsersUserCount[c.first];
+					if (a1User.second.mFollowersCount ==0) // not loaded
+					{
+						mTwitterAnalyser->askUserDetail(c.first);
+					}
+					else
+					{
+						toShow.push_back({ c.second.first,percent * 100.0f,c.first });
+					}
 				}
 			}
 		}
 	}
 
-	
-
 	if (toShow.size() == 0)
 	{
+		drawGeneralStats();
 		return false;
 	}
 	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float, u64>& a1, const std::tuple<unsigned int, float, u64>& a2)

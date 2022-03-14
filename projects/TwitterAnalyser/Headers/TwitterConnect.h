@@ -244,8 +244,8 @@ public:
 	static bool	LoadThumbnail(u64 id, UserStruct& ch);
 
 
-	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb,const std::string& signal="done");
-	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb, const std::string& signal = "done");
+	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb);
+	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb);
 	// followers or following
 	void	launchGetFollow(u64 userid,const std::string& followtype);
 	void	launchGetFavoritesRequest(const std::string& user);
@@ -358,14 +358,12 @@ public:
 
 protected:
 
+	void	launchGenericRequest(float waitDelay);
+
 	void	sendRequest(); // send waiting request
 	void	resendRequest(); // send again same request
 
 	WRAP_METHODS(resendRequest, sendRequest, thumbnailReceived);
-
-	UserStruct* mCurrentUserStruct=nullptr;
-	std::string	mSignal;
-
 
 	DECLARE_METHOD(getUserDetails);
 	DECLARE_METHOD(getTweets);

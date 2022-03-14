@@ -4,3 +4,6 @@ projects/**/TmpRessources/**
 **/Ressources/AMLastDone.json
 projects/TwitterAnalyser/Android/Cache/**
 projects/TwitterAnalyser/Android/TwitterAnalyser.exe.WebView2/**
+projects/TwitterAnalyser/Android/WebScraper.dll
+projects/TwitterAnalyser/Android/WebScraperD.dll
+projects/TwitterAnalyser/Android/WebView2Loader.dll

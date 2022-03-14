@@ -186,6 +186,11 @@ void	TwitterAnalyser::ProtectedInit()
 		analyseFollowFSM(lastState, "following");
 		break;
 	}
+
+	if ((mPanelType == dataType::Followers) && (mAnalysedType == dataType::Following))
+	{
+		mGraphDrawer->setValue("HasJaccard", true);
+	}
 	
 	mTwitterConnect->initConnection(60.0 * 60.0 * 24.0 * (double)oldFileLimitInDays);
 
@@ -243,20 +248,43 @@ void	TwitterAnalyser::requestDone()
 	mNeedWait = false;
 }
 
-void TwitterAnalyser::mainUserDone()
+void TwitterAnalyser::mainUserDone(TwitterConnect::UserStruct& CurrentUserStruct)
 {
 	// save user
 	JSonFileParser L_JsonParser;
 	CoreItemSP initP = MakeCoreMap();
-	initP->set("id", mRetreivedUsers[0].mID);
+	initP->set("id", CurrentUserStruct.mID);
 	std::string filename = "Cache/UserName/";
-	filename += mRetreivedUsers[0].mName.ToString() + ".json";
+	filename += CurrentUserStruct.mName.ToString() + ".json";
 	L_JsonParser.Export((CoreMap<std::string>*)initP.get(), filename);
 
-	KigsCore::Disconnect(mTwitterConnect.get(), "MainUserDone", this, "mainUserDone");
+	manageRetrievedUserDetail(CurrentUserStruct);
+}
+
+void	TwitterAnalyser::manageRetrievedUserDetail(TwitterConnect::UserStruct& CurrentUserStruct)
+{
+	{
+		// save name to id if needed
+		std::string username = CurrentUserStruct.mName.ToString();
+		std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/" + username + ".json";
+		// user id doesn't expire
+		CoreItemSP currentUserJson = TwitterConnect::LoadJSon(filename, false);
+		if (!currentUserJson)
+		{
+			JSonFileParser L_JsonParser;
+			CoreItemSP initP = MakeCoreMap();
+			initP->set("id", CurrentUserStruct.mID);
+			L_JsonParser.Export((CoreMap<std::string>*)initP.get(), filename);
+		}
+
+	}
+	TwitterConnect::SaveUserStruct(CurrentUserStruct.mID, CurrentUserStruct);
+
+	KigsCore::Disconnect(mTwitterConnect.get(), "UserDetailRetrieved", this, "mainUserDone");
 
 	requestDone();
 }
+
 
 void	TwitterAnalyser::switchDisplay()
 {
@@ -407,8 +435,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitUser))
 
 	if (!currentP) // new user
 	{
-		KigsCore::Connect(mTwitterConnect.get(), "MainUserDone", this, "mainUserDone");
-		mTwitterConnect->launchUserDetailRequest(mRetreivedUsers[0].mName.ToString(), mRetreivedUsers[0],true, "MainUserDone");
+		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "mainUserDone");
+		mTwitterConnect->launchUserDetailRequest(mRetreivedUsers[0].mName.ToString(), mRetreivedUsers[0],true);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -454,6 +482,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserDetail))
 	
 	if (!mTwitterConnect->LoadUserStruct(userID, mRetreivedUsers[mCurrentUserIndex], false))
 	{
+		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "manageRetrievedUserDetail");
 		mTwitterConnect->launchUserDetailRequest(userID, mRetreivedUsers[mCurrentUserIndex], false);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
@@ -492,6 +521,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserID))
 	CoreItemSP currentUserJson = TwitterConnect::LoadJSon(filename,false);
 	if (!currentUserJson)
 	{
+		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "manageRetrievedUserDetail");
 		mTwitterConnect->launchUserDetailRequest(GetUpgrador()->userName, mRetreivedUsers[mCurrentUserIndex],false);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
@@ -544,6 +574,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserListDetail))
 
 	if (!TwitterConnect::LoadUserStruct(userID, GetUpgrador()->mTmpUserStruct, false))
 	{
+		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "manageRetrievedUserDetail");
 		mTwitterConnect->launchUserDetailRequest(userID, GetUpgrador()->mTmpUserStruct, false);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
