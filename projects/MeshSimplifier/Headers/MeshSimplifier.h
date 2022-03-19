@@ -60,4 +60,5 @@ protected:
 	void						drawEnveloppeVertices();
 
 	bool						mConstructMesh = true;
+	bool						mConstructEnveloppe = true;
 };

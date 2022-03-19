@@ -259,6 +259,8 @@ void	MeshSimplifier::ProtectedInit()
 		mPrecision = precision;
 		std::cout << "In vertice count: " << mMeshVertices.size() << std::endl;
 		std::cout << "In triangle count: " << mMeshVertexIndices.size() / 3 << std::endl;
+		//mConstructMesh = false;
+		mConstructEnveloppe = false;
 	}
 	
 	mCubeMaterial = KigsCore::GetInstanceOf("CubeMaterial", "Material");
@@ -292,7 +294,7 @@ void	MeshSimplifier::rebuildMesh()
 
 	auto timer=GetApplicationTimer();
 	auto startTime = timer->GetTime();
-	mMeshSimplification = new MeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision);
+	mMeshSimplification = new MeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision,10);
 	auto deltaTime = timer->GetTime() - startTime;
 
 	std::cout << "simplification time :" << deltaTime << std::endl;
@@ -331,29 +333,31 @@ void	MeshSimplifier::rebuildMesh()
 	mRootEnvNode = KigsCore::GetInstanceOf("RootEnvNode", "Node3D");
 
 	// enveloppe
-	for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+	if (mConstructEnveloppe)
 	{
-		u32 flag = 0;
-		v3i pos = mMeshSimplification->getEnveloppePos(i, flag);
-		pos /= 2;
+		for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+		{
+			u32 flag = 0;
+			v3i pos = mMeshSimplification->getEnveloppePos(i, flag);
+			pos /= 2;
 
-		SP<Node3D> EnvNode = KigsCore::GetInstanceOf("EnvNode_" + std::to_string(i), "Node3D");
+			SP<Node3D> EnvNode = KigsCore::GetInstanceOf("EnvNode_" + std::to_string(i), "Node3D");
 
-		u32 debugflag = 0;
+			u32 debugflag = 0;
 #ifdef _DEBUG
-		debugflag = mMeshSimplification->getNodeDebugFlag(i);
+			debugflag = mMeshSimplification->getNodeDebugFlag(i);
 #endif
 
-		EnvNode->addItem(getCube(flag, debugflag));
+			EnvNode->addItem(getCube(flag, debugflag));
 
-		topos.SetTranslation(v3f(pos.x, pos.y, pos.z) + mRecenterTranslate);
+			topos.SetTranslation(v3f(pos.x, pos.y, pos.z) + mRecenterTranslate);
 
-		EnvNode->Init();
-		EnvNode->ChangeMatrix(topos);
+			EnvNode->Init();
+			EnvNode->ChangeMatrix(topos);
 
-		mRootEnvNode->addItem(EnvNode);
+			mRootEnvNode->addItem(EnvNode);
+		}
 	}
-
 	mScene3D->addItem(mRootEnvNode);
 }
 
@@ -473,17 +477,20 @@ void	MeshSimplifier::drawEdges()
 
 void MeshSimplifier::showEnveloppe(bool show)
 {
-	for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+	if (mConstructEnveloppe)
 	{
-		SP<Node3D> EnvNode = mRootEnvNode->GetFirstSonByName("Node3D", "EnvNode_" + std::to_string(i));
+		for (size_t i = 0; i < mMeshSimplification->getEnveloppeSize(); i++)
+		{
+			SP<Node3D> EnvNode = mRootEnvNode->GetFirstSonByName("Node3D", "EnvNode_" + std::to_string(i));
 
-		if (i <= mDisplayCubeCount)
-		{
-			EnvNode->setValue("Show", show);
-		}
-		else
-		{
-			EnvNode->setValue("Show", false);
+			if (i <= mDisplayCubeCount)
+			{
+				EnvNode->setValue("Show", show);
+			}
+			else
+			{
+				EnvNode->setValue("Show", false);
+			}
 		}
 	}
 }
