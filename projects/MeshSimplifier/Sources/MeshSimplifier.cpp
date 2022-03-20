@@ -236,7 +236,8 @@ void	MeshSimplifier::ProtectedInit()
 	//importRaw3DFile("complex.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.1f;
 	//importRaw3DFile("complexcao.raw3d", mMeshVertexIndices, mMeshVertices);
-	//mPrecision = 0.04f;
+	//mPrecision = 0.01f;
+	//mConstructEnveloppe = false;
 	//mConstructMesh = false;
 	//importRaw3DFile("simplebox.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.02f;
@@ -359,6 +360,7 @@ void	MeshSimplifier::rebuildMesh()
 		}
 	}
 	mScene3D->addItem(mRootEnvNode);
+
 }
 
 
@@ -394,8 +396,8 @@ void	MeshSimplifier::ProtectedUpdate()
 
 void	MeshSimplifier::ProtectedClose()
 {
-
-	delete mMeshSimplification;
+	if(mMeshSimplification)
+		delete mMeshSimplification;
 
 
 	CoreDestroyModule(ModuleThread);
