@@ -24,7 +24,15 @@ void		TwitterAnalyser::commonStatesFSM()
 	waittransition->setState("Wait");
 	waittransition->Init();
 
+	// pop when objective is reached (pop)
+	SP<CoreFSMTransition> popwhendone = KigsCore::GetInstanceOf("popwhendone", "CoreFSMOnMethodTransition");
+	popwhendone->setValue("TransitionBehavior", "Pop");
+	popwhendone->setValue("MethodName", "checkDone");
+	popwhendone->setState("");
+	popwhendone->Init();
+
 	mTransitionList["waittransition"] = waittransition;
+	mTransitionList["popwhendone"] = popwhendone;
 
 	// this one is needed for all cases
 	fsm->addState("GetUserListDetail", new CoreFSMStateClass(TwitterAnalyser, GetUserListDetail)());
@@ -59,9 +67,10 @@ void		TwitterAnalyser::commonStatesFSM()
 	// Wait state can pop back to previous state
 	fsm->getState("Wait")->addTransition(waitendtransition);
 
-	// transition to done state
-	SP<CoreFSMTransition> donetransition = KigsCore::GetInstanceOf("donetransition", "CoreFSMInternalSetTransition");
+	// transition to done state when checkDone returns true
+	SP<CoreFSMTransition> donetransition = KigsCore::GetInstanceOf("donetransition", "CoreFSMOnMethodTransition");
 	donetransition->setState("Done");
+	donetransition->setValue("MethodName", "checkDone");
 	donetransition->Init();
 
 	mTransitionList["donetransition"] = donetransition;
@@ -172,6 +181,11 @@ void	TwitterAnalyser::ProtectedInit()
 	case dataType::Following:
 		lastState = searchFollowFSM("following");
 		break;
+	case dataType::Favorites:
+		lastState = searchFavoritesFSM();
+		//SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
+		break;
+
 	}
 
 	switch (mAnalysedType)
@@ -184,6 +198,11 @@ void	TwitterAnalyser::ProtectedInit()
 		break;
 	case dataType::Following:
 		analyseFollowFSM(lastState, "following");
+		break;
+	case dataType::TOP:
+		TopFSM(lastState);
+		mGraphDrawer->setValue("DrawTop", true);
+		//SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
 		break;
 	}
 
@@ -489,7 +508,10 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserDetail))
 	}
 	else
 	{
-		GetUpgrador()->activateTransition(GetUpgrador()->nextTransition);
+		if (GetUpgrador()->nextTransition != "Pop")
+		{
+			GetUpgrador()->activateTransition(GetUpgrador()->nextTransition);
+		}
 		// go to next only once
 		GetUpgrador()->nextTransition = "";
 	}
@@ -596,8 +618,11 @@ void	CoreFSMStopMethod(TwitterAnalyser, Done)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, Done))
 {
-	
 	return false;
 }
 
 
+bool	TwitterAnalyser::checkDone()
+{
+	return (mValidUserCount == mUserPanelSize);
+}

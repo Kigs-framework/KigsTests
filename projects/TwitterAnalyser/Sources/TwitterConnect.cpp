@@ -409,7 +409,7 @@ void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const st
 	SaveDataFile<Twts>(filename, tweetlist);
 }
 
-bool			TwitterConnect::LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::favoriteStruct>& fav)
+bool			TwitterConnect::LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::Twts>& fav)
 {
 	std::string filename = "Cache/Users/" + GetUserFolderFromID(userid) + "/" + GetIDString(userid) ;
 
@@ -419,7 +419,7 @@ bool			TwitterConnect::LoadFavoritesFile(u64 userid, std::vector<TwitterConnect:
 	}
 	filename += ".favs";
 	// for dated search, don't use old file limit here
-	if (LoadDataFile<TwitterConnect::favoriteStruct>(filename, fav))
+	if (LoadDataFile<TwitterConnect::Twts>(filename, fav))
 	{
 		return true;
 	}
@@ -428,7 +428,7 @@ bool			TwitterConnect::LoadFavoritesFile(u64 userid, std::vector<TwitterConnect:
 }
 
 
-bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav)
+bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::Twts>& fav)
 {
 	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/";
 		
@@ -438,7 +438,7 @@ bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector
 	}
 	filename += username + ".favs";
 	// for dated search, don't use old file limit here
-	if (LoadDataFile<TwitterConnect::favoriteStruct>(filename, fav))
+	if (LoadDataFile<TwitterConnect::Twts>(filename, fav))
 	{
 		return true;
 	}
@@ -446,7 +446,7 @@ bool		TwitterConnect::LoadFavoritesFile(const std::string& username, std::vector
 	return false;
 }
 
-void		TwitterConnect::SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::favoriteStruct>& favs)
+void		TwitterConnect::SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::Twts>& favs)
 {
 	std::string filename = "Cache/Users/" + GetUserFolderFromID(userid) + "/" + GetIDString(userid);
 
@@ -456,11 +456,11 @@ void		TwitterConnect::SaveFavoritesFile(u64 userid, const std::vector<TwitterCon
 	}
 	filename += ".favs";
 
-	SaveDataFile<TwitterConnect::favoriteStruct>(filename, favs);
+	SaveDataFile<TwitterConnect::Twts>(filename, favs);
 }
 
 
-void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs)
+void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::Twts>& favs)
 {
 	std::string filename = "Cache/Tweets/" + username.substr(0, 4) + "/";
 	if (mUseDates)
@@ -469,7 +469,7 @@ void		TwitterConnect::SaveFavoritesFile(const std::string& username, const std::
 	}
 	filename += username + ".favs";
 
-	SaveDataFile<TwitterConnect::favoriteStruct>(filename, favs);
+	SaveDataFile<TwitterConnect::Twts>(filename, favs);
 }
 
 std::vector<u64> TwitterConnect::LoadLikersFile(u64 tweetid)
@@ -543,6 +543,20 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 {
 	// use since ID, max ID here to retrieve tweets in a given laps of time
 	std::string url = "1.1/favorites/list.json?user_id=" + GetIDString(userid) + "&count=200&include_entities=false";
+
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(userid) + "_FavsNextCursor.json";
+	auto nxtTokenJson = LoadJSon(filenamenext_token);
+	std::string nextCursor = "-1";
+	if (nxtTokenJson)
+	{
+		nextCursor = nxtTokenJson["next-cursor"];
+	}
+
+	if (nextCursor != "-1")
+	{
+		url += "&max_id=" + nextCursor;
+	}
 
 	if (mUseDates)
 	{
@@ -666,7 +680,7 @@ void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch, bool re
 	launchGenericRequest(1.1);
 	
 }
-void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& signal)
+void	TwitterConnect::launchGetLikers(u64 tweetid)
 {
 	std::string url = "2/tweets/" + std::to_string(tweetid) + "/liking_users";
 
@@ -889,9 +903,13 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 
 				u32 like_count = currentTweet["public_metrics"]["like_count"];
 				u32 rt_count = currentTweet["public_metrics"]["retweet_count"];
+
+				std::string strdate = creationDateToUTC(tweetdate);
+				u32		creationDate = GetU32YYYYMMDD(strdate).first;
+
 				if (like_count > 1)
 				{
-					retrievedTweets.push_back({ authorid,tweetid,like_count,rt_count });
+					retrievedTweets.push_back({ authorid,tweetid,like_count,rt_count,creationDate });
 				}
 			}
 		}
@@ -983,6 +1001,7 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 			}
 			u64 tweetid = currentTweet["id"];
 			u64 author = currentTweet["user"]["id"];
+			std::string createdDate = currentTweet["created_at"];
 
 			mUserIdToName[author] = currentTweet["user"]["screen_name"];
 			saveUserNameFromID(author, mUserIdToName[author], true);
@@ -990,9 +1009,14 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 
 			u32 like_count = currentTweet["favorite_count"];
 			u32 rt_count = currentTweet["retweet_count"];
+
+			std::string strdate = creationDateToUTC(createdDate);
+			u32		creationDate = GetU32YYYYMMDD(strdate).first;
+
+
 			if (like_count > 1)
 			{
-				retrievedTweets.push_back({ author, tweetid,like_count,rt_count });
+				retrievedTweets.push_back({ author, tweetid,like_count,rt_count,creationDate });
 			}
 		}
 
@@ -1021,14 +1045,20 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 DEFINE_METHOD(TwitterConnect, getFavorites)
 {
 	auto json = RetrieveJSON(sender);
-	std::vector<favoriteStruct> currentFavorites;
+	std::vector<Twts> currentFavorites;
+	std::string nextStr = "-1";
 
 	if (json)
 	{
+		u64 minId = -1;
 		for (const auto& fav : json)
 		{
 			std::string createdDate = fav["created_at"];
 			u64		tweetID = fav["id"];
+			if (tweetID < minId)
+			{
+				minId = tweetID;
+			}
 			if (inGoodInterval(createdDate, tweetID))
 			{
 				u64		userid = fav["user"]["id"];
@@ -1038,14 +1068,29 @@ DEFINE_METHOD(TwitterConnect, getFavorites)
 				std::string strdate = creationDateToUTC(createdDate);
 				u32		creationDate = GetU32YYYYMMDD(strdate).first;
 
-				currentFavorites.push_back({ tweetID ,userid ,likes_count ,rt_count,creationDate });
+				currentFavorites.push_back({ userid,tweetID ,likes_count ,rt_count,creationDate });
 			}
 		}
+
+		/*CoreItemSP meta = json["meta"];
+		if (meta)
+		{
+			if (meta["next_token"])
+			{
+				nextStr = meta["next_token"];
+				if (nextStr == "0")
+				{
+					nextStr = "-1";
+				}
+			}
+		}*/
+		if (minId != -1)
+			nextStr = std::to_string(minId-1);
 	}
 
 	if (!mWaitQuota) // can't access favorite for this user
 	{
-		EmitSignal("FavoritesRetrieved", currentFavorites);
+		EmitSignal("FavoritesRetrieved", currentFavorites, nextStr);
 	}
 
 	return true;

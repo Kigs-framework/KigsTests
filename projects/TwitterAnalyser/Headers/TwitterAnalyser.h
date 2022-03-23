@@ -19,13 +19,14 @@ public:
 	enum class dataType
 	{
 		// panel types
-		Likers = 0,				// with or without hashtag, with or without period
-		Posters = 1,			// with hashtag, with or without period
+		Likers		= 0,			// with or without hashtag, with or without period
+		Posters		= 1,			// with hashtag, with or without period
 		// panel or analysed types
-		Followers = 2,			// no hashtag, no period here
-		Following = 3,			// no hashtag, no period here
+		Followers	= 2,			// no hashtag, no period here
+		Following	= 3,			// no hashtag, no period here
 		// analysed types only
-		Favorites = 4,			// with or without hashtag, with or without period
+		Favorites	= 4,			// with or without hashtag, with or without period
+		TOP			= 5,			// if used for data type, then just work with panel
 	};
 protected:
 
@@ -36,14 +37,18 @@ protected:
 	void	switchForce();
 	void	switchDisplay();
 	void	manageRetrievedUserDetail(TwitterConnect::UserStruct& CurrentUserStruct);
+	bool	checkDone();
 
-	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets, manageRetrievedUserDetail);
+
+	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets, manageRetrievedUserDetail, checkDone);
 
 	void		commonStatesFSM();
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
 
 	std::string	searchLikersFSM();
+	std::string	searchFavoritesFSM();
 	std::string	searchFollowFSM(const std::string& followtype);
+	void		TopFSM(const std::string& laststate);
 
 	void	analyseFavoritesFSM(const std::string& lastState);
 	void	analyseFollowFSM(const std::string& lastState, const std::string& followtype);

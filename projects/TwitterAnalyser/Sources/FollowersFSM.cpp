@@ -111,6 +111,9 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	fsm->getState("GetFollowData")->addTransition(mTransitionList["waittransition"]);
 	// GetFollowData can also go to NeedUserListDetail
 	fsm->getState("GetFollowData")->addTransition(mTransitionList["userlistdetailtransition"]);
+	// GetFollowData must pop when enough data
+	fsm->getState("GetFollowData")->addTransition(mTransitionList["popwhendone"]);
+
 
 	fsm->addState("GetUserDetail", new CoreFSMStateClass(TwitterAnalyser, GetUserDetail)());
 
@@ -144,13 +147,6 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetFollow)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 {
 	
-	// enough user
-	if (mValidUserCount == mUserPanelSize)
-	{
-		GetUpgrador()->activateTransition("donetransition");
-		return false;
-	}
-
 	std::string filenamenext_token = "Cache/Users/"+TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid)+"/";
 	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador() ->followtype +"_NextCursor.json";
 
@@ -304,13 +300,6 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollowData))
 		if (found != mFoundUser.end()) // this one was already treated
 		{
 			mCurrentTreatedUserIndex++; // goto next one
-			return false;
-		}
-
-		// enough user
-		if (mValidUserCount == mUserPanelSize)
-		{
-			GetUpgrador()->popState();
 			return false;
 		}
 

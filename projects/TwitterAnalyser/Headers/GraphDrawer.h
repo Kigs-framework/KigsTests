@@ -81,6 +81,7 @@ public:
 
 	void InitModifiable() override;
 
+	maBool	mDrawTop = BASE_ATTRIBUTE(DrawTop, false);
 	maBool	mHasJaccard = BASE_ATTRIBUTE(HasJaccard, false);
 	maBool  mGoNext = BASE_ATTRIBUTE(GoNext, false);
 	void	setEverythingDone()
@@ -94,6 +95,10 @@ public:
 
 // Percent drawing
 START_DECLARE_COREFSMSTATE(GraphDrawer, Percent)
+COREFSMSTATE_WITHOUT_METHODS()
+END_DECLARE_COREFSMSTATE()
+
+START_DECLARE_COREFSMSTATE(GraphDrawer, TopDraw)
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 

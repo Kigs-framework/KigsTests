@@ -33,13 +33,13 @@ public:
 		std::string					mURL = "";
 	};
 
-	struct favoriteStruct
+	struct Twts
 	{
-		u64		tweetID;
-		u64		userID;
-		u32		likes_count;
-		u32		retweet_count;
-		u32		creation_date;
+		u64		mAuthorID;
+		u64		mTweetID;
+		u32		mLikeCount;
+		u32		mRetweetCount; 
+		u32		mCreationData;
 	};
 
 	class UserStruct
@@ -127,13 +127,7 @@ public:
 		float	GetNormalisedAttraction(const PerAccountUserMap& other);
 	};
 
-	struct Twts
-	{
-		u64		mAuthorID;
-		u64		mTweetID;
-		u32		mLikeCount;
-		u32		mRetweetCount;
-	};
+
 
 	static bool searchDuplicateTweet(u64 twtid,const std::vector< Twts>& tweets) // return true if the same tweet already in the list
 	{
@@ -252,7 +246,7 @@ public:
 	void	launchGetFavoritesRequest(u64 userid);
 	void	launchGetTweetRequest(u64 userid, const std::string& username);
 	void	launchSearchTweetRequest(const std::string& hashtag);
-	void	launchGetLikers(u64 tweetid, const std::string& signal = "done");
+	void	launchGetLikers(u64 tweetid);
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
 	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
@@ -291,11 +285,11 @@ public:
 	static void			SaveLikersFile(const std::vector<u64>& tweetLikers, u64 tweetid);
 
 
-	static bool			LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::favoriteStruct>& fav);
-	static bool			LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::favoriteStruct>& fav);
+	static bool			LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::Twts>& fav);
+	static bool			LoadFavoritesFile(u64 userid, std::vector<TwitterConnect::Twts>& fav);
 
-	static void			SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::favoriteStruct>& favs);
-	static void			SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::favoriteStruct>& favs);
+	static void			SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::Twts>& favs);
+	static void			SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::Twts>& favs);
 
 
 	static std::string getHashtagFilename(const std::string& HashTag)

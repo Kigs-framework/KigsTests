@@ -25,79 +25,89 @@ void GraphDrawer::InitModifiable()
 	// need to add fsm to the object to control
 	addItem(fsm);
 
-	// go to force state (push)
-	SP<CoreFSMTransition> forcetransition = KigsCore::GetInstanceOf("forcetransition", "CoreFSMOnValueTransition");
-	forcetransition->setValue("TransitionBehavior", "Push");
-	forcetransition->setValue("ValueName", "DrawForce");
-	forcetransition->setState("Force");
-	forcetransition->Init();
-
-	// create Percent state
-	fsm->addState("Percent", new CoreFSMStateClass(GraphDrawer, Percent)());
-
-	SP<CoreFSMTransition> percentnexttransition = KigsCore::GetInstanceOf("percentnexttransition", "CoreFSMOnValueTransition");
-	percentnexttransition->setValue("ValueName", "GoNext");
-	
-	if (mHasJaccard)
+	if (mDrawTop)
 	{
-		// create Jaccard state
-		fsm->addState("Jaccard", new CoreFSMStateClass(GraphDrawer, Jaccard)());
-
-		SP<CoreFSMTransition> jaccardnexttransition = KigsCore::GetInstanceOf("jaccardnexttransition", "CoreFSMOnValueTransition");
-		jaccardnexttransition->setValue("ValueName", "GoNext");
-		jaccardnexttransition->setState("Normalized");
-		jaccardnexttransition->Init();
-
-		fsm->getState("Jaccard")->addTransition(jaccardnexttransition);
-		fsm->getState("Jaccard")->addTransition(forcetransition);
-
-		percentnexttransition->setState("Jaccard");
-
+		// create only TopDraw state
+		fsm->addState("TopDraw", new CoreFSMStateClass(GraphDrawer, TopDraw)());
+		fsm->setStartState("TopDraw");
+		fsm->Init();
 	}
 	else
 	{
-		percentnexttransition->setState("Normalized");
+
+		// go to force state (push)
+		SP<CoreFSMTransition> forcetransition = KigsCore::GetInstanceOf("forcetransition", "CoreFSMOnValueTransition");
+		forcetransition->setValue("TransitionBehavior", "Push");
+		forcetransition->setValue("ValueName", "DrawForce");
+		forcetransition->setState("Force");
+		forcetransition->Init();
+
+		// create Percent state
+		fsm->addState("Percent", new CoreFSMStateClass(GraphDrawer, Percent)());
+
+		SP<CoreFSMTransition> percentnexttransition = KigsCore::GetInstanceOf("percentnexttransition", "CoreFSMOnValueTransition");
+		percentnexttransition->setValue("ValueName", "GoNext");
+
+		if (mHasJaccard)
+		{
+			// create Jaccard state
+			fsm->addState("Jaccard", new CoreFSMStateClass(GraphDrawer, Jaccard)());
+
+			SP<CoreFSMTransition> jaccardnexttransition = KigsCore::GetInstanceOf("jaccardnexttransition", "CoreFSMOnValueTransition");
+			jaccardnexttransition->setValue("ValueName", "GoNext");
+			jaccardnexttransition->setState("Normalized");
+			jaccardnexttransition->Init();
+
+			fsm->getState("Jaccard")->addTransition(jaccardnexttransition);
+			fsm->getState("Jaccard")->addTransition(forcetransition);
+
+			percentnexttransition->setState("Jaccard");
+
+		}
+		else
+		{
+			percentnexttransition->setState("Normalized");
+		}
+
+		percentnexttransition->Init();
+
+		fsm->getState("Percent")->addTransition(percentnexttransition);
+		fsm->getState("Percent")->addTransition(forcetransition);
+
+		// create Normalized state
+		fsm->addState("Normalized", new CoreFSMStateClass(GraphDrawer, Normalized)());
+
+		SP<CoreFSMTransition> normalizednexttransition = KigsCore::GetInstanceOf("normalizednexttransition", "CoreFSMOnValueTransition");
+		normalizednexttransition->setValue("ValueName", "GoNext");
+		normalizednexttransition->setState("UserStats");
+		normalizednexttransition->Init();
+		fsm->getState("Normalized")->addTransition(normalizednexttransition);
+		fsm->getState("Normalized")->addTransition(forcetransition);
+
+
+		// create UserStats state
+		fsm->addState("UserStats", new CoreFSMStateClass(GraphDrawer, UserStats)());
+
+		SP<CoreFSMTransition> userstatnexttransition = KigsCore::GetInstanceOf("userstatnexttransition", "CoreFSMOnValueTransition");
+		userstatnexttransition->setValue("ValueName", "GoNext");
+		userstatnexttransition->setState("Percent");
+		userstatnexttransition->Init();
+		fsm->getState("UserStats")->addTransition(userstatnexttransition);
+
+		// pop wait state transition
+		SP<CoreFSMTransition> forceendtransition = KigsCore::GetInstanceOf("forceendtransition", "CoreFSMOnValueTransition");
+		forceendtransition->setValue("TransitionBehavior", "Pop");
+		forceendtransition->setValue("ValueName", "DrawForce");
+		forceendtransition->setValue("NotValue", true); // end wait when NeedWait is false
+		forceendtransition->Init();
+
+		// create Force state
+		fsm->addState("Force", new CoreFSMStateClass(GraphDrawer, Force)());
+		fsm->getState("Force")->addTransition(forceendtransition);
+
+		fsm->setStartState("Percent");
+		fsm->Init();
 	}
-
-	percentnexttransition->Init();
-
-	fsm->getState("Percent")->addTransition(percentnexttransition);
-	fsm->getState("Percent")->addTransition(forcetransition);
-
-	// create Normalized state
-	fsm->addState("Normalized", new CoreFSMStateClass(GraphDrawer, Normalized)());
-
-	SP<CoreFSMTransition> normalizednexttransition = KigsCore::GetInstanceOf("normalizednexttransition", "CoreFSMOnValueTransition");
-	normalizednexttransition->setValue("ValueName", "GoNext");
-	normalizednexttransition->setState("UserStats");
-	normalizednexttransition->Init();
-	fsm->getState("Normalized")->addTransition(normalizednexttransition);
-	fsm->getState("Normalized")->addTransition(forcetransition);
-
-	
-	// create UserStats state
-	fsm->addState("UserStats", new CoreFSMStateClass(GraphDrawer, UserStats)());
-
-	SP<CoreFSMTransition> userstatnexttransition = KigsCore::GetInstanceOf("userstatnexttransition", "CoreFSMOnValueTransition");
-	userstatnexttransition->setValue("ValueName", "GoNext");
-	userstatnexttransition->setState("Percent");
-	userstatnexttransition->Init();
-	fsm->getState("UserStats")->addTransition(userstatnexttransition);
-
-	// pop wait state transition
-	SP<CoreFSMTransition> forceendtransition = KigsCore::GetInstanceOf("forceendtransition", "CoreFSMOnValueTransition");
-	forceendtransition->setValue("TransitionBehavior", "Pop");
-	forceendtransition->setValue("ValueName", "DrawForce");
-	forceendtransition->setValue("NotValue", true); // end wait when NeedWait is false
-	forceendtransition->Init();
-
-	// create Force state
-	fsm->addState("Force", new CoreFSMStateClass(GraphDrawer, Force)());
-	fsm->getState("Force")->addTransition(forceendtransition);
-	
-	fsm->setStartState("Percent");
-	fsm->Init();
-
 	mTwitterAnalyser = static_cast<TwitterAnalyser*>(KigsCore::GetCoreApplication());
 	mTwitterAnalyser->AddAutoUpdate(this, 1.0);
 	//mTwitterAnalyser->ChangeAutoUpdateFrequency(fsm.get(), 1.0);
@@ -741,7 +751,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		{
 			const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 
-			std::vector<TwitterConnect::favoriteStruct>	favs;
+			std::vector<TwitterConnect::Twts>	favs;
 #ifdef USE_SCRAPPER
 			if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
 #else
@@ -751,7 +761,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 				std::set<u64>	users;
 				for (auto& f : favs)
 				{
-					users.insert(f.userID);
+					users.insert(f.mAuthorID);
 				}
 
 				float indice = ((float)users.size()) / ((float)favs.size());
@@ -1381,5 +1391,97 @@ void CoreFSMStopMethod(GraphDrawer, UserStats)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, UserStats))
 {
 	drawStats(GetUpgrador()->mBitmap);
+	return false;
+}
+
+void CoreFSMStartMethod(GraphDrawer, TopDraw)
+{
+	mGoNext = false;
+	mCurrentUnit = 0;
+	mCurrentStateHasForceDraw = true;
+}
+
+void CoreFSMStopMethod(GraphDrawer, TopDraw)
+{
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, TopDraw))
+{
+	if (mTwitterAnalyser->mUsersUserCount.size() == 0)
+	{
+		drawGeneralStats();
+		return false;
+	}
+	
+	float totalCount = 0.0f;
+	for (const auto& c : mTwitterAnalyser->mUsersUserCount)
+	{
+		totalCount += (float)c.second.first;
+	}
+
+	float oneOnCount = 1.0f / totalCount;
+	std::vector<std::tuple<unsigned int, float, u64>>	toShow;
+	for (const auto& c : mTwitterAnalyser->mUsersUserCount)
+	{
+		toShow.push_back({ c.second.first,(float)c.second.first*oneOnCount * 100.0f,c.first });
+	}
+
+	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float, u64>& a1, const std::tuple<unsigned int, float, u64>& a2)
+		{
+			if (std::get<0>(a1) == std::get<0>(a2))
+			{
+				return std::get<2>(a1) > std::get<2>(a2);
+			}
+			return (std::get<0>(a1) > std::get<0>(a2));
+		}
+	);
+
+	std::unordered_map<u64, unsigned int>	currentShowedChannels;
+	int toShowCount = 0;
+	for (const auto& tos : toShow)
+	{
+		currentShowedChannels[std::get<2>(tos)] = 1;
+		toShowCount++;
+
+		const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)];
+
+		if (toShowCount >= mTwitterAnalyser->mMaxUserCount)
+			break;
+	}
+
+	for (const auto& s : mShowedUser)
+	{
+		if (currentShowedChannels.find(s.first) == currentShowedChannels.end())
+		{
+			currentShowedChannels[s.first] = 0;
+		}
+		else
+		{
+			currentShowedChannels[s.first]++;
+		}
+	}
+
+	// add / remove items
+	for (const auto& update : currentShowedChannels)
+	{
+		if (update.second == 0) // to remove 
+		{
+			auto toremove = mShowedUser.find(update.first);
+			mMainInterface->removeItem((*toremove).second);
+			mShowedUser.erase(toremove);
+			//somethingChanged = true;
+		}
+		else if (update.second == 1) // to add
+		{
+			std::string thumbName = "thumbNail_" + TwitterConnect::GetIDString(update.first);
+			CMSP toAdd = CoreModifiable::Import("Thumbnail.xml", false, false, nullptr, thumbName);
+			toAdd->AddDynamicAttribute<maFloat, float>("Radius", 1.0f);
+			mShowedUser[update.first] = toAdd;
+			mMainInterface->addItem(toAdd);
+			//somethingChanged = true;
+		}
+	}
+
+	drawSpiral(toShow);
 	return false;
 }
