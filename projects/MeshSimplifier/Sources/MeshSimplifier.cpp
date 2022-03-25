@@ -219,6 +219,84 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 	return Mesh;
 }
 
+void MeshSimplifier::addBboxToMesh(const BBox& boxtoadd)
+{
+	int startVerticeIndex = mMeshVertices.size();
+
+	mMeshVertices.push_back({ boxtoadd.m_Min.x,boxtoadd.m_Min.y,boxtoadd.m_Min.z });
+	mMeshVertices.push_back({ boxtoadd.m_Max.x,boxtoadd.m_Min.y,boxtoadd.m_Min.z });
+	mMeshVertices.push_back({ boxtoadd.m_Max.x,boxtoadd.m_Max.y,boxtoadd.m_Min.z });
+	mMeshVertices.push_back({ boxtoadd.m_Min.x,boxtoadd.m_Max.y,boxtoadd.m_Min.z });
+	mMeshVertices.push_back({ boxtoadd.m_Min.x,boxtoadd.m_Min.y,boxtoadd.m_Max.z });
+	mMeshVertices.push_back({ boxtoadd.m_Max.x,boxtoadd.m_Min.y,boxtoadd.m_Max.z });
+	mMeshVertices.push_back({ boxtoadd.m_Max.x,boxtoadd.m_Max.y,boxtoadd.m_Max.z });
+	mMeshVertices.push_back({ boxtoadd.m_Min.x,boxtoadd.m_Max.y,boxtoadd.m_Max.z });
+
+	// -x
+	mMeshVertexIndices.push_back(startVerticeIndex + 0);
+	mMeshVertexIndices.push_back(startVerticeIndex + 7);
+	mMeshVertexIndices.push_back(startVerticeIndex + 3);
+	mMeshVertexIndices.push_back(startVerticeIndex + 0);
+	mMeshVertexIndices.push_back(startVerticeIndex + 4);
+	mMeshVertexIndices.push_back(startVerticeIndex + 7);
+
+	// +x
+	mMeshVertexIndices.push_back(startVerticeIndex + 1);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+	mMeshVertexIndices.push_back(startVerticeIndex + 5);
+	mMeshVertexIndices.push_back(startVerticeIndex + 1);
+	mMeshVertexIndices.push_back(startVerticeIndex + 2);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+
+	// -y
+	mMeshVertexIndices.push_back(startVerticeIndex + 1);
+	mMeshVertexIndices.push_back(startVerticeIndex + 4);
+	mMeshVertexIndices.push_back(startVerticeIndex + 0);
+	mMeshVertexIndices.push_back(startVerticeIndex + 1);
+	mMeshVertexIndices.push_back(startVerticeIndex + 5);
+	mMeshVertexIndices.push_back(startVerticeIndex + 4);
+
+	// +y
+	mMeshVertexIndices.push_back(startVerticeIndex + 7);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+	mMeshVertexIndices.push_back(startVerticeIndex + 3);
+	mMeshVertexIndices.push_back(startVerticeIndex + 3);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+	mMeshVertexIndices.push_back(startVerticeIndex + 2);
+
+	// -z
+	mMeshVertexIndices.push_back(startVerticeIndex + 0);
+	mMeshVertexIndices.push_back(startVerticeIndex + 2);
+	mMeshVertexIndices.push_back(startVerticeIndex + 1);
+	mMeshVertexIndices.push_back(startVerticeIndex + 0);
+	mMeshVertexIndices.push_back(startVerticeIndex + 3);
+	mMeshVertexIndices.push_back(startVerticeIndex + 2);
+
+	// +z
+	mMeshVertexIndices.push_back(startVerticeIndex + 4);
+	mMeshVertexIndices.push_back(startVerticeIndex + 5);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+	mMeshVertexIndices.push_back(startVerticeIndex + 4);
+	mMeshVertexIndices.push_back(startVerticeIndex + 6);
+	mMeshVertexIndices.push_back(startVerticeIndex + 7);
+}
+
+void MeshSimplifier::createTestMesh()
+{
+	mMeshVertices.clear();
+	mMeshVertexIndices.clear();
+
+	BBox	FirstOne({-0.5f,-1.0f,-1.0f}, {0.5f,1.0f,1.0f});
+	addBboxToMesh(FirstOne);
+
+	BBox	SecondOne({-1.0f,-0.2f,-1.0f}, {1.0f,0.2f,1.0f});
+	addBboxToMesh(SecondOne);
+
+/*	BBox	ThirdOne({-0.6f,-0.6f,-0.6f}, {0.6f,0.6f,0.6f});
+	addBboxToMesh(ThirdOne);*/
+
+
+}
 
 void	MeshSimplifier::ProtectedInit()
 {
@@ -230,6 +308,10 @@ void	MeshSimplifier::ProtectedInit()
 	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), MeshSimplificationOctree, MeshSimplificationOctree, ModuleName);
+
+
+	//createTestMesh();
+	//mPrecision = 0.2f;
 
 	//importRaw3DFile("coude.raw3d", mMeshVertexIndices, mMeshVertices);
 	//mPrecision = 0.01f;
@@ -473,6 +555,13 @@ void	MeshSimplifier::drawEdges()
 			}
 			dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color);
 		}
+	}
+
+	if((mSelectedEdgeIndex>=0) && (mSelectedEdgeIndex< edgeList.size()))
+	{
+		auto& e = edgeList[mSelectedEdgeIndex];
+		v3f color(1.0, 0.3, 0.0);
+		dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color,0,false);
 	}
 #endif
 }

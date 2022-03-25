@@ -61,4 +61,7 @@ protected:
 
 	bool						mConstructMesh = true;
 	bool						mConstructEnveloppe = true;
+
+	void						addBboxToMesh(const BBox& boxtoadd);
+	void						createTestMesh();
 };
