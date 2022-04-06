@@ -1,6 +1,7 @@
 #include "TwitterAnalyser.h"
 #include "CoreFSMState.h"
 #include "CoreFSM.h"
+#include "CommonTwitterFSMStates.h"
 
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollow)
@@ -43,7 +44,7 @@ std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 	// no hashtag for follower
 	fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
 
-	// go to GetTweets
+	// go to follow
 	SP<CoreFSMTransition> getfollowtransition = KigsCore::GetInstanceOf("getfollowtransition", "CoreFSMInternalSetTransition");
 	getfollowtransition->setState("GetFollow");
 	getfollowtransition->Init();

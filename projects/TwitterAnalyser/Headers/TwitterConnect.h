@@ -238,14 +238,14 @@ public:
 	static bool	LoadThumbnail(u64 id, UserStruct& ch);
 
 
-	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb);
-	void	launchUserDetailRequest(u64 userid,UserStruct& ch, bool requestThumb);
+	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch);
+	void	launchUserDetailRequest(u64 userid,UserStruct& ch);
 	// followers or following
 	void	launchGetFollow(u64 userid,const std::string& followtype);
 	void	launchGetFavoritesRequest(const std::string& user);
 	void	launchGetFavoritesRequest(u64 userid);
-	void	launchGetTweetRequest(u64 userid, const std::string& username);
-	void	launchSearchTweetRequest(const std::string& hashtag);
+	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& nextToken="-1");
+	void	launchSearchTweetRequest(const std::string& hashtag, const std::string& nextToken = "-1");
 	void	launchGetLikers(u64 tweetid);
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");

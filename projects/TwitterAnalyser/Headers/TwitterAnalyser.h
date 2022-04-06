@@ -6,7 +6,6 @@
 #include "ScrapperManager.h"
 #include "GraphDrawer.h"
 
-//#define USE_SCRAPPER
 
 class TwitterAnalyser : public DataDrivenBaseApplication
 {
@@ -39,8 +38,7 @@ protected:
 	void	manageRetrievedUserDetail(TwitterConnect::UserStruct& CurrentUserStruct);
 	bool	checkDone();
 
-
-	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce,manageRetrievedTweets, manageRetrievedUserDetail, checkDone);
+	WRAP_METHODS(requestDone, mainUserDone, switchDisplay, switchForce, manageRetrievedUserDetail, checkDone);
 
 	void		commonStatesFSM();
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
@@ -62,9 +60,7 @@ protected:
 
 	SP<TwitterConnect>			mTwitterConnect=nullptr;
 	CMSP						mMainInterface=nullptr;
-#ifdef USE_SCRAPPER
-	SP<ScrapperManager>		mScrapperManager=nullptr;
-#endif
+
 	SP<GraphDrawer>			mGraphDrawer = nullptr;
 
 	// list of tweets
@@ -84,11 +80,9 @@ protected:
 	u32									mMaxLikersPerTweet = 0;
 	u32									mMaxUserCount=45;
 	u32									mUserPanelSize=500;
-#ifdef USE_SCRAPPER
-	std::set<std::string>			mFoundUser;
-#else
+
 	std::set<u64>					mFoundUser;
-#endif
+
 	bool							mCanGetMoreUsers = false;
 
 	// analyse type
@@ -107,11 +101,9 @@ protected:
 	// user 0 is main user if needed
 	std::vector<TwitterConnect::UserStruct>		mRetreivedUsers;
 
-#ifdef USE_SCRAPPER
-	std::unordered_map<std::string, u32>		mUserToUserIndex;
-#else
+
 	std::unordered_map<u64, u32>				mUserToUserIndex;
-#endif
+
 
 	// per user map of favorites or following 
 	std::map <u64, std::map<u64, float> >										mWeightedData;
@@ -142,8 +134,6 @@ protected:
 		return mRetreivedUsers[0];
 	}
 
-	void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
-
 	// user detail asked
 	std::vector<u64>			mUserDetailsAsked;
 	std::set<u64>				mAlreadyAskedUserDetail;
@@ -167,51 +157,4 @@ protected:
 		return false;
 	}
 };
-
-// different states
-
-// Init from hashtag 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, InitHashTag)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-
-// Init from User
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, InitUser)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-
-// retrieve user details
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetUserDetail)
-public:
-	std::string	nextTransition;
-protected:
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-
-// retrieve user details for each one in the list
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetUserListDetail)
-TwitterConnect::UserStruct	mTmpUserStruct;
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-
-#ifdef USE_SCRAPPER
-// get user id from user name
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetUserID)
-public:
-	std::string	nextTransition;
-	std::string	userName;
-protected:
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-#endif
-
-// wait state
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, Wait)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
-
-// everything is done
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, Done)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
 

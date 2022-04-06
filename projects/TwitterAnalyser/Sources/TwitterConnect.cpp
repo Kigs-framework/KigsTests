@@ -597,17 +597,10 @@ void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
 
 }
 
-void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
+void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const std::string& nextCursor)
 {
 	std::string url = "1.1/search/tweets.json?q=" + getHashtagURL(hashtag) + "&count=100&include_entities=false&result_type=recent";
-	std::string filenamenext_token = "Cache/UserName/";
-	filenamenext_token += getHashtagFilename(hashtag) + "_TweetsNextCursor.json";
-	auto nxtTokenJson = LoadJSon(filenamenext_token);
-	std::string nextCursor = "-1";
-	if (nxtTokenJson)
-	{
-		nextCursor = nxtTokenJson["next-cursor"];
-	}
+
 	if (nextCursor != "-1")
 	{
 		// TODO 
@@ -620,23 +613,10 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag)
 }
 
 
-void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& username)
+void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& username, const std::string& nextCursor)
 {
 	std::string url = "2/users/" + std::to_string(userid) + "/tweets?expansions=author_id&tweet.fields=author_id,public_metrics,created_at";
 
-	std::string filenamenext_token = "Cache/UserName/";
-	if (mUseDates)
-	{
-		filenamenext_token += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
-	}
-	filenamenext_token += username + "_TweetsNextCursor.json";
-	auto nxtTokenJson=LoadJSon(filenamenext_token);
-	std::string nextCursor = "-1";
-	if (nxtTokenJson)
-	{
-		nextCursor = nxtTokenJson["next-cursor"];
-	}
-	
 	// all the tweets are from the same user
 	mUserIdToName[userid] = username;
 	saveUserNameFromID(userid, username, true);
@@ -657,25 +637,22 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 	launchGenericRequest(60.5);
 }
 
-void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserStruct& ch, bool requestThumb)
+void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserStruct& ch)
 {
 
 	// check classic User Cache
 	std::string url = "2/users/by/username/" + UserName + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
-	mAnswer->AddDynamicAttribute<maBool, bool>("RequestThumb", requestThumb);
-
 	launchGenericRequest(1.1);
 
 }
 
-void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch, bool requestThumb)
+void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch)
 {
 
 	// check classic User Cache
 	std::string url = "2/users/" + std::to_string(UserID) + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
-	mAnswer->AddDynamicAttribute<maBool, bool>("RequestThumb", requestThumb);
 
 	launchGenericRequest(1.1);
 	
@@ -845,16 +822,6 @@ DEFINE_METHOD(TwitterConnect, getUserDetails)
 		CurrentUserStruct.UTCTime = data["created_at"];
 		CurrentUserStruct.mThumb.mURL = CleanURL(data["profile_image_url"]);
 
-		bool requestThumb;
-		if (sender->getValue("RequestThumb", requestThumb))
-		{
-			if (requestThumb)
-				if (!LoadThumbnail(CurrentUserStruct.mID, CurrentUserStruct))
-				{
-					LaunchDownloader(CurrentUserStruct.mID, CurrentUserStruct);
-				}
-		}
-
 		EmitSignal("UserDetailRetrieved", CurrentUserStruct);
 	}
 	else if (!mWaitQuota)
@@ -904,8 +871,7 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 				u32 like_count = currentTweet["public_metrics"]["like_count"];
 				u32 rt_count = currentTweet["public_metrics"]["retweet_count"];
 
-				std::string strdate = creationDateToUTC(tweetdate);
-				u32		creationDate = GetU32YYYYMMDD(strdate).first;
+				u32		creationDate = GetU32YYYYMMDD(tweetdate).first;
 
 				if (like_count > 1)
 				{
@@ -932,7 +898,6 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 		EmitSignal("TweetRetrieved", retrievedTweets, nextStr);
 
 	}
-	
 
 	return true;
 }

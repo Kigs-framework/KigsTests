@@ -752,11 +752,8 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 			const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 
 			std::vector<TwitterConnect::Twts>	favs;
-#ifdef USE_SCRAPPER
-			if (TwitterConnect::LoadFavoritesFile(userdata.mName.ToString(), favs))
-#else
+
 			if (TwitterConnect::LoadFavoritesFile(userdata.mID, favs))
-#endif
 			{
 				std::set<u64>	users;
 				for (auto& f : favs)

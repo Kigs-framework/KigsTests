@@ -1,7 +1,7 @@
 #include "TwitterAnalyser.h"
 #include "CoreFSMState.h"
 #include "CoreFSM.h"
-
+#include "CommonTwitterFSMStates.h"
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, UpdateTopStats)
 COREFSMSTATE_WITHOUT_METHODS()
