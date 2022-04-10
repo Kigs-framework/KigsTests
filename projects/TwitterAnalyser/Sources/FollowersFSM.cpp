@@ -148,7 +148,7 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetFollow)
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 {
 	
-	std::string filenamenext_token = "Cache/Users/"+TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid)+"/";
+	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid)+"/";
 	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador() ->followtype +"_NextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);

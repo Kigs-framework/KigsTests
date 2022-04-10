@@ -267,3 +267,149 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetTweets)::manageRetrievedTweets
 
 	requestDone();
 }
+
+void	CoreFSMStartMethod(TwitterAnalyser, GetLikers)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetLikers)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
+{
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(GetUpgrador()->mTweetID) + "_LikersNextCursor.json";
+
+	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
+
+	std::string next_cursor = "-1";
+
+	std::vector<u64>	 v;
+	if (nextt)
+	{
+		next_cursor = nextt["next-cursor"];
+	}
+	else
+	{
+		v = TwitterConnect::LoadLikersFile(GetUpgrador()->mTweetID);
+	}
+
+	if ((v.size() == 0) || (next_cursor != "-1"))
+	{
+		KigsCore::Connect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedLikers");
+		mTwitterConnect->launchGetLikers(GetUpgrador()->mTweetID, next_cursor);
+		GetUpgrador()->activateTransition("waittransition");
+		mNeedWait = true;
+	}
+	else
+	{
+		GetUpgrador()->mUserlist = std::move(v);
+		GetUpgrador()->popState();
+	}
+		
+	return false;
+}
+
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetLikers)::manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken)
+{
+	u64 tweetID = GetUpgrador()->mTweetID;
+
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(tweetID) + "_LikersNextCursor.json";
+
+	auto v = TwitterConnect::LoadLikersFile(tweetID);
+	v.insert(v.end(), TweetLikers.begin(), TweetLikers.end());
+
+	if (nexttoken != "-1")
+	{
+		CoreItemSP currentUserJson = MakeCoreMap();
+		currentUserJson->set("next-cursor", nexttoken);
+		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
+	}
+	else
+	{
+		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
+		TwitterConnect::randomizeVector(v);
+	}
+
+	KigsCore::Disconnect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedLikers");
+	TwitterConnect::SaveLikersFile(v, tweetID);
+
+	requestDone();
+}
+
+
+void	CoreFSMStartMethod(TwitterAnalyser, GetFavorites)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetFavorites)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
+{
+	auto user = GetUpgrador()->mUserID;
+		
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(user) + "_FavsNextCursor.json";
+
+	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
+
+	std::string next_cursor = "-1";
+	if (nextt)
+	{
+		next_cursor = nextt["next-cursor"];
+	}
+	bool hasFavoriteList = TwitterConnect::LoadFavoritesFile(user, GetUpgrador()->mFavorites);
+
+	// favorite file exist and enought found or not anymore
+	// =>pop
+	if (hasFavoriteList && ((GetUpgrador()->mFavorites.size() >= GetUpgrador()->mFavoritesCount) || (next_cursor == "-1")))
+	{
+		// if favorites were retrieved
+		GetUpgrador()->popState();
+	}
+	else
+	{
+		KigsCore::Connect(mTwitterConnect.get(), "FavoritesRetrieved", this, "manageRetrievedFavorites");
+		mTwitterConnect->launchGetFavoritesRequest(user, next_cursor);
+		mNeedWait = true;
+		GetUpgrador()->activateTransition("waittransition");
+	}
+
+	return false;
+}
+
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::manageRetrievedFavorites(std::vector<TwitterConnect::Twts>& favs, const std::string& nexttoken)
+{
+
+	auto user = GetUpgrador()->mUserID;
+
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(user) + "_FavsNextCursor.json";
+	std::vector<TwitterConnect::Twts> v;
+	TwitterConnect::LoadFavoritesFile(user, v);
+	v.insert(v.end(), favs.begin(), favs.end());
+
+	if (nexttoken != "-1")
+	{
+		CoreItemSP currentUserJson = MakeCoreMap();
+		currentUserJson->set("next-cursor", nexttoken);
+		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
+	}
+	else
+	{
+		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
+	}
+
+	TwitterConnect::SaveFavoritesFile(user, v);
+
+	KigsCore::Disconnect(mTwitterConnect.get(), "FavoritesRetrieved", this, "manageRetrievedFavorites");
+	requestDone();
+}

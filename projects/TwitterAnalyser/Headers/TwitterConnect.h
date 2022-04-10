@@ -19,8 +19,6 @@ protected:
 	static time_t     mCurrentTime;
 	unsigned int		mRequestCount = 0;
 
-	u64					mCurrentTweetID = 0;
-
 public:
 
 	DECLARE_CLASS_INFO(TwitterConnect, CoreModifiable, TwitterConnect);
@@ -242,11 +240,10 @@ public:
 	void	launchUserDetailRequest(u64 userid,UserStruct& ch);
 	// followers or following
 	void	launchGetFollow(u64 userid,const std::string& followtype);
-	void	launchGetFavoritesRequest(const std::string& user);
-	void	launchGetFavoritesRequest(u64 userid);
+	void	launchGetFavoritesRequest(u64 userid, const std::string& nextToken = "-1");
 	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& nextToken="-1");
 	void	launchSearchTweetRequest(const std::string& hashtag, const std::string& nextToken = "-1");
-	void	launchGetLikers(u64 tweetid);
+	void	launchGetLikers(u64 tweetid, const std::string& nextToken = "-1");
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
 	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
@@ -312,25 +309,6 @@ public:
 		return result;
 	}
 
-	static void	saveUserNameFromID(u64 id, const std::string& username,bool checkExist=false);
-	static std::string	loadUserNameFromID(u64 id);
-
-	static std::string	userNameFromId(u64 id)
-	{
-		auto f = mUserIdToName.find(id);
-		if (f != mUserIdToName.end())
-		{
-			return (*f).second;
-		}
-		
-		auto n = loadUserNameFromID(id);
-		if(n != "")
-		{
-			return n;
-		}
-		return "";
-	}
-
 	static void	initDates(const std::string& fromdate, const std::string& todate );
 
 	static bool useDates()
@@ -380,8 +358,6 @@ protected:
 	std::string		mNextCursor = "-1";
 
 	std::vector<u64>	mCurrentIDVector;
-
-	static std::unordered_map<u64, std::string>		mUserIdToName;
 
 	static void	updateTweetCalendar(const std::string& tweetdate, u64 tweetid);
 

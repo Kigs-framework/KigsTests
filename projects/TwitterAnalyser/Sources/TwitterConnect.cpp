@@ -10,7 +10,6 @@
 double		TwitterConnect::mOldFileLimit=0;
 time_t		TwitterConnect::mCurrentTime=0;
 
-std::unordered_map<u64, std::string>		TwitterConnect::mUserIdToName;
 std::map<u32, std::pair<u64, u32>>			TwitterConnect::mDateToTweet;
 
 TwitterConnect::datestruct	TwitterConnect::mDates[2];
@@ -221,51 +220,6 @@ std::string	TwitterConnect::GetIDString(u64 id)
 	return idstr;
 }
 
-void	TwitterConnect::saveUserNameFromID(u64 id, const std::string& username, bool checkExist)
-{
-
-	std::string filename = "Cache/UsersByID/";
-	std::string folderName = GetUserFolderFromID(id);
-
-	filename += folderName + "/" + GetIDString(id) + ".json";
-
-	if (checkExist)
-	{
-		CoreItemSP initP = LoadJSon(filename, false, true);
-
-		if (initP) // file already there
-		{
-			return;
-		}
-	}
-
-	JSonFileParserUTF16 L_JsonParser;
-	CoreItemSP initP = MakeCoreMapUS();
-	initP->set("Name", username);
-
-	L_JsonParser.Export((CoreMap<usString>*)initP.get(), filename);
-}
-std::string	TwitterConnect::loadUserNameFromID(u64 id)
-{
-	std::string filename = "Cache/UsersByID/";
-	std::string folderName = GetUserFolderFromID(id);
-
-	filename += folderName + "/" + GetIDString(id) + ".json";
-
-	CoreItemSP initP = LoadJSon(filename, false, true);
-
-	if (!initP) // file not found, return
-	{
-		return "";
-	}
-
-	std::string result= initP["Name"];
-
-	mUserIdToName[id] = result;
-	return result;
-}
-
-
 // load json channel file dans fill ChannelStruct
 bool		TwitterConnect::LoadUserStruct(u64 id, UserStruct& ch, bool requestThumb)
 {
@@ -312,9 +266,6 @@ void		TwitterConnect::SaveUserStruct(u64 id, UserStruct& ch)
 #ifdef LOG_ALL
 	writelog("save user" + std::to_string(id) + "details");
 #endif
-
-	// also save id to name file if needed
-	saveUserNameFromID(id, ch.mName.ToString(), true);
 
 	JSonFileParserUTF16 L_JsonParser;
 	CoreItemSP initP = MakeCoreMapUS();
@@ -379,12 +330,6 @@ bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::str
 	if (LoadDataFile<Twts>(filename, loaded))
 	{
 		tweetlist = std::move(loaded);
-
-		for (const auto& t : tweetlist)
-		{
-			loadUserNameFromID(t.mAuthorID);
-		}
-
 
 		return true;
 	}
@@ -539,19 +484,10 @@ void	TwitterConnect::launchGenericRequest(float waitDelay)
 }
 
 
-void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
+void	TwitterConnect::launchGetFavoritesRequest(u64 userid, const std::string& nextCursor)
 {
 	// use since ID, max ID here to retrieve tweets in a given laps of time
 	std::string url = "1.1/favorites/list.json?user_id=" + GetIDString(userid) + "&count=200&include_entities=false";
-
-	std::string filenamenext_token = "Cache/Tweets/";
-	filenamenext_token += std::to_string(userid) + "_FavsNextCursor.json";
-	auto nxtTokenJson = LoadJSon(filenamenext_token);
-	std::string nextCursor = "-1";
-	if (nxtTokenJson)
-	{
-		nextCursor = nxtTokenJson["next-cursor"];
-	}
 
 	if (nextCursor != "-1")
 	{
@@ -574,29 +510,6 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid)
 	launchGenericRequest(20.5);
 }
 
-void	TwitterConnect::launchGetFavoritesRequest(const std::string& user)
-{
-
-	// use since ID, max ID here to retrieve tweets in a given laps of time
-	std::string url = "1.1/favorites/list.json?screen_name=" + user + "&count=200&include_entities=false";
-
-	if (mUseDates)
-	{
-		u64 since = getTweetIdBeforeDate(mDates[0].dateAsString);
-		if(since)
-			url += "&since_id=" + std::to_string(since);
-
-		u64 max_id = getTweetIdAfterDate(mDates[1].dateAsString);
-		if(max_id)
-			url += "&max_id=" + std::to_string(max_id);
-	}
-
-	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
-
-	launchGenericRequest(20.5);
-
-}
-
 void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const std::string& nextCursor)
 {
 	std::string url = "1.1/search/tweets.json?q=" + getHashtagURL(hashtag) + "&count=100&include_entities=false&result_type=recent";
@@ -616,10 +529,6 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const 
 void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& username, const std::string& nextCursor)
 {
 	std::string url = "2/users/" + std::to_string(userid) + "/tweets?expansions=author_id&tweet.fields=author_id,public_metrics,created_at";
-
-	// all the tweets are from the same user
-	mUserIdToName[userid] = username;
-	saveUserNameFromID(userid, username, true);
 
 	if (mDates[0].dateAsInt && mDates[1].dateAsInt)
 	{
@@ -657,25 +566,14 @@ void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch)
 	launchGenericRequest(1.1);
 	
 }
-void	TwitterConnect::launchGetLikers(u64 tweetid)
+void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& nextToken)
 {
 	std::string url = "2/tweets/" + std::to_string(tweetid) + "/liking_users";
 
-	mCurrentTweetID = tweetid;
-
-	std::string filenamenext_token = "Cache/Tweets/";
-	filenamenext_token += std::to_string(tweetid) + "_LikersNextCursor.json";
-	auto nxtTokenJson = LoadJSon(filenamenext_token);
-	std::string nextCursor = "-1";
-	if (nxtTokenJson)
-	{
-		nextCursor = nxtTokenJson["next-cursor"];
-	}
-
 	url += "?max_results=100";
-	if (nextCursor != "-1")
+	if (nextToken != "-1")
 	{
-		url += "&pagination_token=" + nextCursor;
+		url += "&pagination_token=" + nextToken;
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
 
@@ -967,10 +865,6 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 			u64 tweetid = currentTweet["id"];
 			u64 author = currentTweet["user"]["id"];
 			std::string createdDate = currentTweet["created_at"];
-
-			mUserIdToName[author] = currentTweet["user"]["screen_name"];
-			saveUserNameFromID(author, mUserIdToName[author], true);
-
 
 			u32 like_count = currentTweet["favorite_count"];
 			u32 rt_count = currentTweet["retweet_count"];
