@@ -116,9 +116,9 @@ void	TwitterAnalyser::ProtectedInit()
 	SetMemberFromParam(oldFileLimitInDays, "OldFileLimitInDays");
 	
 	// check the kind of configuration we need
-
-	SetMemberFromParam(mHashTag, "HashTag");
-	if (mHashTag.length())
+	std::string hashtag;
+	SetMemberFromParam(hashtag, "HashTag");
+	if (hashtag.length())
 	{
 		mUseHashTags = true;
 		TwitterConnect::UserStruct	mainuser;
@@ -126,7 +126,7 @@ void	TwitterAnalyser::ProtectedInit()
 		mRetreivedUsers.push_back(mainuser);
 		auto textureManager = KigsCore::Singleton<TextureFileManager>();
 		mRetreivedUsers[0].mThumb.mTexture = textureManager->GetTexture("keyw.png");
-		mRetreivedUsers[0].mName = mHashTag;
+		mRetreivedUsers[0].mName = hashtag;
 	}
 	else
 	{

@@ -103,7 +103,6 @@ protected:
 	dataType		mAnalysedType = dataType::Following;
 
 	bool			mUseHashTags = false;
-	std::string		mHashTag;
 	float			mValidUserPercent;
 	// when retrieving followers
 	u32				mWantedTotalPanelSize = 100000;

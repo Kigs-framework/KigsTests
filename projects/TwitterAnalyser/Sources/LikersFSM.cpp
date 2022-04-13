@@ -433,7 +433,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateLikesStats))
 
 
 	float mainAccountWeight = 1.0f;
-	if (!mHashTag.length())
+	if (!mUseHashTags)
 	{
 		auto fw = currentWeightedFavorites.find(mRetreivedUsers[0].mID);
 		if (fw != currentWeightedFavorites.end())

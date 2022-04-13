@@ -228,7 +228,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 			KigsCore::Connect(mTwitterConnect.get(), "TweetRetrieved", this, "manageRetrievedTweets");
 			if (GetUpgrador()->mSearchTweets)
 			{
-				mTwitterConnect->launchSearchTweetRequest(GetUpgrador()->mUserName, nextCursor);
+				mTwitterConnect->launchSearchTweetRequest(GetUpgrador()->mHashTag, nextCursor);
 			}
 			else
 			{
@@ -664,6 +664,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	if (mUseHashTags)
 	{
 		getTweetsState->mSearchTweets = true;
+		getTweetsState->mHashTag = mRetreivedUsers[0].mName.ToString();
 	}
 	else
 	{

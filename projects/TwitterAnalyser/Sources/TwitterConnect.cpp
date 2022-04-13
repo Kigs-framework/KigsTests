@@ -533,8 +533,7 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const 
 
 	if (nextCursor != "-1")
 	{
-		// TODO 
-		url += nextCursor;
+		url = "1.1/search/tweets.json"+nextCursor;
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getSearchTweets", this);
 
@@ -914,7 +913,7 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 			u32		creationDate = GetU32YYYYMMDD(strdate).first;
 
 
-			if (like_count > 1)
+			if ( (like_count) || (rt_count))
 			{
 				retrievedTweets.push_back({ author, tweetid,like_count,rt_count,creationDate });
 			}

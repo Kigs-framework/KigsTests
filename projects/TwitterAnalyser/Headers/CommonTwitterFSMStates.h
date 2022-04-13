@@ -6,6 +6,7 @@
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetTweets)
 public:
 	std::string							mUserName="";
+	std::string							mHashTag = "";
 	u64									mUserID=-1;
 	u32									mNeededTweetCount=100;
 	bool								mSearchTweets=false;
