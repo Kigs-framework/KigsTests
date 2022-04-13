@@ -7,7 +7,7 @@ START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetTweets)
 public:
 	std::string							mUserName="";
 	u64									mUserID=-1;
-	u32									mNeededTweetCount=0;
+	u32									mNeededTweetCount=100;
 	bool								mSearchTweets=false;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
@@ -26,6 +26,18 @@ protected:
 ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedLikers)
 END_DECLARE_COREFSMSTATE()
 
+
+// retrieve likes
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetRetweeters)
+public:
+	std::vector<u64>		mUserlist;
+	u64						mTweetID;
+protected:
+STARTCOREFSMSTATE_WRAPMETHODS();
+void	manageRetrievedRetweeters(std::vector<u64>& RTers, const std::string& nexttoken);
+ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedRetweeters)
+END_DECLARE_COREFSMSTATE()
+
 // retrieve favorites
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFavorites)
 public:
@@ -35,7 +47,8 @@ u32												mFavoritesCount = 200;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedFavorites(std::vector<TwitterConnect::Twts>& favs, const std::string& nexttoken);
-ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFavorites)
+void	copyUserList(std::vector<u64>& touserlist);
+ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFavorites, copyUserList)
 END_DECLARE_COREFSMSTATE()
 
 // Init from hashtag 
@@ -72,3 +85,21 @@ START_DECLARE_COREFSMSTATE(TwitterAnalyser, Done)
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollow)
+public:
+	// the user to retrieve follows 
+	u64						userid;
+	std::vector<u64>		userlist;
+	std::string				followtype;
+	int						limitCount = -1;
+protected:
+STARTCOREFSMSTATE_WRAPMETHODS();
+void	manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken);
+void	copyUserList(std::vector<u64>& touserlist);
+ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedFollow, copyUserList)
+END_DECLARE_COREFSMSTATE()
+
+
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveTweets)
+COREFSMSTATE_WITHOUT_METHODS()
+END_DECLARE_COREFSMSTATE()

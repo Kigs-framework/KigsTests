@@ -428,7 +428,23 @@ std::vector<u64> TwitterConnect::LoadLikersFile(u64 tweetid)
 	return result;
 }
 
+std::vector<u64> TwitterConnect::LoadRetweetersFile(u64 tweetid)
+{
+	std::string filename = "Cache/Tweets/" + GetUserFolderFromID(tweetid) + "/" + GetIDString(tweetid) + ".retweeters";
 
+	// if dated search, then don't use old file limit here ?
+	std::vector<u64>	result;
+	LoadDataFile<u64>(filename, result);
+
+	return result;
+}
+
+void			TwitterConnect::SaveRetweetersFile(const std::vector<u64>& RTers, u64 tweetid)
+{
+	std::string filename = "Cache/Tweets/" + GetUserFolderFromID(tweetid) + "/" + GetIDString(tweetid) + ".retweeters";
+
+	SaveDataFile<u64>(filename, RTers);
+}
 
 CoreItemSP		TwitterConnect::LoadLikersFile(u64 tweetid, const std::string& username)
 {
@@ -507,7 +523,8 @@ void	TwitterConnect::launchGetFavoritesRequest(u64 userid, const std::string& ne
 
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFavorites", this);
 
-	launchGenericRequest(20.5);
+	// 75 req per 15 minutes
+	launchGenericRequest(12.5);
 }
 
 void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const std::string& nextCursor)
@@ -521,7 +538,8 @@ void	TwitterConnect::launchSearchTweetRequest(const std::string& hashtag, const 
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getSearchTweets", this);
 
-	launchGenericRequest(60.5);
+	// 450 req per 15 minutes
+	launchGenericRequest(2.5);
 
 }
 
@@ -543,7 +561,8 @@ void	TwitterConnect::launchGetTweetRequest(u64 userid,const std::string& usernam
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getTweets", this);
 
-	launchGenericRequest(60.5);
+	// 1500 req per 15 minutes
+	launchGenericRequest(1.0);
 }
 
 void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserStruct& ch)
@@ -552,7 +571,9 @@ void TwitterConnect::launchUserDetailRequest(const std::string& UserName, UserSt
 	// check classic User Cache
 	std::string url = "2/users/by/username/" + UserName + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
-	launchGenericRequest(1.1);
+
+	// 900 req per 15 minutes
+	launchGenericRequest(1.5);
 
 }
 
@@ -563,7 +584,8 @@ void TwitterConnect::launchUserDetailRequest(u64 UserID, UserStruct& ch)
 	std::string url = "2/users/" + std::to_string(UserID) + "?user.fields=created_at,public_metrics,profile_image_url";
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getUserDetails", this);
 
-	launchGenericRequest(1.1);
+	// 900 req per 15 minutes
+	launchGenericRequest(1.5);
 	
 }
 void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& nextToken)
@@ -577,21 +599,40 @@ void	TwitterConnect::launchGetLikers(u64 tweetid, const std::string& nextToken)
 	}
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
 
-	launchGenericRequest(10.5);
+	// 75 req per 15 minutes
+	launchGenericRequest(12.5);
 }
 
 
-void	TwitterConnect::launchGetFollow(u64 userid,const std::string& followtype)
+void	TwitterConnect::launchGetRetweeters(u64 tweetid, const std::string& nextToken)
+{
+	std::string url = "2/tweets/" + std::to_string(tweetid) + "/retweeted_by";
+
+	url += "?max_results=100";
+	if (nextToken != "-1")
+	{
+		url += "&pagination_token=" + nextToken;
+	}
+	// warning use same callback as getLikers
+	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getLikers", this);
+
+	// 75 req per 15 minutes
+	launchGenericRequest(12.5);
+}
+
+
+void	TwitterConnect::launchGetFollow(u64 userid,const std::string& followtype, const std::string& nextToken)
 {
 
 	std::string url = "2/users/"+ GetIDString(userid) +"/"+ followtype +"?max_results=1000";
-	if (mNextCursor != "-1")
+	if (nextToken != "-1")
 	{
-		url += "&pagination_token=" + mNextCursor;
+		url += "&pagination_token=" + nextToken;
 	}
 
 	mAnswer = mTwitterConnect->retreiveGetAsyncRequest(url.c_str(), "getFollow", this);
 
+	// 1 req per minute
 	launchGenericRequest(60.5);
 
 }
@@ -966,11 +1007,14 @@ DEFINE_METHOD(TwitterConnect, getFollow)
 	if (json)
 	{
 		CoreItemSP followArray = json["data"];
-		unsigned int idcount = followArray->size();
-		for (unsigned int i = 0; i < idcount; i++)
+		if (followArray)
 		{
-			u64 id = followArray[i]["id"];
-			follow.push_back(id);
+			unsigned int idcount = followArray->size();
+			for (unsigned int i = 0; i < idcount; i++)
+			{
+				u64 id = followArray[i]["id"];
+				follow.push_back(id);
+			}
 		}
 
 		CoreItemSP meta = json["meta"];

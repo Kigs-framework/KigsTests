@@ -121,8 +121,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserListDetail))
 		mTwitterConnect->launchUserDetailRequest(userID, GetUpgrador()->mTmpUserStruct);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
-		mUserDetailsAsked.pop_back();
 	}
+	mUserDetailsAsked.pop_back();
 
 	return false;
 }
@@ -185,13 +185,19 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetTweets)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 {
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+
 	bool needMoreTweet=true;
 	bool hasTweetFile=false;
 	std::vector<TwitterConnect::Twts>	v;
 	if (TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName))
 	{
 		hasTweetFile = true;
-		if (GetUpgrador()->mNeededTweetCount >= v.size())
+		if (GetUpgrador()->mNeededTweetCount < v.size())
 		{
 			needMoreTweet = false;
 		}
@@ -279,6 +285,11 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetLikers)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
 {
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
 	std::string filenamenext_token = "Cache/Tweets/";
 	filenamenext_token += std::to_string(GetUpgrador()->mTweetID) + "_LikersNextCursor.json";
 
@@ -353,6 +364,12 @@ void	CoreFSMStopMethod(TwitterAnalyser, GetFavorites)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 {
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+
 	auto user = GetUpgrador()->mUserID;
 		
 	std::string filenamenext_token = "Cache/Tweets/";
@@ -412,4 +429,249 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::manageRetrievedFav
 
 	KigsCore::Disconnect(mTwitterConnect.get(), "FavoritesRetrieved", this, "manageRetrievedFavorites");
 	requestDone();
+}
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::copyUserList(std::vector<u64>& touserlist)
+{
+	touserlist.clear();
+	for (const auto& u : GetUpgrador()->mFavorites)
+	{
+		touserlist.push_back(u.mAuthorID);
+	}
+}
+
+void	CoreFSMStartMethod(TwitterAnalyser, GetFollow)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetFollow)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
+{
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+
+	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+
+	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
+
+	std::string next_cursor = "-1";
+
+	std::vector<u64>	 v;
+	bool				hasFollowFile = false;
+	if (nextt)
+	{
+		next_cursor = nextt["next-cursor"];
+	}
+	else
+	{
+		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+	}
+
+	if (GetUpgrador()->limitCount != -1)
+	{
+		// check limit count
+		if (hasFollowFile && (v.size() >= GetUpgrador()->limitCount)) // if enough, set next_cursor to -1
+		{
+			next_cursor = "-1";
+		}
+	}
+
+	if ((!hasFollowFile) || (next_cursor != "-1"))
+	{
+		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
+		mTwitterConnect->launchGetFollow(GetUpgrador()->userid, GetUpgrador()->followtype, next_cursor);
+		GetUpgrador()->activateTransition("waittransition");
+		mNeedWait = true;
+	}
+	else
+	{
+		GetUpgrador()->userlist = std::move(v);
+		GetUpgrador()->popState();
+	}
+	return false;
+}
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken)
+{
+	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+
+	std::vector<u64> v;
+	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+	v.insert(v.end(), follow.begin(), follow.end());
+
+	if (nexttoken != "-1")
+	{
+		CoreItemSP currentUserJson = MakeCoreMap();
+		currentUserJson->set("next-cursor", nexttoken);
+		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
+	}
+	else
+	{
+		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
+		TwitterConnect::randomizeVector(v);
+	}
+
+	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
+	TwitterConnect::SaveFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+
+	requestDone();
+}
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::copyUserList(std::vector<u64>& touserlist)
+{
+	touserlist = std::move(GetUpgrador()->userlist);
+}
+
+void	CoreFSMStartMethod(TwitterAnalyser, GetRetweeters)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetRetweeters)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
+{
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(GetUpgrador()->mTweetID) + "_RetweeterNextCursor.json";
+
+	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
+
+	std::string next_cursor = "-1";
+
+	std::vector<u64>	 v;
+	if (nextt)
+	{
+		next_cursor = nextt["next-cursor"];
+	}
+	else
+	{
+		v = TwitterConnect::LoadRetweetersFile(GetUpgrador()->mTweetID);
+	}
+
+	if ((v.size() == 0) || (next_cursor != "-1"))
+	{
+		// warning ! same callback as likers => signal is LikersRetrieved
+		KigsCore::Connect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedRetweeters");
+		mTwitterConnect->launchGetRetweeters(GetUpgrador()->mTweetID, next_cursor);
+		GetUpgrador()->activateTransition("waittransition");
+		mNeedWait = true;
+	}
+	else
+	{
+		GetUpgrador()->mUserlist = std::move(v);
+		GetUpgrador()->popState();
+	}
+
+	return false;
+}
+
+
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetRetweeters)::manageRetrievedRetweeters(std::vector<u64>& retweeters, const std::string& nexttoken)
+{
+	u64 tweetID = GetUpgrador()->mTweetID;
+
+	std::string filenamenext_token = "Cache/Tweets/";
+	filenamenext_token += std::to_string(tweetID) + "_RetweeterNextCursor.json";
+
+	auto v = TwitterConnect::LoadRetweetersFile(tweetID);
+	v.insert(v.end(), retweeters.begin(), retweeters.end());
+
+	if (nexttoken != "-1")
+	{
+		CoreItemSP currentUserJson = MakeCoreMap();
+		currentUserJson->set("next-cursor", nexttoken);
+		TwitterConnect::SaveJSon(filenamenext_token, currentUserJson);
+	}
+	else
+	{
+		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
+		TwitterConnect::randomizeVector(v);
+	}
+
+	// warning ! same callback as likers => signal is LikersRetrieved
+	KigsCore::Disconnect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedRetweeters");
+	TwitterConnect::SaveRetweetersFile(v, tweetID);
+
+	requestDone();
+}
+
+
+void	CoreFSMStartMethod(TwitterAnalyser, RetrieveTweets)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, RetrieveTweets)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
+{
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+	std::string username = mRetreivedUsers[0].mName.ToString();
+
+	if (mUseHashTags)
+	{
+		username = TwitterConnect::getHashtagFilename(username);
+	}
+
+	SP<CoreFSM> fsm = mFsm;
+	auto getTweetsState = getFSMState(fsm, TwitterAnalyser, GetTweets);
+
+	if (TwitterConnect::LoadTweetsFile(mTweets, username))
+	{
+		if (mCurrentTreatedTweetIndex < mTweets.size())
+		{
+			GetUpgrador()->activateTransition("managetweettransition");
+			return false;
+		}
+		else
+		{
+			if (getTweetsState->mNeededTweetCount < mTweets.size()) // cant' retrieve more tweets
+			{
+				GetUpgrador()->activateTransition("donetransition");
+				return false;
+			}
+			else
+			{
+				getTweetsState->mNeededTweetCount += 50;
+			}
+		}
+	}
+
+	getTweetsState->mUserName = username;
+
+	if (mUseHashTags)
+	{
+		getTweetsState->mSearchTweets = true;
+	}
+	else
+	{
+		getTweetsState->mUserID = mRetreivedUsers[0].mID;
+		getTweetsState->mSearchTweets = false;
+	}
+
+	GetUpgrador()->activateTransition("gettweetstransition");
+
+	return false;
 }

@@ -23,9 +23,14 @@ public:
 		// panel or analysed types
 		Followers	= 2,			// no hashtag, no period here
 		Following	= 3,			// no hashtag, no period here
+
 		// analysed types only
 		Favorites	= 4,			// with or without hashtag, with or without period
 		TOP			= 5,			// if used for data type, then just work with panel
+
+		// panel or analysed types
+		RTters		= 6,
+		RTted		= 7,
 	};
 protected:
 
@@ -35,6 +40,9 @@ protected:
 	void	mainUserDone(TwitterConnect::UserStruct& CurrentUserStruct);
 	void	switchForce();
 	void	switchDisplay();
+
+	void	initLogos();
+
 	void	manageRetrievedUserDetail(TwitterConnect::UserStruct& CurrentUserStruct);
 	bool	checkDone();
 
@@ -44,12 +52,17 @@ protected:
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
 
 	std::string	searchLikersFSM();
+	std::string	searchRetweetersFSM();
+	std::string	searchRetweetedFSM();
 	std::string	searchFavoritesFSM();
 	std::string	searchFollowFSM(const std::string& followtype);
 	void		TopFSM(const std::string& laststate);
 
 	void	analyseFavoritesFSM(const std::string& lastState);
 	void	analyseFollowFSM(const std::string& lastState, const std::string& followtype);
+	void	analyseRetweetersFSM(const std::string& lastState);
+	void	analyseRetweetedFSM(const std::string& lastState);
+
 
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;

@@ -186,7 +186,12 @@ void	TwitterAnalyser::ProtectedInit()
 		lastState = searchFavoritesFSM();
 		//SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
 		break;
-
+	case dataType::RTted:
+		lastState = searchRetweetedFSM();
+		break;
+	case dataType::RTters:
+		lastState = searchRetweetersFSM();
+		break;
 	}
 
 	switch (mAnalysedType)
@@ -203,7 +208,12 @@ void	TwitterAnalyser::ProtectedInit()
 	case dataType::TOP:
 		TopFSM(lastState);
 		mGraphDrawer->setValue("DrawTop", true);
-		//SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
+		break;
+	case dataType::RTted:
+		analyseRetweetedFSM(lastState);
+		break;
+	case dataType::RTters:
+		analyseRetweetersFSM(lastState);
 		break;
 	}
 
@@ -231,6 +241,125 @@ void	TwitterAnalyser::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
+void	TwitterAnalyser::initLogos()
+{
+	auto panelLogo = mMainInterface["panelLogo"];
+	auto twitterLogo = panelLogo["twitterLogo"];
+
+	switch (mPanelType)
+	{
+		case dataType::Likers:
+		{
+			twitterLogo("Dock") = v2f(0.6f, 0.5f);
+			twitterLogo["placeHolder1"]("TextureName") = "BigHeart.png";
+			twitterLogo["placeHolder2"]("IsHidden") = true;
+		}
+		break;
+		
+		case dataType::Favorites:
+		{
+			twitterLogo("Dock") = v2f(0.4f, 0.5f);
+			twitterLogo["placeHolder1"]("IsHidden") = true;
+			twitterLogo["placeHolder2"]("TextureName") = "BigHeart.png";
+		}
+		break; 
+
+		case dataType::Posters: 
+		{
+			// TODO
+			twitterLogo["placeHolder1"]("IsHidden") = true;
+			twitterLogo["placeHolder2"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::Followers:
+		{
+			twitterLogo("Dock") = v2f(0.6f, 0.5f);
+			twitterLogo["placeHolder1"]("TextureName") = "Follow.png";
+			twitterLogo["placeHolder2"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::Following:
+		{
+			twitterLogo("Dock") = v2f(0.4f, 0.5f);
+			twitterLogo["placeHolder1"]("IsHidden") = true;
+			twitterLogo["placeHolder2"]("TextureName") = "Follow.png";
+		}
+		break;
+
+		case dataType::RTters:
+		{
+			twitterLogo("Dock") = v2f(0.6f, 0.5f);
+			twitterLogo["placeHolder1"]("TextureName") = "Retweet.png";
+			twitterLogo["placeHolder2"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::RTted:
+		{
+			twitterLogo("Dock") = v2f(0.4f, 0.5f);
+			twitterLogo["placeHolder1"]("IsHidden") = true;
+			twitterLogo["placeHolder2"]("TextureName") = "Retweet.png";
+		}
+		break;
+	}
+	
+	switch (mAnalysedType)
+	{
+		case dataType::Likers:
+		{
+			panelLogo["placeHolder3"]("TextureName") = "BigHeart.png";
+			panelLogo["placeHolder4"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::Favorites:
+		{
+			panelLogo["placeHolder3"]("IsHidden") = true;
+			panelLogo["placeHolder4"]("TextureName") = "BigHeart.png";
+		}
+		break;
+
+		case dataType::Posters:
+		{
+			// TODO
+			//twitterLogo["placeHolder1"]("IsHidden") = true;
+			//twitterLogo["placeHolder2"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::Followers:
+		{
+			panelLogo["placeHolder3"]("TextureName") = "Follow.png";
+			panelLogo["placeHolder4"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::Following:
+		{
+			panelLogo["placeHolder3"]("IsHidden") = true;
+			panelLogo["placeHolder4"]("TextureName") = "Follow.png";
+		}
+		break;
+
+		case dataType::RTters:
+		{
+			panelLogo["placeHolder3"]("TextureName") = "Retweet.png";
+			panelLogo["placeHolder4"]("IsHidden") = true;
+		}
+		break;
+
+		case dataType::RTted:
+		{
+			panelLogo["placeHolder3"]("IsHidden") = true;
+			panelLogo["placeHolder4"]("TextureName") = "Retweet.png";
+		}
+		break;
+	}
+}
+
+
 void	TwitterAnalyser::ProtectedInitSequence(const kstl::string& sequence)
 {
 	if (sequence == "sequencemain")
@@ -238,8 +367,8 @@ void	TwitterAnalyser::ProtectedInitSequence(const kstl::string& sequence)
 		mMainInterface = GetFirstInstanceByName("UIItem", "Interface");
 		mMainInterface["switchForce"]("IsHidden") = true;
 		mMainInterface["switchForce"]("IsTouchable") = false;
-		if (mPanelType == dataType::Likers)
-			mMainInterface["heart"]("IsHidden") = false;
+
+		initLogos();
 
 		// launch fsm
 		SP<CoreFSM> fsm = mFsm;

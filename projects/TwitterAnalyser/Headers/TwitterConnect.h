@@ -239,11 +239,12 @@ public:
 	void	launchUserDetailRequest(const std::string& UserName, UserStruct& ch);
 	void	launchUserDetailRequest(u64 userid,UserStruct& ch);
 	// followers or following
-	void	launchGetFollow(u64 userid,const std::string& followtype);
+	void	launchGetFollow(u64 userid,const std::string& followtype, const std::string& nextToken = "-1");
 	void	launchGetFavoritesRequest(u64 userid, const std::string& nextToken = "-1");
 	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& nextToken="-1");
 	void	launchSearchTweetRequest(const std::string& hashtag, const std::string& nextToken = "-1");
 	void	launchGetLikers(u64 tweetid, const std::string& nextToken = "-1");
+	void	launchGetRetweeters(u64 tweetid, const std::string& nextToken = "-1");
 
 	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
 	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
@@ -280,6 +281,9 @@ public:
 
 	static std::vector<u64> LoadLikersFile(u64 tweetid);
 	static void			SaveLikersFile(const std::vector<u64>& tweetLikers, u64 tweetid);
+
+	static std::vector<u64> LoadRetweetersFile(u64 tweetid);
+	static void			SaveRetweetersFile(const std::vector<u64>& RTers, u64 tweetid);
 
 
 	static bool			LoadFavoritesFile(const std::string& username, std::vector<TwitterConnect::Twts>& fav);
@@ -354,8 +358,6 @@ protected:
 	bool			mWaitQuota = false;
 	u32				mWaitQuotaCount = 0;
 	unsigned int	mApiErrorCode = 0;
-
-	std::string		mNextCursor = "-1";
 
 	std::vector<u64>	mCurrentIDVector;
 

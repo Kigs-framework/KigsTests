@@ -596,6 +596,14 @@ void	GraphDrawer::Diagram::Draw(const std::vector<T>& values)
 			printedLegend=buffer;
 		}
 		float averagePos = (float)DiagramPos.x + (float)DiagramSize.x * (average - minv) / (maxv - minv);
+		if (averagePos < (float)DiagramPos.x)
+		{
+			averagePos = (float)DiagramPos.x;
+		}
+		else if (averagePos > (float)(DiagramPos.x + DiagramSize.x))
+		{
+			averagePos = (float)(DiagramPos.x + DiagramSize.x);
+		}
 		mBitmap->Line(averagePos, DiagramPos.y - 1, averagePos, DiagramPos.y + DiagramSize.y + 14, { 255,0,0,128 });
 		mBitmap->Print(printedLegend, averagePos, DiagramPos.y + DiagramSize.y + 14, 1, 96, 12, "Calibri.ttf", 1, { 128,0,0,128 });
 	}
@@ -619,6 +627,14 @@ void	GraphDrawer::Diagram::Draw(const std::vector<T>& values)
 			printedLegend = buffer;
 		}
 		float medianPos = (float)DiagramPos.x + (float)DiagramSize.x * (median - minv) / (maxv - minv);
+		if (medianPos < (float)DiagramPos.x)
+		{
+			medianPos = (float)DiagramPos.x;
+		}
+		else if (medianPos > (float)(DiagramPos.x + DiagramSize.x))
+		{
+			medianPos = (float)(DiagramPos.x + DiagramSize.x);
+		}
 		mBitmap->Line(medianPos, DiagramPos.y - 1, medianPos, DiagramPos.y + DiagramSize.y + 24, { 0,200,0,128 });
 		mBitmap->Print(printedLegend, medianPos, DiagramPos.y + DiagramSize.y + 26, 1, 96, 12, "Calibri.ttf", 1, { 0,128,0,128 });
 	}
