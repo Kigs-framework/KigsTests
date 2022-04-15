@@ -36,7 +36,7 @@ protected:
 	
 	v3f							mRecenterTranslate;
 
-	SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName);
+	SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName, const v3f& color = { 1.0,0.5,0.5 });
 
 	SmartPointer<ModernMesh>	getCube(u32 flag,u32 debugflag);
 
@@ -61,6 +61,7 @@ protected:
 
 	bool						mConstructMesh = true;
 	bool						mConstructEnveloppe = true;
+	bool						mTestGroup = true;
 
 	void						addBboxToMesh(const BBox& boxtoadd);
 	void						createTestMesh();

@@ -181,7 +181,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag,u32 debugflag)
 }
 
 
-SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indices,const std::vector<v3f>& vertices, const std::string& meshName)
+SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indices,const std::vector<v3f>& vertices, const std::string& meshName, const v3f& color)
 {
 
 	SmartPointer<ModernMesh> Mesh = KigsCore::GetInstanceOf(meshName, "ModernMesh");
@@ -207,7 +207,7 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 	SmartPointer<Material> GeneratedMaterial = KigsCore::GetInstanceOf(meshName + "_M", "Material");
 	GeneratedMaterial->SetSpecularColor(0.8,0.8,0.8);
 	GeneratedMaterial->SetAmbientColor(0.8,0.8,0.8);
-	GeneratedMaterial->SetDiffuseColor(1.0,0.5,0.5);
+	GeneratedMaterial->SetDiffuseColor(color.x,color.y,color.z);
 	GeneratedMaterial->setValue("Shininess", 1.0);
 	GeneratedMaterial->Init();
 
@@ -377,14 +377,38 @@ void	MeshSimplifier::rebuildMesh()
 
 	auto timer=GetApplicationTimer();
 	auto startTime = timer->GetTime();
-	mMeshSimplification = new MeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision,10);
+
+	if (mTestGroup)
+	{
+		mMeshSimplification = new MeshSimplification(mMeshVertices, mPrecision, 10);
+
+		std::size_t half_size = mMeshVertexIndices.size() / 3;
+		half_size /= 2;
+		half_size *= 3;
+
+		std::vector<u32>	grp1(mMeshVertexIndices.begin(), mMeshVertexIndices.begin()+ half_size);
+		std::vector<u32>	grp2(mMeshVertexIndices.begin() + half_size, mMeshVertexIndices.end() );
+
+		mMeshSimplification->addTriangleGroup(grp1, 0);
+		mMeshSimplification->addTriangleGroup(grp2, 1);
+
+		mMeshSimplification->doSimplification();
+	}
+	else
+	{
+		mMeshSimplification = new MeshSimplification(mMeshVertexIndices, mMeshVertices, mPrecision, 10);
+	}
 	auto deltaTime = timer->GetTime() - startTime;
 
 	std::cout << "simplification time :" << deltaTime << std::endl;
 
 	std::cout << "out vertice count: " << mMeshSimplification->getVerticeCount() << std::endl;
 	std::cout << "out triangle count: " << mMeshSimplification->getTriangleCount() << std::endl;
-
+	if (mTestGroup)
+	{
+		std::cout << "grp 1 out triangle count: " << mMeshSimplification->getTriangleCount(0) << std::endl;
+		std::cout << "grp 2 out triangle count: " << mMeshSimplification->getTriangleCount(1) << std::endl;
+	}
 
 	BBox tst = mMeshSimplification->getOctreeBoundingBox();
 	mRecenterTranslate = -tst.Center(); 
@@ -397,13 +421,21 @@ void	MeshSimplifier::rebuildMesh()
 		auto m = buildMesh(mMeshVertexIndices, mMeshSimplification->getOctreeCoordVertices(), "InOctreeCoordMesh");
 		
 		mMeshNode->addItem(m);
-		
-
+	
 	}
 
-	SmartPointer<ModernMesh> outmesh = buildMesh(mMeshSimplification->getFinalTriangles(), mMeshSimplification->getFinalVertices(), "FinalMesh");
-
-	mMeshNode->addItem(outmesh);
+	if (mTestGroup)
+	{
+		SmartPointer<ModernMesh> outmesh = buildMesh(mMeshSimplification->getFinalTriangles(0), mMeshSimplification->getFinalVertices(), "FinalMesh");
+		mMeshNode->addItem(outmesh);
+		outmesh = buildMesh(mMeshSimplification->getFinalTriangles(1), mMeshSimplification->getFinalVertices(), "FinalMesh", {0.5,1.0,0.5});
+		mMeshNode->addItem(outmesh);
+	}
+	else
+	{
+		SmartPointer<ModernMesh> outmesh = buildMesh(mMeshSimplification->getFinalTriangles(), mMeshSimplification->getFinalVertices(), "FinalMesh");
+		mMeshNode->addItem(outmesh);
+	}
 
 	mMeshNode->Init();
 	mMeshNode->ChangeMatrix(topos);
@@ -553,7 +585,7 @@ void	MeshSimplifier::drawEdges()
 			{
 				color.Set(1.0,1.0,0.0);
 			}
-			dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color);
+			dd::line(e.first.first + mRecenterTranslate, e.first.second + mRecenterTranslate, color);
 		}
 	}
 
@@ -561,7 +593,7 @@ void	MeshSimplifier::drawEdges()
 	{
 		auto& e = edgeList[mSelectedEdgeIndex];
 		v3f color(1.0, 0.3, 0.0);
-		dd::line(e.first + mRecenterTranslate, e.second + mRecenterTranslate, color,0,false);
+		dd::line(e.first.first + mRecenterTranslate, e.first.second + mRecenterTranslate, color,0,false);
 	}
 #endif
 }
