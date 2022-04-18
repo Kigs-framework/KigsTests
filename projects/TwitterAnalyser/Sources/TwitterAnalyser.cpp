@@ -75,7 +75,6 @@ void		TwitterAnalyser::commonStatesFSM()
 	donetransition->Init();
 
 	mTransitionList["donetransition"] = donetransition;
-
 }
 
 
@@ -108,8 +107,8 @@ void	TwitterAnalyser::ProtectedInit()
 
 	mGraphDrawer = KigsCore::GetInstanceOf("mGraphDrawer", "GraphDrawer");
 
-	auto SetMemberFromParam = [&](auto& x, const char* id) {
-		if (initP[id]) x = initP[id].value<std::remove_reference<decltype(x)>::type>();
+	auto SetMemberFromParam = [&]<typename T>(T& x, const char* id) {
+		if (initP[id]) x = initP[id].value<T>();
 	};
 
 	int oldFileLimitInDays = 3 * 30;
@@ -229,11 +228,15 @@ void	TwitterAnalyser::ProtectedInit()
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
+
+	printf("ProtectedInit done\n");
 }
 
 void	TwitterAnalyser::ProtectedUpdate()
 {
+	printf("ProtectedInit Update\n");
 	DataDrivenBaseApplication::ProtectedUpdate();
+	printf("ProtectedInit Update done\n");
 }
 
 void	TwitterAnalyser::ProtectedClose()
@@ -364,6 +367,7 @@ void	TwitterAnalyser::ProtectedInitSequence(const kstl::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
+		
 		mMainInterface = GetFirstInstanceByName("UIItem", "Interface");
 		mMainInterface["switchForce"]("IsHidden") = true;
 		mMainInterface["switchForce"]("IsTouchable") = false;

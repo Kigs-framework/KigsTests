@@ -448,10 +448,10 @@ void	GraphDrawer::drawForce()
 		}
 	}
 	// then check if they don't get out of the screen
-	for (auto& l1 : mAccountSubscriberMap)
+	for (auto& cl1 : mAccountSubscriberMap)
 	{
 
-		TwitterConnect::PerAccountUserMap& current = l1.second;
+		TwitterConnect::PerAccountUserMap& current = cl1.second;
 		v2f	v(current.mPos);
 		v -= center;
 		float l1 = Norm(v);

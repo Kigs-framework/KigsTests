@@ -243,10 +243,10 @@ bool		TwitterConnect::LoadUserStruct(u64 id, UserStruct& ch, bool requestThumb)
 	ch.mFollowersCount = initP["FollowersCount"];
 	ch.mFollowingCount = initP["FollowingCount"];
 	ch.mStatuses_count = initP["StatusesCount"];
-	ch.UTCTime = initP["CreatedAt"];
+	ch.UTCTime = initP["CreatedAt"]->toString();
 	if (initP["ImgURL"])
 	{
-		ch.mThumb.mURL = initP["ImgURL"];
+		ch.mThumb.mURL = initP["ImgURL"]->toString();
 	}
 	if (requestThumb && !ch.mThumb.mTexture)
 	{
@@ -757,7 +757,7 @@ DEFINE_METHOD(TwitterConnect, getUserDetails)
 		CurrentUserStruct.mFollowersCount = public_m["followers_count"];
 		CurrentUserStruct.mFollowingCount = public_m["following_count"];
 		CurrentUserStruct.mStatuses_count = public_m["tweet_count"];
-		CurrentUserStruct.UTCTime = data["created_at"];
+		CurrentUserStruct.UTCTime = data["created_at"]->toString();
 		CurrentUserStruct.mThumb.mURL = CleanURL(data["profile_image_url"]);
 
 		EmitSignal("UserDetailRetrieved", CurrentUserStruct);
@@ -825,7 +825,7 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 		{
 			if (meta["next_token"])
 			{
-				nextStr = meta["next_token"];
+				nextStr = meta["next_token"]->toString();
 				if (nextStr == "0")
 				{
 					nextStr = "-1";
@@ -868,7 +868,7 @@ DEFINE_METHOD(TwitterConnect, getLikers)
 		{
 			if (meta["next_token"])
 			{
-				nextStr = meta["next_token"];
+				nextStr = meta["next_token"]->toString();
 				if (nextStr == "0")
 				{
 					nextStr = "-1";
@@ -926,7 +926,7 @@ DEFINE_METHOD(TwitterConnect, getSearchTweets)
 		{
 			if (meta["next_results"])
 			{
-				nextStr = meta["next_results"];
+				nextStr = meta["next_results"]->toString();
 				if (nextStr == "0")
 				{
 					nextStr = "-1";
@@ -1021,7 +1021,7 @@ DEFINE_METHOD(TwitterConnect, getFollow)
 		{
 			if (meta["next_token"])
 			{
-				nextStr = meta["next_token"];
+				nextStr = meta["next_token"]->toString();
 				if (nextStr == "0")
 				{
 					nextStr = "-1";

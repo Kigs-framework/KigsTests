@@ -172,8 +172,6 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitHashTag))
 	return false;
 }
 
-
-
 void	CoreFSMStartMethod(TwitterAnalyser, GetTweets)
 {
 
@@ -218,7 +216,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 
 			if (nxtTokenJson)
 			{
-				nextCursor = nxtTokenJson["next-cursor"];
+				nextCursor = nxtTokenJson["next-cursor"]->toString();
 			}
 		}
 
@@ -300,7 +298,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
 	std::vector<u64>	 v;
 	if (nextt)
 	{
-		next_cursor = nextt["next-cursor"];
+		next_cursor = nextt["next-cursor"]->toString();
 	}
 	else
 	{
@@ -380,7 +378,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFavorites))
 	std::string next_cursor = "-1";
 	if (nextt)
 	{
-		next_cursor = nextt["next-cursor"];
+		next_cursor = nextt["next-cursor"]->toString();
 	}
 	bool hasFavoriteList = TwitterConnect::LoadFavoritesFile(user, GetUpgrador()->mFavorites);
 
@@ -468,7 +466,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	bool				hasFollowFile = false;
 	if (nextt)
 	{
-		next_cursor = nextt["next-cursor"];
+		next_cursor = nextt["next-cursor"]->toString();
 	}
 	else
 	{
@@ -557,7 +555,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
 	std::vector<u64>	 v;
 	if (nextt)
 	{
-		next_cursor = nextt["next-cursor"];
+		next_cursor = nextt["next-cursor"]->toString();
 	}
 	else
 	{
