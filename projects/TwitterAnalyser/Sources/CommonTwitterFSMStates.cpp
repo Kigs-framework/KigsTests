@@ -230,7 +230,21 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 			}
 			else
 			{
-				mTwitterConnect->launchGetTweetRequest(GetUpgrador()->mUserID, GetUpgrador()->mUserName, nextCursor);
+				std::string excludes = "";
+				if (GetUpgrador()->mExcludeRetweets)
+				{
+					excludes += "retweets";
+				}
+				if (GetUpgrador()->mExcludeReplies)
+				{
+					if (excludes != "")
+					{
+						excludes += ",";
+					}
+					excludes += "replies";
+				}
+
+				mTwitterConnect->launchGetTweetRequest(GetUpgrador()->mUserID, GetUpgrador()->mUserName, excludes, nextCursor);
 			}
 			mNeedWait = true;
 			GetUpgrador()->activateTransition("waittransition");
@@ -668,6 +682,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	{
 		getTweetsState->mUserID = mRetreivedUsers[0].mID;
 		getTweetsState->mSearchTweets = false;
+
+		getTweetsState->mExcludeRetweets = GetUpgrador()->mExcludeRetweets;
+		getTweetsState->mExcludeReplies = GetUpgrador()->mExcludeReplies;
 	}
 
 	GetUpgrador()->activateTransition("gettweetstransition");

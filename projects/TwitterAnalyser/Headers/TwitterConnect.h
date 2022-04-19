@@ -37,6 +37,7 @@ public:
 		u64		mTweetID;
 		u32		mLikeCount;
 		u32		mRetweetCount; 
+		u32		mQuoteCount;
 		u32		mCreationData;
 	};
 
@@ -241,7 +242,7 @@ public:
 	// followers or following
 	void	launchGetFollow(u64 userid,const std::string& followtype, const std::string& nextToken = "-1");
 	void	launchGetFavoritesRequest(u64 userid, const std::string& nextToken = "-1");
-	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& nextToken="-1");
+	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& excludes,const std::string& nextToken="-1");
 	void	launchSearchTweetRequest(const std::string& hashtag, const std::string& nextToken = "-1");
 	void	launchGetLikers(u64 tweetid, const std::string& nextToken = "-1");
 	void	launchGetRetweeters(u64 tweetid, const std::string& nextToken = "-1");
@@ -292,6 +293,8 @@ public:
 	static void			SaveFavoritesFile(const std::string& username, const std::vector<TwitterConnect::Twts>& favs);
 	static void			SaveFavoritesFile(u64 userid, const std::vector<TwitterConnect::Twts>& favs);
 
+	// export tweet text
+	static void			SaveTweet(const usString& text, u64 authorID, u64 tweetID);
 
 	static std::string getHashtagFilename(const std::string& HashTag)
 	{
@@ -344,11 +347,11 @@ protected:
 	DECLARE_METHOD(getUserDetails);
 	DECLARE_METHOD(getTweets);
 	DECLARE_METHOD(getLikers);
-	DECLARE_METHOD(getSearchTweets);
+	//DECLARE_METHOD(getSearchTweets);
 	DECLARE_METHOD(getFollow);
 	DECLARE_METHOD(getFavorites);
 	
-	COREMODIFIABLE_METHODS(getUserDetails, getFollow, getTweets, getLikers, getSearchTweets, getFavorites);
+	COREMODIFIABLE_METHODS(getUserDetails, getFollow, getTweets, getLikers, getFavorites);
 	CoreItemSP	RetrieveJSON(CoreModifiable* sender);
 
 	std::vector<std::pair<CMSP, std::pair<u64, UserStruct*>> >		mDownloaderList;
@@ -360,11 +363,6 @@ protected:
 	unsigned int	mApiErrorCode = 0;
 
 	std::vector<u64>	mCurrentIDVector;
-
-	static void	updateTweetCalendar(const std::string& tweetdate, u64 tweetid);
-
-	static void	loadTweetCalendar();
-	static void	saveTweetCalendar();
 
 	// return date in a u32 YYYYMMDD in result.first and seconds until start of this day in result.second
 	static std::pair<u32, u32>	GetU32YYYYMMDD(const std::string& utcdate);

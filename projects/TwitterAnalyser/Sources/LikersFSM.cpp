@@ -65,6 +65,9 @@ std::string TwitterAnalyser::searchLikersFSM()
 
 	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
 
+	CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)* retreiveTweets = (CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)*)fsm->getState("RetrieveTweets");
+	retreiveTweets->mExcludeRetweets = true; // don't take retweets into account here
+
 	// transition to RetrieveLikers (push)
 	SP<CoreFSMTransition> managetweettransition = KigsCore::GetInstanceOf("managetweettransition", "CoreFSMInternalSetTransition");
 	managetweettransition->setValue("TransitionBehavior", "Push");

@@ -229,14 +229,11 @@ void	TwitterAnalyser::ProtectedInit()
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
 
-	printf("ProtectedInit done\n");
 }
 
 void	TwitterAnalyser::ProtectedUpdate()
 {
-	printf("ProtectedInit Update\n");
 	DataDrivenBaseApplication::ProtectedUpdate();
-	printf("ProtectedInit Update done\n");
 }
 
 void	TwitterAnalyser::ProtectedClose()

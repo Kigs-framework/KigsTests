@@ -14,6 +14,16 @@ void	copyUserList(std::vector<u64>& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveRetweeted)
+public:
+	unsigned int			mStateStep = 0;
+	std::vector<u64>		mUserlist;
+protected:
+STARTCOREFSMSTATE_WRAPMETHODS();
+void	copyUserList(std::vector<u64>& touserlist);
+ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
+END_DECLARE_COREFSMSTATE()
+
 
 std::string	TwitterAnalyser::searchRetweetersFSM()
 {
@@ -38,8 +48,10 @@ std::string	TwitterAnalyser::searchRetweetersFSM()
 	fsm->getState("Init")->addTransition(retrievetweetstransition);
 
 	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
+	CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)* retreiveTweets = (CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)*)fsm->getState("RetrieveTweets");
+	retreiveTweets->mExcludeRetweets = true; // don't take retweets into account here
 
-	// transition to RetrieveLikers (push)
+	// transition to RetrieveRetweeters (push)
 	SP<CoreFSMTransition> managetweettransition = KigsCore::GetInstanceOf("managetweettransition", "CoreFSMInternalSetTransition");
 	managetweettransition->setValue("TransitionBehavior", "Push");
 	managetweettransition->setState("RetrieveRetweeters");
@@ -98,7 +110,78 @@ std::string	TwitterAnalyser::searchRetweetersFSM()
 
 std::string	TwitterAnalyser::searchRetweetedFSM()
 {
-	return "";
+	SP<CoreFSM> fsm = mFsm;
+
+	// no hashtag for retweeted
+	fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
+
+	// go to RetrieveTweets
+	SP<CoreFSMTransition> retrievetweetstransition = KigsCore::GetInstanceOf("retrievetweetstransition", "CoreFSMInternalSetTransition");
+	retrievetweetstransition->setState("RetrieveTweets");
+	retrievetweetstransition->Init();
+	// Init can go to Wait or GetTweets
+	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
+	fsm->getState("Init")->addTransition(retrievetweetstransition);
+
+	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
+	CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)* retreiveTweets = (CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)*)fsm->getState("RetrieveTweets");
+	retreiveTweets->mExcludeReplies = true; // don't take replies into account here
+
+	// transition to RetrieveRetweeted (push)
+	SP<CoreFSMTransition> managetweettransition = KigsCore::GetInstanceOf("managetweettransition", "CoreFSMInternalSetTransition");
+	managetweettransition->setValue("TransitionBehavior", "Push");
+	managetweettransition->setState("RetrieveRetweeted");
+	managetweettransition->Init();
+
+	KigsCore::Connect(managetweettransition.get(), "ExecuteTransition", this, "setRetrieveRetweetedState", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
+		{
+			auto retrieveRTState = getFSMState(fsm, TwitterAnalyser, RetrieveRetweeted);
+			retrieveRTState->mStateStep = 0;
+		});
+
+	SP<CoreFSMTransition> gettweetstransition = KigsCore::GetInstanceOf("gettweetstransition", "CoreFSMInternalSetTransition");
+	gettweetstransition->setValue("TransitionBehavior", "Push");
+	gettweetstransition->setState("GetTweets");
+	gettweetstransition->Init();
+
+	// can go to get tweets or managetweet or done
+	fsm->getState("RetrieveTweets")->addTransition(gettweetstransition);
+	fsm->getState("RetrieveTweets")->addTransition(managetweettransition);
+	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["donetransition"]);
+	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["userlistdetailtransition"]);
+
+	// create GetTweets state
+	fsm->addState("GetTweets", new CoreFSMStateClass(TwitterAnalyser, GetTweets)());
+
+	// GetTweets can go to Wait or pop
+	fsm->getState("GetTweets")->addTransition(mTransitionList["waittransition"]);
+	// get tweets can also go to NeedUserListDetail
+	fsm->getState("GetTweets")->addTransition(mTransitionList["userlistdetailtransition"]);
+
+	/*
+	// transition to GetRetweeters (push)
+	SP<CoreFSMTransition> getretweeterstransition = KigsCore::GetInstanceOf("getretweeterstransition", "CoreFSMInternalSetTransition");
+	getretweeterstransition->setValue("TransitionBehavior", "Push");
+	getretweeterstransition->setState("GetRetweeted");
+	getretweeterstransition->Init();
+
+	fsm->addState("RetrieveRetweeters", new CoreFSMStateClass(TwitterAnalyser, RetrieveRetweeters)());
+	// can go to get likers or pop
+	fsm->getState("RetrieveRetweeters")->addTransition(getretweeterstransition);
+	fsm->getState("RetrieveRetweeters")->addTransition(mTransitionList["userlistdetailtransition"]);
+
+	// create GetLikers state
+	fsm->addState("GetRetweeters", new CoreFSMStateClass(TwitterAnalyser, GetRetweeters)());
+	// after GetLikers, can go to get user data (or pop)
+	fsm->getState("GetRetweeters")->addTransition(mTransitionList["waittransition"]);
+
+	// get likes can also go to NeedUserListDetail
+	fsm->getState("GetRetweeters")->addTransition(mTransitionList["userlistdetailtransition"]);
+
+	// when enough likers, pop
+	fsm->getState("GetRetweeters")->addTransition(mTransitionList["popwhendone"]);
+	*/
+	return "RetrieveRetweeted";
 }
 
 void	TwitterAnalyser::analyseRetweetersFSM(const std::string& lastState)

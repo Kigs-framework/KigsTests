@@ -10,6 +10,8 @@ public:
 	u64									mUserID=-1;
 	u32									mNeededTweetCount=100;
 	bool								mSearchTweets=false;
+	bool								mExcludeRetweets = false;
+	bool								mExcludeReplies = false;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
@@ -102,5 +104,9 @@ END_DECLARE_COREFSMSTATE()
 
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveTweets)
+public:
+	bool								mExcludeRetweets = false;
+	bool								mExcludeReplies = false;
+protected:
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
