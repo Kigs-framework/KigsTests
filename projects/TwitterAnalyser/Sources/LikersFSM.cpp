@@ -104,13 +104,7 @@ std::string TwitterAnalyser::searchLikersFSM()
 	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["donetransition"]);
 	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["userlistdetailtransition"]);
 
-	// create GetTweets state
-	fsm->addState("GetTweets", new CoreFSMStateClass(TwitterAnalyser, GetTweets)());
-	
-	// GetTweets can go to Wait or pop
-	fsm->getState("GetTweets")->addTransition(mTransitionList["waittransition"]);
-	// get tweets can also go to NeedUserListDetail
-	fsm->getState("GetTweets")->addTransition(mTransitionList["userlistdetailtransition"]);
+
 
 
 	// transition to GetLikers (push)
@@ -123,6 +117,8 @@ std::string TwitterAnalyser::searchLikersFSM()
 	// can go to get likers or pop
 	fsm->getState("RetrieveUserLikers")->addTransition(getlikerstransition);
 	fsm->getState("RetrieveUserLikers")->addTransition(mTransitionList["userlistdetailtransition"]);
+	// when enough likers, pop
+	fsm->getState("RetrieveUserLikers")->addTransition(mTransitionList["popwhendone"]);
 
 	// create GetLikers state
 	fsm->addState("GetLikers", new CoreFSMStateClass(TwitterAnalyser, GetLikers)());
@@ -132,9 +128,7 @@ std::string TwitterAnalyser::searchLikersFSM()
 	// get likes can also go to NeedUserListDetail
 	fsm->getState("GetLikers")->addTransition(mTransitionList["userlistdetailtransition"]);
 
-	// when enough likers, pop
-	fsm->getState("GetLikers")->addTransition(mTransitionList["popwhendone"]);
-
+	
 	return "RetrieveUserLikers";
 }
 
@@ -252,7 +246,7 @@ void	TwitterAnalyser::analyseFavoritesFSM(const std::string& lastState)
 	fsm->getState("GetUserDetail")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("GetUserDetail")->addTransition(updatestatstransition);
 
-		// create UpdateLikesStats state
+		// create UpdateStats state
 	fsm->addState("UpdateStats", new CoreFSMStateClass(TwitterAnalyser, UpdateStats)());
 	// no transition here, only pop
 

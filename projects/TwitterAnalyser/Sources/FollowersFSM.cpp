@@ -150,7 +150,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	fsm->getState("GetUserDetail")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("GetUserDetail")->addTransition(updatestatstransition);
 
-	// create UpdateLikesStats state
+	// create UpdateStats state
 	fsm->addState("UpdateStats", new CoreFSMStateClass(TwitterAnalyser, UpdateStats)());
 	// no transition here, only pop
 

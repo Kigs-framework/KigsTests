@@ -246,8 +246,8 @@ public:
 	void	launchGetLikers(u64 tweetid, const std::string& nextToken = "-1");
 	void	launchGetRetweeters(u64 tweetid, const std::string& nextToken = "-1");
 
-	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username,const std::string& fname="");
-	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
+	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname="");
+	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname = "");
 	
 
 	u32		getRequestCount()

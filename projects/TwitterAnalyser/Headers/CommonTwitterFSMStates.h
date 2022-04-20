@@ -23,6 +23,7 @@ START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetLikers)
 public:
 	TwitterAnalyser::UserList		mUserlist;
 	u64								mTweetID;
+	u32								mNeededLikersCount = 0;
 protected:
 	STARTCOREFSMSTATE_WRAPMETHODS();
 	void	manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken);

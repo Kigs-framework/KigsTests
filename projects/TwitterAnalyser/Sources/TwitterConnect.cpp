@@ -325,7 +325,7 @@ bool		TwitterConnect::LoadThumbnail(u64 id, UserStruct& ch)
 
 // user fname if given
 // else construct filename with username
-bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname)
+bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname)
 {
 	std::string filename = fname;
 
@@ -336,7 +336,7 @@ bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::str
 		{
 			filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
 		}
-		filename += username + ".twts";
+		filename += username + "_" + excludes + ".twts";
 	}
 	std::vector<Twts>	loaded;
 	// for dated search, don't use old file limit here
@@ -350,7 +350,7 @@ bool	TwitterConnect::LoadTweetsFile(std::vector<Twts>& tweetlist, const std::str
 	return false;
 }
 
-void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname)
+void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname)
 {
 	std::string filename = fname;
 
@@ -361,7 +361,7 @@ void	TwitterConnect::SaveTweetsFile(const std::vector<Twts>& tweetlist, const st
 		{
 			filename += "_" + mDates[0].dateAsString + "_" + mDates[1].dateAsString + "_";
 		}
-		filename += username + ".twts";
+		filename += username + "_" + excludes + ".twts";
 	}
 
 	SaveDataFile<Twts>(filename, tweetlist);
@@ -824,6 +824,23 @@ DEFINE_METHOD(TwitterConnect, getTweets)
 			for (unsigned int i = 0; i < tweetcount; i++)
 			{
 				CoreItemSP currentTweet = tweetsArray[i];
+				CoreItemSP RTStatus = currentTweet["referenced_tweets"];
+				if (RTStatus)
+				{
+					// TODO !
+					if (RTStatus["type"])
+					{
+						std::string type(RTStatus["type"]);
+						printf("ici");
+					}
+					if (RTStatus["id"])
+					{
+						u64			tweetID = RTStatus["id"];
+						printf("ici");
+					}
+				
+					printf("ici");
+				}
 
 				std::string tweetdate = currentTweet["created_at"];
 				u64 tweetid = currentTweet["id"];
