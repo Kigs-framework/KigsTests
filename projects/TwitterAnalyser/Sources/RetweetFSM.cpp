@@ -6,21 +6,21 @@
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveRetweeters)
 public:
-	unsigned int			mStateStep = 0;
-	std::vector<u64>		mUserlist;
+	unsigned int				mStateStep = 0;
+	TwitterAnalyser::UserList	mUserlist;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
-void	copyUserList(std::vector<u64>& touserlist);
+void	copyUserList(TwitterAnalyser::UserList& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveRetweeted)
 public:
-	unsigned int			mStateStep = 0;
-	std::vector<u64>		mUserlist;
+	unsigned int				mStateStep = 0;
+	TwitterAnalyser::UserList	mUserlist;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
-void	copyUserList(std::vector<u64>& touserlist);
+void	copyUserList(TwitterAnalyser::UserList& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
@@ -39,17 +39,27 @@ std::string	TwitterAnalyser::searchRetweetersFSM()
 		fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
 	}
 
+	
 	// go to RetrieveTweets
 	SP<CoreFSMTransition> retrievetweetstransition = KigsCore::GetInstanceOf("retrievetweetstransition", "CoreFSMInternalSetTransition");
 	retrievetweetstransition->setState("RetrieveTweets");
 	retrievetweetstransition->Init();
+
+	KigsCore::Connect(retrievetweetstransition.get(), "ExecuteTransition", this, "setRetrieveTweetsParams", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
+		{
+			auto retrievetweetsState = getFSMState(fsm, TwitterAnalyser, RetrieveTweets);
+			retrievetweetsState->mUseHashtag = mUseHashTags;
+			retrievetweetsState->mUserID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
+			retrievetweetsState->mUserName = mPanelRetreivedUsers.getUserStructAtIndex(0).mName.ToString();
+			retrievetweetsState->mExcludeRetweets = true; // don't take retweets into account here
+			retrievetweetsState->mExcludeReplies = false; // take replies into account here
+		});
+
 	// Init can go to Wait or GetTweets
 	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("Init")->addTransition(retrievetweetstransition);
 
 	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
-	CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)* retreiveTweets = (CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)*)fsm->getState("RetrieveTweets");
-	retreiveTweets->mExcludeRetweets = true; // don't take retweets into account here
 
 	// transition to RetrieveRetweeters (push)
 	SP<CoreFSMTransition> managetweettransition = KigsCore::GetInstanceOf("managetweettransition", "CoreFSMInternalSetTransition");
@@ -211,38 +221,40 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveRetweeters))
 	{
 		return false;
 	}
-	if (mCurrentTreatedTweetIndex < mTweets.size())
+
+	SP<CoreFSM> fsm = mFsm;
+	auto tweetsState = fsm->getStackedState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
+
+	if (tweetsState->mCurrentTreatedTweetIndex < tweetsState->mTweets.size())
 	{
-		if (mTweets[mCurrentTreatedTweetIndex].mRetweetCount)
+		auto& currentTweet = tweetsState->mTweets[tweetsState->mCurrentTreatedTweetIndex];
+		if (currentTweet.mRetweetCount)
 		{
-			SP<CoreFSM> fsm = mFsm;
 			auto getRTState = getFSMState(fsm, TwitterAnalyser, GetRetweeters);
 
 			if (GetUpgrador()->mStateStep == 0)
 			{
-				getRTState->mTweetID = mTweets[mCurrentTreatedTweetIndex].mTweetID;
+				getRTState->mTweetID = currentTweet.mTweetID;
 				GetUpgrador()->mStateStep = 1;
 				GetUpgrador()->activateTransition("getretweeterstransition");
 			}
 			else if (GetUpgrador()->mStateStep == 1)
 			{
-				mCurrentTreatedUserIndex = 0;
-				mValidTreatedLikersForThisTweet = 0;
 				GetUpgrador()->mStateStep = 2;
 				GetUpgrador()->mUserlist = std::move(getRTState->mUserlist);
-				mTweetRetrievedLikerCount[mTweets[mCurrentTreatedTweetIndex].mTweetID] = GetUpgrador()->mUserlist.size();
+				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mRetweetCount, GetUpgrador()->mUserlist.size() };
 				GetUpgrador()->activateTransition("getuserdatatransition");
 			}
 			else
 			{
 				GetUpgrador()->mStateStep = 0;
-				mCurrentTreatedTweetIndex++;
+				tweetsState->mCurrentTreatedTweetIndex++;
 			}
 		}
 		else
 		{
 			GetUpgrador()->mStateStep = 0;
-			mCurrentTreatedTweetIndex++;
+			tweetsState->mCurrentTreatedTweetIndex++;
 		}
 	}
 	else
@@ -255,7 +267,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveRetweeters))
 	return false;
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveRetweeters)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveRetweeters)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
 	touserlist = std::move(GetUpgrador()->mUserlist);
 }

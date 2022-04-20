@@ -126,12 +126,12 @@ void	GraphDrawer::drawSpiral(std::vector<std::tuple<unsigned int,float, u64> >&	
 	float dray = 0.0117f;
 	for (const auto& toS : toShow)
 	{
-		if (std::get<2>(toS) == mTwitterAnalyser->mRetreivedUsers[0].mID)
+		if (std::get<2>(toS) == mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID)
 		{
 			continue;
 		}
 
-		auto& toPlace = mTwitterAnalyser->mUsersUserCount[std::get<2>(toS)];
+		auto& toPlace = mTwitterAnalyser->mInStatsUsers[std::get<2>(toS)];
 
 		auto found = mShowedUser.find(std::get<2>(toS));
 		if (found != mShowedUser.end())
@@ -244,11 +244,11 @@ void	GraphDrawer::prepareForceGraphData()
 	// for each showed channel
 	for (auto& c : mShowedUser)
 	{
-		std::map<u64, std::vector<u64>>& CheckedUserList=mTwitterAnalyser->mCheckedUserList;
-		TwitterConnect::PerAccountUserMap	toAdd(CheckedUserList.size());
+		const auto& UserStatsList=mTwitterAnalyser->mPerPanelUsersStats;
+		TwitterConnect::PerAccountUserMap	toAdd(UserStatsList.size());
 		int sindex = 0;
 		int subcount = 0;
-		for (auto& s : CheckedUserList)
+		for (auto& s : UserStatsList)
 		{
 			if (mTwitterAnalyser->isUserOf(s.first, c.first))
 			{
@@ -681,7 +681,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 
 	// followers
 	std::vector<float> currentData;
-	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	for (auto u : mTwitterAnalyser->mPerPanelUsersStats)
 	{
 		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 		currentData.push_back(userdata.mFollowersCount);
@@ -702,7 +702,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	
 	// followings
 	currentData.clear();
-	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	for (auto u : mTwitterAnalyser->mPerPanelUsersStats)
 	{
 		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 		currentData.push_back(userdata.mFollowingCount);
@@ -731,7 +731,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		std::string endDate = TwitterConnect::getDate(1) + "T00:00:00.000Z";
 	}
 	
-	for (auto u : mTwitterAnalyser->mCheckedUserList)
+	for (auto u : mTwitterAnalyser->mPerPanelUsersStats)
 	{
 		const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 
@@ -763,7 +763,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Favorites)
 	{
 		std::vector<float>	favoritesUserCount;
-		for (auto u : mTwitterAnalyser->mCheckedUserList)
+		for (auto u : mTwitterAnalyser->mPerPanelUsersStats)
 		{
 			const auto& userdata = mTwitterAnalyser->getRetreivedUser(u.first);
 
@@ -834,8 +834,8 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 	}
 
 	// print inaccessible likers %
-
-	u32 totalLikerCount = 0;
+	//TODO
+	/*u32 totalLikerCount = 0;
 	u32 retrievedLikerCount = 0;
 	for (u32 i = 0; i < mTwitterAnalyser->mTweetRetrievedLikerCount.size(); i++)
 	{
@@ -847,7 +847,7 @@ void	GraphDrawer::drawStats(SP<KigsBitmap> bitmap)
 		std::string inaccessibleLikers = "Inaccessible likers : " + std::to_string(100 - (100 * retrievedLikerCount) / totalLikerCount) + "%";
 
 		bitmap->Print(inaccessibleLikers, 128, 900, 1, 512, 36, "Calibri.ttf", 0, { 0,0,0,255 });
-	}
+	}*/
 
 }
 
@@ -871,11 +871,11 @@ void	GraphDrawer::drawGeneralStats()
 
 	if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Likers)
 	{
-		sprintf(textBuffer, "Liked user count : %d", (int)mTwitterAnalyser->mUsersUserCount.size());
+		sprintf(textBuffer, "Liked user count : %d", (int)mTwitterAnalyser->mInStatsUsers.size());
 	}
 	else
 	{
-		sprintf(textBuffer, "Found followings : %d", (int)mTwitterAnalyser->mUsersUserCount.size());
+		sprintf(textBuffer, "Found followings : %d", (int)mTwitterAnalyser->mInStatsUsers.size());
 	}
 	mMainInterface["FoundFollowings"]("Text") = textBuffer;
 
@@ -928,20 +928,20 @@ void	GraphDrawer::drawGeneralStats()
 		
 	}
 
-	if (mTwitterAnalyser->mRetreivedUsers[0].mThumb.mTexture && mMainInterface["thumbnail"])
+	if (mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mThumb.mTexture && mMainInterface["thumbnail"])
 	{
 		const SP<UIImage>& tmp = mMainInterface["thumbnail"];
 
 		if (!tmp->HasTexture())
 		{
-			tmp->addItem(mTwitterAnalyser->mRetreivedUsers[0].mThumb.mTexture);
+			tmp->addItem(mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mThumb.mTexture);
 
-			usString	thumbname = mTwitterAnalyser->mRetreivedUsers[0].mName;
+			usString	thumbname = mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mName;
 
 			if (mTwitterAnalyser->mUseHashTags)
 			{
 				thumbname = std::string(" ");
-				thumbname +=mTwitterAnalyser->mRetreivedUsers[0].mName;
+				thumbname +=mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mName;
 			}
 			mMainInterface["thumbnail"]["UserName"]("Text") = thumbname;
 		}
@@ -949,7 +949,7 @@ void	GraphDrawer::drawGeneralStats()
 	}
 	else if (mMainInterface["thumbnail"])
 	{
-		TwitterConnect::LoadUserStruct(mTwitterAnalyser->mRetreivedUsers[0].mID, mTwitterAnalyser->mRetreivedUsers[0], true);
+		TwitterConnect::LoadUserStruct(mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID, mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0), true);
 	}
 }
 
@@ -970,9 +970,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Percent))
 	float wantedpercent = mTwitterAnalyser->mValidUserPercent;
 
 	std::vector<std::tuple<unsigned int,float, u64>>	toShow;
-	for (auto c : mTwitterAnalyser->mUsersUserCount)
+	for (auto c : mTwitterAnalyser->mInStatsUsers)
 	{
-		if (c.first != mTwitterAnalyser->mRetreivedUsers[0].mID)
+		if (c.first != mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID)
 		{
 			if (c.second.first > 3)
 			{
@@ -1007,7 +1007,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Percent))
 		currentShowedChannels[std::get<2>(tos)] = 1;
 		toShowCount++;
 
-		const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)];
+		const auto& a1User = mTwitterAnalyser->mInStatsUsers[std::get<2>(tos)];
 
 		if (toShowCount >= mTwitterAnalyser->mMaxUserCount)
 			break;
@@ -1076,16 +1076,16 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 	};
 
 	std::vector<std::tuple<unsigned int, float, u64>>	toShow;
-	for (auto c : mTwitterAnalyser->mUsersUserCount)
+	for (auto c : mTwitterAnalyser->mInStatsUsers)
 	{
-		if (c.first != mTwitterAnalyser->mRetreivedUsers[0].mID)
+		if (c.first != mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID)
 		{
 			if (c.second.first > 3)
 			{
 				float percent = (float)c.second.first / (float)mTwitterAnalyser->mValidUserCount;
 				if (percent > wantedpercent)
 				{
-					const auto& a1User = mTwitterAnalyser->mUsersUserCount[c.first];
+					const auto& a1User = mTwitterAnalyser->mInStatsUsers[c.first];
 					if (a1User.second.mName.ToString() == "") // not loaded
 					{
 						mTwitterAnalyser->askUserDetail(c.first);
@@ -1105,13 +1105,13 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 		return false;
 	}
 
-	float usedData = (float)getData(mTwitterAnalyser->mRetreivedUsers[0]);
+	float usedData = (float)getData(mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0));
 	
 	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float, u64>& a1, const std::tuple<unsigned int, float, u64>& a2)
 		{
 
-			const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a1)];
-			const auto& a2User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a2)];
+			const auto& a1User = mTwitterAnalyser->mInStatsUsers[std::get<2>(a1)];
+			const auto& a2User = mTwitterAnalyser->mInStatsUsers[std::get<2>(a2)];
 
 			// apply Jaccard index (https://en.wikipedia.org/wiki/Jaccard_index)
 			// a1 subscribers %
@@ -1147,7 +1147,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Jaccard))
 		currentShowedChannels[std::get<2>(tos)] = 1;
 		toShowCount++;
 
-		const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)];
+		const auto& a1User = mTwitterAnalyser->mInStatsUsers[std::get<2>(tos)];
 
 		// compute jaccard again
 		float fpercent = std::get<1>(tos) * 0.01f;
@@ -1215,16 +1215,16 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 	float wantedpercent = mTwitterAnalyser->mValidUserPercent;
 
 	std::vector<std::tuple<unsigned int, float, u64>>	toShow;
-	for (auto c : mTwitterAnalyser->mUsersUserCount)
+	for (auto c : mTwitterAnalyser->mInStatsUsers)
 	{
-		if (c.first != mTwitterAnalyser->mRetreivedUsers[0].mID)
+		if (c.first != mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID)
 		{
 			if (c.second.first > 3)
 			{
 				float percent = (float)c.second.first / (float)mTwitterAnalyser->mValidUserCount;
 				if (percent > wantedpercent)
 				{
-					const auto& a1User = mTwitterAnalyser->mUsersUserCount[c.first];
+					const auto& a1User = mTwitterAnalyser->mInStatsUsers[c.first];
 					if (a1User.second.mFollowersCount ==0) // not loaded
 					{
 						mTwitterAnalyser->askUserDetail(c.first);
@@ -1245,8 +1245,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 	}
 	std::sort(toShow.begin(), toShow.end(), [&](const std::tuple<unsigned int, float, u64>& a1, const std::tuple<unsigned int, float, u64>& a2)
 		{
-			auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a1)];
-			auto& a2User = mTwitterAnalyser->mUsersUserCount[std::get<2>(a2)];
+			auto& a1User = mTwitterAnalyser->mInStatsUsers[std::get<2>(a1)];
+			auto& a2User = mTwitterAnalyser->mInStatsUsers[std::get<2>(a2)];
 
 			float a1fcount = (a1User.second.mFollowersCount < 10) ? logf(10.0f) : logf((float)a1User.second.mFollowersCount);
 			float a2fcount = (a2User.second.mFollowersCount < 10) ? logf(10.0f) : logf((float)a2User.second.mFollowersCount);
@@ -1266,12 +1266,12 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 
 	for (const auto& toS : toShow)
 	{
-		if (std::get<2>(toS) == mTwitterAnalyser->mRetreivedUsers[0].mID)
+		if (std::get<2>(toS) == mTwitterAnalyser->mPanelRetreivedUsers.getUserStructAtIndex(0).mID)
 		{
 			continue;
 		}
 
-		auto& toPlace = mTwitterAnalyser->mUsersUserCount[std::get<2>(toS)];
+		auto& toPlace = mTwitterAnalyser->mInStatsUsers[std::get<2>(toS)];
 		float toplacefcount = (toPlace.second.mFollowersCount < 10) ? logf(10.0f) : logf((float)toPlace.second.mFollowersCount);
 		NormalizeFollowersCountForShown = toplacefcount;
 		break;
@@ -1286,7 +1286,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, Normalized))
 
 		// compute normalized percent
 		float fpercent = std::get<1>(tos);
-		int followcount = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)].second.mFollowersCount;
+		int followcount = mTwitterAnalyser->mInStatsUsers[std::get<2>(tos)].second.mFollowersCount;
 		float toplacefcount = (followcount < 10) ? logf(10.0f) : logf((float)followcount);
 		fpercent *= NormalizeFollowersCountForShown / toplacefcount;
 
@@ -1420,21 +1420,21 @@ void CoreFSMStopMethod(GraphDrawer, TopDraw)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, TopDraw))
 {
-	if (mTwitterAnalyser->mUsersUserCount.size() == 0)
+	if (mTwitterAnalyser->mInStatsUsers.size() == 0)
 	{
 		drawGeneralStats();
 		return false;
 	}
 	
 	float totalCount = 0.0f;
-	for (const auto& c : mTwitterAnalyser->mUsersUserCount)
+	for (const auto& c : mTwitterAnalyser->mInStatsUsers)
 	{
 		totalCount += (float)c.second.first;
 	}
 
 	float oneOnCount = 1.0f / totalCount;
 	std::vector<std::tuple<unsigned int, float, u64>>	toShow;
-	for (const auto& c : mTwitterAnalyser->mUsersUserCount)
+	for (const auto& c : mTwitterAnalyser->mInStatsUsers)
 	{
 		toShow.push_back({ c.second.first,(float)c.second.first*oneOnCount * 100.0f,c.first });
 	}
@@ -1456,7 +1456,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(GraphDrawer, TopDraw))
 		currentShowedChannels[std::get<2>(tos)] = 1;
 		toShowCount++;
 
-		const auto& a1User = mTwitterAnalyser->mUsersUserCount[std::get<2>(tos)];
+		const auto& a1User = mTwitterAnalyser->mInStatsUsers[std::get<2>(tos)];
 
 		if (toShowCount >= mTwitterAnalyser->mMaxUserCount)
 			break;

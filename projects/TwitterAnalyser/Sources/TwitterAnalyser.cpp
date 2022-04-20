@@ -120,12 +120,10 @@ void	TwitterAnalyser::ProtectedInit()
 	if (hashtag.length())
 	{
 		mUseHashTags = true;
-		TwitterConnect::UserStruct	mainuser;
-		mainuser.mID = 0;
-		mRetreivedUsers.push_back(mainuser);
+		mPanelRetreivedUsers.addUser(0);
 		auto textureManager = KigsCore::Singleton<TextureFileManager>();
-		mRetreivedUsers[0].mThumb.mTexture = textureManager->GetTexture("keyw.png");
-		mRetreivedUsers[0].mName = hashtag;
+		mPanelRetreivedUsers.getUserStructAtIndex(0).mThumb.mTexture = textureManager->GetTexture("keyw.png");
+		mPanelRetreivedUsers.getUserStructAtIndex(0).mName = hashtag;
 	}
 	else
 	{
@@ -140,10 +138,8 @@ void	TwitterAnalyser::ProtectedInit()
 			TwitterConnect::initDates(fromdate, todate);
 		}
 
-		TwitterConnect::UserStruct	mainuser;
-		mainuser.mID = 0;
-		mRetreivedUsers.push_back(mainuser);
-		SetMemberFromParam(mRetreivedUsers[0].mName, "UserName");
+		mPanelRetreivedUsers.addUser(0);
+		SetMemberFromParam(mPanelRetreivedUsers.getUserStructAtIndex(0).mName, "UserName");
 	}
 	u32 PanelType;
 	u32 AnalysedType;
@@ -173,7 +169,7 @@ void	TwitterAnalyser::ProtectedInit()
 	{
 	case dataType::Likers:
 		lastState = searchLikersFSM();
-		SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
+		SetMemberFromParam(mMaxUsersPerTweet, "MaxLikersPerTweet");
 		break;
 	case dataType::Followers:
 		lastState = searchFollowFSM("followers");
@@ -195,6 +191,9 @@ void	TwitterAnalyser::ProtectedInit()
 
 	switch (mAnalysedType)
 	{
+	case dataType::Likers:
+		analyseLikersFSM(lastState);
+		break;
 	case dataType::Favorites:
 		analyseFavoritesFSM(lastState);
 		break;
@@ -389,7 +388,7 @@ void	TwitterAnalyser::ProtectedCloseSequence(const kstl::string& sequence)
 		mFsm = nullptr;
 		removeItem(fsm);
 		mMainInterface = nullptr;
-		mRetreivedUsers.clear();
+		mPanelRetreivedUsers.clear();
 	}
 }
 

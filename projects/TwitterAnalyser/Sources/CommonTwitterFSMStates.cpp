@@ -14,20 +14,20 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitUser))
 {
 	std::string currentUserProgress = "Cache/";
 	currentUserProgress += "UserName/";
-	currentUserProgress += mRetreivedUsers[0].mName.ToString() + ".json";
+	currentUserProgress += mPanelRetreivedUsers.getUserStructAtIndex(0).mName.ToString() + ".json";
 	CoreItemSP currentP = TwitterConnect::LoadJSon(currentUserProgress);
 
 	if (!currentP) // new user
 	{
 		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "mainUserDone");
-		mTwitterConnect->launchUserDetailRequest(mRetreivedUsers[0].mName.ToString(), mRetreivedUsers[0]);
+		mTwitterConnect->launchUserDetailRequest(mPanelRetreivedUsers.getUserStructAtIndex(0).mName.ToString(), mPanelRetreivedUsers.getUserStructAtIndex(0));
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
 	else // load current user
 	{
 		u64 userID = currentP["id"];
-		mTwitterConnect->LoadUserStruct(userID, mRetreivedUsers[0], true);
+		mTwitterConnect->LoadUserStruct(userID, mPanelRetreivedUsers.getUserStructAtIndex(0), true);
 		auto availableTransitions = GetUpgrador()->getTransitionList();
 		for (const auto& t : availableTransitions)
 		{
@@ -62,12 +62,12 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUserDetail))
 		return false;
 	}
 
-	u64 userID = mRetreivedUsers[mCurrentUserIndex].mID;
+	u64 userID = GetUpgrador()->mUserID;
 
-	if (!mTwitterConnect->LoadUserStruct(userID, mRetreivedUsers[mCurrentUserIndex], false))
+	if (!mTwitterConnect->LoadUserStruct(userID, mPanelRetreivedUsers.getUserStruct(userID), false))
 	{
 		KigsCore::Connect(mTwitterConnect.get(), "UserDetailRetrieved", this, "manageRetrievedUserDetail");
-		mTwitterConnect->launchUserDetailRequest(userID, mRetreivedUsers[mCurrentUserIndex]);
+		mTwitterConnect->launchUserDetailRequest(userID, mPanelRetreivedUsers.getUserStruct(userID));
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -328,7 +328,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
 	}
 	else
 	{
-		GetUpgrador()->mUserlist = std::move(v);
+		GetUpgrador()->mUserlist.clear();
+		GetUpgrador()->mUserlist.addUsers(v);
 		GetUpgrador()->popState();
 	}
 		
@@ -443,12 +444,12 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::manageRetrievedFav
 	requestDone();
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFavorites)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
 	touserlist.clear();
 	for (const auto& u : GetUpgrador()->mFavorites)
 	{
-		touserlist.push_back(u.mAuthorID);
+		touserlist.addUser(u.mAuthorID);
 	}
 }
 
@@ -505,7 +506,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	}
 	else
 	{
-		GetUpgrador()->userlist = std::move(v);
+		GetUpgrador()->userlist.clear();
+		GetUpgrador()->userlist.addUsers(v);
 		GetUpgrador()->popState();
 	}
 	return false;
@@ -538,7 +540,7 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow
 	requestDone();
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
 	touserlist = std::move(GetUpgrador()->userlist);
 }
@@ -586,7 +588,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
 	}
 	else
 	{
-		GetUpgrador()->mUserlist = std::move(v);
+		GetUpgrador()->mUserlist.clear();
+		GetUpgrador()->mUserlist.addUsers(v);
 		GetUpgrador()->popState();
 	}
 
@@ -640,9 +643,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	{
 		return false;
 	}
-	std::string username = mRetreivedUsers[0].mName.ToString();
+	std::string username = GetUpgrador()->mUserName;
 
-	if (mUseHashTags)
+	if (GetUpgrador()->mUseHashtag)
 	{
 		username = TwitterConnect::getHashtagFilename(username);
 	}
@@ -650,16 +653,16 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	SP<CoreFSM> fsm = mFsm;
 	auto getTweetsState = getFSMState(fsm, TwitterAnalyser, GetTweets);
 
-	if (TwitterConnect::LoadTweetsFile(mTweets, username))
+	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, username))
 	{
-		if (mCurrentTreatedTweetIndex < mTweets.size())
+		if (GetUpgrador()->mCurrentTreatedTweetIndex < GetUpgrador()->mTweets.size())
 		{
 			GetUpgrador()->activateTransition("managetweettransition");
 			return false;
 		}
 		else
 		{
-			if (getTweetsState->mNeededTweetCount < mTweets.size()) // cant' retrieve more tweets
+			if (getTweetsState->mNeededTweetCount < GetUpgrador()->mTweets.size()) // cant' retrieve more tweets
 			{
 				GetUpgrador()->activateTransition("donetransition");
 				return false;
@@ -673,14 +676,14 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 
 	getTweetsState->mUserName = username;
 
-	if (mUseHashTags)
+	if (GetUpgrador()->mUseHashtag)
 	{
 		getTweetsState->mSearchTweets = true;
-		getTweetsState->mHashTag = mRetreivedUsers[0].mName.ToString();
+		getTweetsState->mHashTag = GetUpgrador()->mUserName;
 	}
 	else
 	{
-		getTweetsState->mUserID = mRetreivedUsers[0].mID;
+		getTweetsState->mUserID = GetUpgrador()->mUserID;
 		getTweetsState->mSearchTweets = false;
 
 		getTweetsState->mExcludeRetweets = GetUpgrador()->mExcludeRetweets;
@@ -688,6 +691,60 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	}
 
 	GetUpgrador()->activateTransition("gettweetstransition");
+
+	return false;
+}
+
+
+
+
+void	CoreFSMStartMethod(TwitterAnalyser, UpdateStats)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, UpdateStats)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateStats))
+{
+	auto userlist = mPanelUserList.getList();
+
+	auto user = userlist[mCurrentTreatedPanelUserIndex].first;
+
+	if (!TwitterConnect::LoadUserStruct(user, mPanelRetreivedUsers.getUserStruct(user), false))
+	{
+		askUserDetail(user);
+	}
+
+	const auto& currentData = GetUpgrador()->mUserlist.getList();
+
+	auto& currentUserData = mPerPanelUsersStats[user];
+
+	for (auto f : currentData)
+	{
+		currentUserData.addUser(f.first);
+
+		auto alreadyfound = mInStatsUsers.find(f.first);
+		if (alreadyfound != mInStatsUsers.end())
+		{
+			(*alreadyfound).second.first++;
+		}
+		else
+		{
+			TwitterConnect::UserStruct	toAdd;
+
+			mInStatsUsers[f.first] = std::pair<unsigned int, TwitterConnect::UserStruct>(1, toAdd);
+		}
+	}
+
+	// this one is done
+	mCurrentTreatedPanelUserIndex++;
+	mValidUserCount++;
+	mTreatedUserCount++;
+
+	GetUpgrador()->popState();
 
 	return false;
 }

@@ -51,7 +51,6 @@ public:
 		std::string					UTCTime = "";
 		ThumbnailStruct				mThumb;
 		std::vector<u64>			mFollowing;
-		float						mW;
 		u64							mID;
 		// detailed stats
 		u32							mLikerCount;

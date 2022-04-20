@@ -51,14 +51,16 @@ protected:
 	void		commonStatesFSM();
 	std::unordered_map<KigsID, SP<CoreFSMTransition>>	mTransitionList;
 
+	std::string	searchFavoritesFSM();
 	std::string	searchLikersFSM();
+	std::string	searchFollowFSM(const std::string& followtype);
 	std::string	searchRetweetersFSM();
 	std::string	searchRetweetedFSM();
-	std::string	searchFavoritesFSM();
-	std::string	searchFollowFSM(const std::string& followtype);
+
 	void		TopFSM(const std::string& laststate);
 
 	void	analyseFavoritesFSM(const std::string& lastState);
+	void	analyseLikersFSM(const std::string& lastState);
 	void	analyseFollowFSM(const std::string& lastState, const std::string& followtype);
 	void	analyseRetweetersFSM(const std::string& lastState);
 	void	analyseRetweetedFSM(const std::string& lastState);
@@ -74,29 +76,16 @@ protected:
 	SP<TwitterConnect>			mTwitterConnect=nullptr;
 	CMSP						mMainInterface=nullptr;
 
-	SP<GraphDrawer>			mGraphDrawer = nullptr;
+	SP<GraphDrawer>				mGraphDrawer = nullptr;
 
-	// list of tweets
-	std::vector<TwitterConnect::Twts>	mTweets;
-
-	// list of users (for panel)
-	std::vector<u64>					mUserList;
-
-	// retrieved likers count per tweet			
-	std::map<u64, u32>					mTweetRetrievedLikerCount;
-	u32									mCurrentTreatedTweetIndex = 0;
-	// list of likers
-	u32									mCurrentTreatedUserIndex=0;
-	u32									mValidTreatedLikersForThisTweet = 0;
+	
 	u32									mValidUserCount=0;
 	u32									mTreatedUserCount = 0;
-	u32									mMaxLikersPerTweet = 0;
+	u32									mMaxUsersPerTweet = 0;
 	u32									mMaxUserCount=45;
 	u32									mUserPanelSize=500;
 
-	std::set<u64>					mFoundUser;
-
-	bool							mCanGetMoreUsers = false;
+	bool								mCanGetMoreUsers = false;
 
 	// analyse type
 	dataType		mPanelType = dataType::Followers;
@@ -110,19 +99,152 @@ protected:
 	// wait request was treated
 	maBool	mNeedWait = BASE_ATTRIBUTE(NeedWait, false);
 
+
+	// manage a list of users 
+	class UserList
+	{
+	public:
+
+		void	addUser(u64 id)
+		{
+			auto f = mUserIndexInVector.find(id);
+			if (f == mUserIndexInVector.end())
+			{
+				mUserIndexInVector[id] = mUserList.size();
+				mUserList.push_back({ id,1 });
+			}
+			else
+			{
+				(*f).second++;
+			}
+		}
+
+		void	addUser(const std::pair<u64, u32>& user)
+		{
+			auto f = mUserIndexInVector.find(user.first);
+			if (f == mUserIndexInVector.end())
+			{
+				mUserIndexInVector[user.first] = mUserList.size();
+				mUserList.push_back(user);
+			}
+			else
+			{
+				(*f).second += user.second;
+			}
+		}
+
+		void	addUsers(const std::vector<u64>& users)
+		{
+			for (auto& u : users)
+			{
+				addUser(u);
+			}
+		}
+
+		void	addUsers(const UserList& users)
+		{
+			for (auto& u : users.getList())
+			{
+				addUser(u);
+			}
+		}
+
+		const std::vector<std::pair<u64, u32>>& getList() const
+		{
+			return mUserList;
+		}
+
+		size_t	size() const
+		{
+			return mUserList.size();
+		}
+
+		void	clear()
+		{
+			mUserIndexInVector.clear();
+			mUserList.clear();
+		}
+
+	protected:
+		// pair of userID / user occurence count (for favorites, likers...)
+		std::vector<std::pair<u64, u32>>			mUserList;
+		// given userID, find index in previous vector
+		std::unordered_map<u64, size_t>				mUserIndexInVector;
+	};
+
+	UserList		mPanelUserList;
+	// current panel user on which statistics are made
+	u32				mCurrentTreatedPanelUserIndex = 0;
+
+	class UserListWithStruct : public UserList
+	{
+	public:
+		void	addUser(u64 id)
+		{
+			UserList::addUser(id);
+			resizeUserStruct();
+		}
+
+		void	addUser(const std::pair<u64, u32>& user)
+		{
+			UserList::addUser(user);
+			resizeUserStruct();
+		}
+
+		void	addUsers(const std::vector<u64>& users)
+		{
+			UserList::addUsers(users);
+			resizeUserStruct();
+		}
+
+		void	addUsers(const UserList& users)
+		{
+			UserList::addUsers(users);
+			resizeUserStruct();
+		}
+
+		TwitterConnect::UserStruct& getUserStruct(u64 id)
+		{
+			auto f = mUserIndexInVector.find(id);
+			if (f != mUserIndexInVector.end())
+			{
+				return mUsersStruct[(*f).second];
+			}
+			return mUsersStruct[0];
+		}
+
+		TwitterConnect::UserStruct& getUserStructAtIndex(size_t index)
+		{
+			return mUsersStruct[index];
+		}
+
+	protected:
+		void	resizeUserStruct()
+		{
+			size_t prevsize = mUsersStruct.size();
+			if (prevsize < mUserList.size())
+			{
+				mUsersStruct.resize(mUserList.size());
+
+				for (size_t i = prevsize; i < mUsersStruct.size(); i++)
+				{
+					mUsersStruct[i].mID = mUserList[i].first;
+				}
+			}
+		}
+		std::vector<TwitterConnect::UserStruct>			mUsersStruct;
+	};
+
+
 	// user 0 is main user if needed
-	std::vector<TwitterConnect::UserStruct>		mRetreivedUsers;
+	UserListWithStruct	mPanelRetreivedUsers;
+	
+	// for each user in panel, list of (likers, followers, retwetters...)
+	std::map<u64, UserList>					mPerPanelUsersStats;
 
+	// count number of time a user appears in stats
+	std::map<u64, std::pair<u32, TwitterConnect::UserStruct>>			mInStatsUsers;
 
-	std::unordered_map<u64, u32>				mUserToUserIndex;
-
-
-	// per user map of favorites or following 
-	std::map <u64, std::map<u64, float> >										mWeightedData;
-	std::map<u64, std::vector<u64>>												mCheckedUserList;
-	std::map<u64, std::pair<unsigned int, TwitterConnect::UserStruct>>			mUsersUserCount;
-
-	u32			mCurrentUserIndex = 0;
 
 	void	askUserDetail(u64 userID)
 	{
@@ -136,14 +258,7 @@ protected:
 
 	const TwitterConnect::UserStruct& getRetreivedUser(u64 uid)
 	{
-		for(const auto& u: mRetreivedUsers)
-		{
-			if (u.mID == uid)
-			{
-				return u;
-			}
-		}
-		return mRetreivedUsers[0];
+		return mPanelRetreivedUsers.getUserStruct(uid);
 	}
 
 	// user detail asked
@@ -153,14 +268,14 @@ protected:
 
 	CMSP mFsm;
 
-	bool	isUserOf(u64 follower, u64 account) const
+	bool	isUserOf(u64 paneluser, u64 account) const
 	{
-		const auto& found = mCheckedUserList.find(follower);
-		if (found != mCheckedUserList.end())
+		const auto& found = mPerPanelUsersStats.find(paneluser);
+		if (found != mPerPanelUsersStats.end())
 		{
-			for (auto& c : (*found).second)
+			for (auto& c : (*found).second.getList())
 			{
-				if (c == account)
+				if (c.first == account)
 				{
 					return true;
 				}

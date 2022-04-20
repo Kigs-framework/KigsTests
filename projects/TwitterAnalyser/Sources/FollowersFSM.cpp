@@ -6,33 +6,30 @@
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveUserFollow)
 public:
-	unsigned int			mStateStep = 0;
-	u64						mUserID;
-	std::vector<u64>		mUserlist;
-	std::string				mFollowType;
+	unsigned int				mStateStep = 0;
+	u64							mUserID;
+	TwitterAnalyser::UserList	mUserlist;
+	std::string					mFollowType;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
-void	copyUserList(std::vector<u64>& touserlist);
+void	copyUserList(TwitterAnalyser::UserList& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
 
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveFollow)
 public:
-	unsigned int			mStateStep = 0;
-	u64						mUserID;
-	std::vector<u64>		mUserlist;
-	std::string				mFollowType;
+	unsigned int				mStateStep = 0;
+	u64							mUserID;
+	TwitterAnalyser::UserList	mUserlist;
+	std::string					mFollowType;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
-void	copyUserList(std::vector<u64>& touserlist);
+void	copyUserList(TwitterAnalyser::UserList& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
-// update statistics
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, UpdateStats)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
+
 
 std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 {
@@ -57,7 +54,7 @@ std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 	KigsCore::Connect(retrieveuserfollowtransition.get(), "ExecuteTransition", this, "setUserID", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
 			auto  followState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, RetrieveUserFollow);
-			followState->mUserID = mRetreivedUsers[0].mID;
+			followState->mUserID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
 		});
 
 	// Init can go to Wait or GetFollow
@@ -108,7 +105,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	// when going to getuserdatatransition, retreive user list from previous state
 	KigsCore::Connect(getuserdatatransition.get(), "ExecuteTransition", this, "setUserList", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
-			SimpleCall("copyUserList", mUserList);
+			SimpleCall("copyUserList", mPanelUserList);
 		});
 
 
@@ -123,6 +120,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	getuserdetailtransition->setValue("TransitionBehavior", "Push");
 	getuserdetailtransition->setState("GetUserDetail");
 	getuserdetailtransition->Init();
+
 	// getFavorites -> user detail, wait or pop
 	fsm->getState("RetrieveFollow")->addTransition(getfollowtransition);
 	fsm->getState("RetrieveFollow")->addTransition(getuserdetailtransition);
@@ -140,12 +138,13 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 
 	fsm->addState("GetUserDetail", new CoreFSMStateClass(TwitterAnalyser, GetUserDetail)());
 
-	// create updateLikesStatistics transition (Push)
+	// create UpdateStats transition (Push)
 	SP<CoreFSMTransition> updatestatstransition = KigsCore::GetInstanceOf("updatestatstransition", "CoreFSMInternalSetTransition");
 	updatestatstransition->setValue("TransitionBehavior", "Push");
 	updatestatstransition->setState("UpdateStats");
 	updatestatstransition->Init();
 
+	
 
 	// GetUserDetail can go to UpdateLikesStats, wait (or pop)
 	fsm->getState("GetUserDetail")->addTransition(mTransitionList["waittransition"]);
@@ -155,65 +154,19 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	fsm->addState("UpdateStats", new CoreFSMStateClass(TwitterAnalyser, UpdateStats)());
 	// no transition here, only pop
 
-}
 
-
-
-
-void	CoreFSMStartMethod(TwitterAnalyser, UpdateStats)
-{
-
-}
-void	CoreFSMStopMethod(TwitterAnalyser, UpdateStats)
-{
-
-}
-
-DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateStats))
-{
-	std::vector<u64>& userlist = mUserList;
-
-	auto user = userlist[mCurrentTreatedUserIndex];
-	u64 userID = mRetreivedUsers[mUserToUserIndex[user]].mID;
-
-	if (!TwitterConnect::LoadUserStruct(userID, mRetreivedUsers[mUserToUserIndex[user]], false))
-	{
-		askUserDetail(userID);
-	}
-
-	auto  followDataState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, RetrieveFollow);
-
-	const auto& currentData = followDataState->mUserlist;
-
-	std::vector<u64>& currentUserFollowData = mCheckedUserList[userID];
-
-	for (auto f : currentData)
-	{
-		currentUserFollowData.push_back(f);
-
-		auto alreadyfound = mUsersUserCount.find(f);
-		if (alreadyfound != mUsersUserCount.end())
+	KigsCore::Connect(updatestatstransition.get(), "ExecuteTransition", this, "setupstats", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
-			(*alreadyfound).second.first++;
-		}
-		else
-		{
-			TwitterConnect::UserStruct	toAdd;
-			toAdd.mW = 0.0f;
+			// get follow state
+			auto followState = fsm->getState("RetrieveFollow")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveFollow)>();
+			auto updateState = fsm->getState("UpdateStats")->as<CoreFSMStateClass(TwitterAnalyser, UpdateStats)>();
+			
+			updateState->mUserlist = followState->mUserlist;
 
-			mUsersUserCount[f] = std::pair<unsigned int, TwitterConnect::UserStruct>(1, toAdd);
-		}
-	}
-
-	// this one is done
-	mCurrentTreatedUserIndex++;
-	mValidUserCount++;
-	mTreatedUserCount++;
-
-	GetUpgrador()->popState();
-
-	return false;
+		});
 }
+
+
 
 void	CoreFSMStartMethod(TwitterAnalyser, RetrieveFollow)
 {
@@ -233,30 +186,21 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 		return false;
 	}
 
-	std::vector<u64>& userlist = mUserList;
+	auto userlist = mPanelUserList.getList();
 	SP<CoreFSM> fsm = mFsm;
 	auto getGetFollowState = getFSMState(fsm, TwitterAnalyser, GetFollow);
 	if (GetUpgrador()->mStateStep == 0)
 	{
-		if (mCurrentTreatedUserIndex < userlist.size())
+		if (mCurrentTreatedPanelUserIndex < userlist.size())
 		{
-			auto user = userlist[mCurrentTreatedUserIndex];
-			auto found = mFoundUser.find(user);
-
-			if (found != mFoundUser.end()) // this one was already treated
-			{
-				mCurrentTreatedUserIndex++; // goto next one
-				return false;
-			}
-
+			auto user = userlist[mCurrentTreatedPanelUserIndex].first;
+			
 			GetUpgrador()->mUserID = user;
 
 			getGetFollowState->userid = user;
 			getGetFollowState->userlist.clear();
 			getGetFollowState->limitCount = -1;
 			getGetFollowState->followtype = GetUpgrador()->mFollowType;
-
-			mFoundUser.insert(user);
 
 			GetUpgrador()->activateTransition("getfollowtransition");
 
@@ -275,22 +219,19 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 		// if follow were retrieved
 		if (GetUpgrador()->mUserlist.size())
 		{
-			TwitterConnect::UserStruct	newuser;
-			newuser.mID = GetUpgrador()->mUserID;
-			mRetreivedUsers.push_back(newuser);
-			mCurrentUserIndex = mRetreivedUsers.size() - 1;
-			mUserToUserIndex[GetUpgrador()->mUserID] = mCurrentUserIndex;
-
+			mPanelRetreivedUsers.addUser(GetUpgrador()->mUserID);
+	
 			SP<CoreFSM> fsm = mFsm;
 
 			auto userDetailState = getFSMState(fsm, TwitterAnalyser, GetUserDetail);
+			userDetailState->mUserID = GetUpgrador()->mUserID;
 			userDetailState->nextTransition = "updatestatstransition";
 			GetUpgrador()->activateTransition("getuserdetailtransition");
 
 		}
 		else
 		{
-			mCurrentTreatedUserIndex++; // goto next one
+			mCurrentTreatedPanelUserIndex++; // goto next one
 			mTreatedUserCount++;
 		}
 
@@ -301,7 +242,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 }
 
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveFollow)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveFollow)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
 	touserlist = std::move(GetUpgrador()->mUserlist);
 }
@@ -350,7 +291,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveUserFollow))
 	return false;
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveUserFollow)::copyUserList(std::vector<u64>& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveUserFollow)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
 	touserlist = std::move(GetUpgrador()->mUserlist);
 }
