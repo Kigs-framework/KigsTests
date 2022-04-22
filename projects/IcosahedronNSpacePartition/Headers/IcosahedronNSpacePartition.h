@@ -15,9 +15,11 @@ public:
 protected:
 
 	maInt	mSelectedVertice = BASE_ATTRIBUTE(SelectedVertice,-1);
+	maInt	mSelectedFace = BASE_ATTRIBUTE(SelectedFace, -1);
 
-	void	drawEdges();
-	void	drawVertices();
+	void	drawEdges() const;
+	void	drawVertices() const;
+	void	drawFaces() const;
 
 	void	ProtectedInit() override;
 	void	ProtectedUpdate() override;

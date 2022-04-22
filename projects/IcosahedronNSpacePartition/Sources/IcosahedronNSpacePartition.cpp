@@ -25,13 +25,20 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 
 	mIcosahedron = new Icosahedron(0);
 
+	for (size_t i = 0; i < 100; i++)
+	{
+		v3f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
+		tstN.Normalize();
+		mIcosahedron->getNormalFlag(tstN);
+	}
+
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
 }
 
 
-void	IcosahedronNSpacePartition::drawEdges()
+void	IcosahedronNSpacePartition::drawEdges() const
 {
 #ifdef _DEBUG
 	auto edgeList = mIcosahedron->getEdges();
@@ -45,21 +52,81 @@ void	IcosahedronNSpacePartition::drawEdges()
 #endif
 }
 
-void	IcosahedronNSpacePartition::drawVertices()
+void	IcosahedronNSpacePartition::drawFaces() const
+{
+#ifdef _DEBUG
+	auto faceList = mIcosahedron->getFaces();
+	for (size_t i = 0; i < faceList.size(); i++)
+	{
+		if (mSelectedFace == i)
+		{
+			auto& vlist = faceList[i];
+
+			float ecolor = 0.0f;
+			for (size_t j = 0; j < vlist.size(); j++)
+			{
+				float R(0.0f), G(0.0f), B(0.0f);
+
+				float currentcolor = ecolor;
+				if (currentcolor > 2.0f)
+				{
+					B = currentcolor - 2.0f;
+					currentcolor -= B;
+				}
+
+				if (currentcolor > 1.0f)
+				{
+					G = currentcolor - 1.0f;
+					currentcolor -= G;
+				}
+
+				R = currentcolor;
+
+				v3f color(R, G, B);
+				dd::line(vlist[j], vlist[(j+1)%vlist.size()], color, 0, false);
+				ecolor += 0.5f;
+			}
+		}
+	}
+
+#endif
+}
+
+void	IcosahedronNSpacePartition::drawVertices() const
 {
 #ifdef _DEBUG
 	auto edgeList = mIcosahedron->getVertices();
 
-	v3f color(1.0, 0.0, 0.0);
+	
 	for (size_t i = 0; i < edgeList.size(); i++)
 	{
 		if (mSelectedVertice == i)
 		{
 			auto& e = edgeList[i];
 
+			float ecolor = 0.0f;
 			for (auto& v : e.second)
 			{
+				float R(0.0f), G(0.0f), B(0.0f);
+
+				float currentcolor = ecolor;
+				if (currentcolor > 2.0f)
+				{
+					B = currentcolor - 2.0f;
+					currentcolor -= B;
+				}
+
+				if (currentcolor > 1.0f)
+				{
+					G = currentcolor - 1.0f;
+					currentcolor -= G;
+				}
+				
+				R = currentcolor;
+
+				v3f color(R, G, B);
 				dd::line(e.first, v, color,0,false);
+				ecolor+=0.5f;
 			}
 		}
 	}
@@ -75,6 +142,7 @@ void	IcosahedronNSpacePartition::ProtectedUpdate()
 	{
 		drawEdges();
 		drawVertices();
+		drawFaces();
 	}
 }
 
