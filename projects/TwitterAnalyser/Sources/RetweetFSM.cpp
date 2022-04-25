@@ -128,8 +128,8 @@ std::string	TwitterAnalyser::searchRetweetedFSM()
 			retrievetweetsState->mUseHashtag = mUseHashTags;
 			retrievetweetsState->mUserID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
 			retrievetweetsState->mUserName = mPanelRetreivedUsers.getUserStructAtIndex(0).mName.ToString();
-			retrievetweetsState->mExcludeRetweets = false; // don't take retweets into account here
-			retrievetweetsState->mExcludeReplies = true; // take replies into account here
+			retrievetweetsState->mExcludeRetweets = false; // take retweets into account here
+			retrievetweetsState->mExcludeReplies = true; // don't take replies into account here
 		});
 
 	// Init can go to Wait or RetrieveTweets

@@ -172,6 +172,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, InitHashTag))
 	return false;
 }
 
+
 void	CoreFSMStartMethod(TwitterAnalyser, GetTweets)
 {
 
@@ -192,18 +193,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 	bool needMoreTweet=true;
 	bool hasTweetFile=false;
 
-	std::string excludesfname = "";
-	if (GetUpgrador()->mExcludeRetweets)
-	{
-		excludesfname += "retweets";
-	}
-	if (GetUpgrador()->mExcludeReplies)
-	{
-		excludesfname += "replies";
-	}
-
 	std::vector<TwitterConnect::Twts>	v;
-	if (TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName, excludesfname))
+	if (TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName))
 	{
 		hasTweetFile = true;
 		if (GetUpgrador()->mNeededTweetCount < v.size())
@@ -241,21 +232,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 			}
 			else
 			{
-				std::string excludes = "";
-				if (GetUpgrador()->mExcludeRetweets)
-				{
-					excludes += "retweets";
-				}
-				if (GetUpgrador()->mExcludeReplies)
-				{
-					if (excludes != "")
-					{
-						excludes += ",";
-					}
-					excludes += "replies";
-				}
-
-				mTwitterConnect->launchGetTweetRequest(GetUpgrador()->mUserID, GetUpgrador()->mUserName, excludes, nextCursor);
+				mTwitterConnect->launchGetTweetRequest(GetUpgrador()->mUserID, GetUpgrador()->mUserName, nextCursor);
 			}
 			mNeedWait = true;
 			GetUpgrador()->activateTransition("waittransition");
@@ -275,18 +252,8 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetTweets)::manageRetrievedTweets
 	}
 	filenamenext_token += GetUpgrador()->mUserName + "_TweetsNextCursor.json";
 
-	std::string excludesfname = "";
-	if (GetUpgrador()->mExcludeRetweets)
-	{
-		excludesfname += "retweets";
-	}
-	if (GetUpgrador()->mExcludeReplies)
-	{
-		excludesfname += "replies";
-	}
-
 	std::vector<TwitterConnect::Twts>	v;
-	TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName, excludesfname);
+	TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName);
 	v.insert(v.end(), twtlist.begin(), twtlist.end());
 
 	if (nexttoken != "-1")
@@ -302,7 +269,7 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetTweets)::manageRetrievedTweets
 	}
 
 	KigsCore::Disconnect(mTwitterConnect.get(), "TweetRetrieved", this, "manageRetrievedTweets");
-	TwitterConnect::SaveTweetsFile(v, GetUpgrador()->mUserName, excludesfname);
+	TwitterConnect::SaveTweetsFile(v, GetUpgrador()->mUserName);
 
 	requestDone();
 }
@@ -674,17 +641,12 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	SP<CoreFSM> fsm = mFsm;
 	auto getTweetsState = getFSMState(fsm, TwitterAnalyser, GetTweets);
 
-	std::string excludesfname = "";
-	if (GetUpgrador()->mExcludeRetweets)
+	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, username))
 	{
-		excludesfname += "retweets";
-	}
-	if (GetUpgrador()->mExcludeReplies)
-	{
-		excludesfname += "replies";
-	}
-	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, username, excludesfname))
-	{
+		if (!GetUpgrador()->mUseHashtag)
+		{
+			TwitterConnect::FilterTweets(GetUpgrador()->mUserID, GetUpgrador()->mTweets, GetUpgrador()->mExcludeRetweets, GetUpgrador()->mExcludeReplies);
+		}
 		if (GetUpgrador()->mCurrentTreatedTweetIndex < GetUpgrador()->mTweets.size())
 		{
 			GetUpgrador()->activateTransition("managetweettransition");
@@ -715,9 +677,6 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	{
 		getTweetsState->mUserID = GetUpgrador()->mUserID;
 		getTweetsState->mSearchTweets = false;
-
-		getTweetsState->mExcludeRetweets = GetUpgrador()->mExcludeRetweets;
-		getTweetsState->mExcludeReplies = GetUpgrador()->mExcludeReplies;
 	}
 
 	GetUpgrador()->activateTransition("gettweetstransition");

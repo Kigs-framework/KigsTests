@@ -33,12 +33,13 @@ public:
 
 	struct Twts
 	{
-		u64		mAuthorID;
+		u64		mAuthorID;		// if 0 need to search author using tweetid
 		u64		mTweetID;
 		u32		mLikeCount;
 		u32		mRetweetCount; 
 		u32		mQuoteCount;
 		u32		mCreationData;
+		u32		mFlag;			// is reply
 	};
 
 	class UserStruct
@@ -241,13 +242,13 @@ public:
 	// followers or following
 	void	launchGetFollow(u64 userid,const std::string& followtype, const std::string& nextToken = "-1");
 	void	launchGetFavoritesRequest(u64 userid, const std::string& nextToken = "-1");
-	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& excludes,const std::string& nextToken="-1");
+	void	launchGetTweetRequest(u64 userid, const std::string& username, const std::string& nextToken="-1");
 	void	launchSearchTweetRequest(const std::string& hashtag, const std::string& nextToken = "-1");
 	void	launchGetLikers(u64 tweetid, const std::string& nextToken = "-1");
 	void	launchGetRetweeters(u64 tweetid, const std::string& nextToken = "-1");
 
-	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname="");
-	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& excludes, const std::string& fname = "");
+	static bool	LoadTweetsFile(std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname="");
+	static void	SaveTweetsFile(const std::vector<Twts>& tweetlist, const std::string& username, const std::string& fname = "");
 	
 
 	u32		getRequestCount()
@@ -275,6 +276,8 @@ public:
 			}
 		}
 	}
+
+	static void	FilterTweets(u64 authorid, std::vector<TwitterConnect::Twts>& twts,bool excludeRT,bool excludeReplies);
 
 	static CoreItemSP	LoadLikersFile(u64 tweetid, const std::string& username);
 	static void			SaveLikersFile(const std::vector<std::string>& tweetLikers, u64 tweetid, const std::string& username);
@@ -346,7 +349,6 @@ protected:
 	DECLARE_METHOD(getUserDetails);
 	DECLARE_METHOD(getTweets);
 	DECLARE_METHOD(getLikers);
-	//DECLARE_METHOD(getSearchTweets);
 	DECLARE_METHOD(getFollow);
 	DECLARE_METHOD(getFavorites);
 	
