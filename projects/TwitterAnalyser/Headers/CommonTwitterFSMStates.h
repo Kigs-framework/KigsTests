@@ -16,25 +16,43 @@ void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std
 ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedTweets)
 END_DECLARE_COREFSMSTATE()
 
-// retrieve likes
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetLikers)
+
+// base state for retrieving user list
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetUsers)
 public:
+
+	// Tweet or user id to retrieve data for
+	u64								mForID;
+
 	TwitterAnalyser::UserList		mUserlist;
-	u64								mTweetID;
-	u32								mNeededLikersCount = 0;
+	// if 0 => try to get all of them
+	// else try to get at least mNeededUserCount
+	u32								mNeededUserCount = 0;
+	// when mUserlist>mNeededUserCount, if mNeededUserCountIncrement == 0 then don't do more (pop)
+	// else mNeededUserCount+=mNeededUserCountIncrement
+	u32								mNeededUserCountIncrement=0;
+
+	// set it to true when mNeededUserCount need to be incremented
+	bool							mNeedMoreUsers = false;
+
+	// set to true when no more user can be retreived
+	bool							mCantGetMoreUsers = false;
+
 protected:
-	STARTCOREFSMSTATE_WRAPMETHODS();
-	void	manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken);
+COREFSMSTATE_WITHOUT_METHODS();
+END_DECLARE_COREFSMSTATE()
+
+
+// retrieve likes
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, GetLikers, GetUsers)
+STARTCOREFSMSTATE_WRAPMETHODS();
+void	manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken);
 ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedLikers)
 END_DECLARE_COREFSMSTATE()
 
 
 // retrieve likes
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetRetweeters)
-public:
-	TwitterAnalyser::UserList		mUserlist;
-	u64								mTweetID;
-protected:
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, GetRetweeters, GetUsers)
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedRetweeters(std::vector<u64>& RTers, const std::string& nexttoken);
 ENDCOREFSMSTATE_WRAPMETHODS(manageRetrievedRetweeters)
@@ -88,13 +106,9 @@ START_DECLARE_COREFSMSTATE(TwitterAnalyser, Done)
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetFollow)
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, GetFollow, GetUsers)
 public:
-	// the user to retrieve follows 
-	u64								userid;
-	TwitterAnalyser::UserList		userlist;
 	std::string						followtype;
-	int								limitCount = -1;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken);

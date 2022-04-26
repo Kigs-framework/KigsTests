@@ -96,8 +96,6 @@ std::string	TwitterAnalyser::searchRetweetersFSM()
 	// when enough retweeters, pop
 	fsm->getState("RetrieveUserRetweeters")->addTransition(mTransitionList["popwhendone"]);
 
-
-
 	// create GetLikers state
 	fsm->addState("GetRetweeters", new CoreFSMStateClass(TwitterAnalyser, GetRetweeters)());
 	// after GetLikers, can go to get user data (or pop)
@@ -205,7 +203,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveUserRetweeters
 
 			if (GetUpgrador()->mStateStep == 0)
 			{
-				getRTState->mTweetID = currentTweet.mTweetID;
+				getRTState->mForID = currentTweet.mTweetID;
 				GetUpgrador()->mStateStep = 1;
 				GetUpgrador()->activateTransition("getretweeterstransition");
 			}

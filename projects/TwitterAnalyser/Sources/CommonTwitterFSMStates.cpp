@@ -274,6 +274,30 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetTweets)::manageRetrievedTweets
 	requestDone();
 }
 
+void	CoreFSMStartMethod(TwitterAnalyser, GetUsers)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetUsers)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUsers))
+{
+	
+	if (GetUpgrador()->mNeedMoreUsers) // this state needs more user
+	{
+		if (GetUpgrador()->mNeededUserCountIncrement)
+		{
+			GetUpgrador()->mNeededUserCount += GetUpgrador()->mNeededUserCountIncrement;
+		}
+	}
+
+	return false;
+}
+
+
 void	CoreFSMStartMethod(TwitterAnalyser, GetLikers)
 {
 
@@ -290,27 +314,30 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
 	{
 		return false;
 	}
+
+	// call parent upgrador update
+	UpgradorMethodParentClass::UpgradorUpdate(timer, addParam);
+
 	std::string filenamenext_token = "Cache/Tweets/";
-	filenamenext_token += std::to_string(GetUpgrador()->mTweetID) + "_LikersNextCursor.json";
+	filenamenext_token += std::to_string(GetUpgrador()->mForID) + "_LikersNextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
 
 	std::string next_cursor = "-1";
 
-	std::vector<u64>	 v = TwitterConnect::LoadLikersFile(GetUpgrador()->mTweetID);
+	std::vector<u64>	 v = TwitterConnect::LoadLikersFile(GetUpgrador()->mForID);
 	if (nextt)
 	{
-		if (!(GetUpgrador()->mNeededLikersCount) || (v.size() < GetUpgrador()->mNeededLikersCount))
+		if (!(GetUpgrador()->mNeededUserCount) || (v.size() < GetUpgrador()->mNeededUserCount))
 		{
 			next_cursor = nextt["next-cursor"]->toString();
 		}
 	}
-	
 
 	if ((v.size() == 0) || (next_cursor != "-1"))
 	{
 		KigsCore::Connect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedLikers");
-		mTwitterConnect->launchGetLikers(GetUpgrador()->mTweetID, next_cursor);
+		mTwitterConnect->launchGetLikers(GetUpgrador()->mForID, next_cursor);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -327,7 +354,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetLikers))
 
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetLikers)::manageRetrievedLikers(std::vector<u64>& TweetLikers, const std::string& nexttoken)
 {
-	u64 tweetID = GetUpgrador()->mTweetID;
+	u64 tweetID = GetUpgrador()->mForID;
 
 	std::string filenamenext_token = "Cache/Tweets/";
 	filenamenext_token += std::to_string(tweetID) + "_LikersNextCursor.json";
@@ -458,8 +485,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 		return false;
 	}
 
-	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+	// call parent upgrador update
+	UpgradorMethodParentClass::UpgradorUpdate(timer, addParam);
+
+	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->mForID) + "/";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
 
@@ -473,13 +503,13 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	}
 	else
 	{
-		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
 	}
 
-	if (GetUpgrador()->limitCount != -1)
+	if (GetUpgrador()->mNeededUserCount)
 	{
 		// check limit count
-		if (hasFollowFile && (v.size() >= GetUpgrador()->limitCount)) // if enough, set next_cursor to -1
+		if (hasFollowFile && (v.size() >= GetUpgrador()->mNeededUserCount)) // if enough, set next_cursor to -1
 		{
 			next_cursor = "-1";
 		}
@@ -488,14 +518,14 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	if ((!hasFollowFile) || (next_cursor != "-1"))
 	{
 		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
-		mTwitterConnect->launchGetFollow(GetUpgrador()->userid, GetUpgrador()->followtype, next_cursor);
+		mTwitterConnect->launchGetFollow(GetUpgrador()->mForID, GetUpgrador()->followtype, next_cursor);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
 	else
 	{
-		GetUpgrador()->userlist.clear();
-		GetUpgrador()->userlist.addUsers(v);
+		GetUpgrador()->mUserlist.clear();
+		GetUpgrador()->mUserlist.addUsers(v);
 		GetUpgrador()->popState();
 	}
 	return false;
@@ -503,11 +533,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken)
 {
-	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->userid) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->userid) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->mForID) + "/";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
 
 	std::vector<u64> v;
-	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
 	v.insert(v.end(), follow.begin(), follow.end());
 
 	if (nexttoken != "-1")
@@ -523,14 +553,14 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow
 	}
 
 	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
-	TwitterConnect::SaveFollowFile(GetUpgrador()->userid, v, GetUpgrador()->followtype);
+	TwitterConnect::SaveFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
 
 	requestDone();
 }
 
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
-	touserlist = std::move(GetUpgrador()->userlist);
+	touserlist = std::move(GetUpgrador()->mUserlist);
 }
 
 void	CoreFSMStartMethod(TwitterAnalyser, GetRetweeters)
@@ -550,7 +580,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
 		return false;
 	}
 	std::string filenamenext_token = "Cache/Tweets/";
-	filenamenext_token += std::to_string(GetUpgrador()->mTweetID) + "_RetweeterNextCursor.json";
+	filenamenext_token += std::to_string(GetUpgrador()->mForID) + "_RetweeterNextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
 
@@ -563,14 +593,14 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
 	}
 	else
 	{
-		v = TwitterConnect::LoadRetweetersFile(GetUpgrador()->mTweetID);
+		v = TwitterConnect::LoadRetweetersFile(GetUpgrador()->mForID);
 	}
 
 	if ((v.size() == 0) || (next_cursor != "-1"))
 	{
 		// warning ! same callback as likers => signal is LikersRetrieved
 		KigsCore::Connect(mTwitterConnect.get(), "LikersRetrieved", this, "manageRetrievedRetweeters");
-		mTwitterConnect->launchGetRetweeters(GetUpgrador()->mTweetID, next_cursor);
+		mTwitterConnect->launchGetRetweeters(GetUpgrador()->mForID, next_cursor);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -587,7 +617,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetRetweeters))
 
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetRetweeters)::manageRetrievedRetweeters(std::vector<u64>& retweeters, const std::string& nexttoken)
 {
-	u64 tweetID = GetUpgrador()->mTweetID;
+	u64 tweetID = GetUpgrador()->mForID;
 
 	std::string filenamenext_token = "Cache/Tweets/";
 	filenamenext_token += std::to_string(tweetID) + "_RetweeterNextCursor.json";

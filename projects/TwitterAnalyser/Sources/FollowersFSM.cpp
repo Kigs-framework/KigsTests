@@ -4,11 +4,9 @@
 #include "CommonTwitterFSMStates.h"
 
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveUserFollow)
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, RetrieveUserFollow,GetUsers)
 public:
 	unsigned int				mStateStep = 0;
-	u64							mUserID;
-	TwitterAnalyser::UserList	mUserlist;
 	std::string					mFollowType;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
@@ -17,11 +15,9 @@ ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveFollow)
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, RetrieveFollow, GetUsers)
 public:
 	unsigned int				mStateStep = 0;
-	u64							mUserID;
-	TwitterAnalyser::UserList	mUserlist;
 	std::string					mFollowType;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
@@ -45,16 +41,16 @@ std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 	retrieveuserfollowtransition->Init();
 
 	// create getUserFollow transition (Push)
-	SP<CoreFSMTransition> getuserfollowtransition = KigsCore::GetInstanceOf("getuserfollowtransition", "CoreFSMInternalSetTransition");
-	getuserfollowtransition->setValue("TransitionBehavior", "Push");
-	getuserfollowtransition->setState("GetUserFollow");
-	getuserfollowtransition->Init();
+	SP<CoreFSMTransition> getfollowtransition = KigsCore::GetInstanceOf("getuserfollowtransition", "CoreFSMInternalSetTransition");
+	getfollowtransition->setValue("TransitionBehavior", "Push");
+	getfollowtransition->setState("GetFollow");
+	getfollowtransition->Init();
 
 	// when going to GetFollow, set userid first
 	KigsCore::Connect(retrieveuserfollowtransition.get(), "ExecuteTransition", this, "setUserID", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
 			auto  followState = getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, RetrieveUserFollow);
-			followState->mUserID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
+			followState->mForID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
 		});
 
 	// Init can go to Wait or GetFollow
@@ -64,17 +60,16 @@ std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 	// create RetrieveUserFollow state
 	fsm->addState("RetrieveUserFollow", new CoreFSMStateClass(TwitterAnalyser, RetrieveUserFollow)());
 	// GetFollow can also go to NeedUserListDetail or done
-	fsm->getState("RetrieveUserFollow")->addTransition(getuserfollowtransition);
+	fsm->getState("RetrieveUserFollow")->addTransition(getfollowtransition);
 	fsm->getState("RetrieveUserFollow")->addTransition(mTransitionList["userlistdetailtransition"]);
 	fsm->getState("RetrieveUserFollow")->addTransition(mTransitionList["donetransition"]);
 	
 	// create GetFollow state
-	fsm->addState("GetUserFollow", new CoreFSMStateClass(TwitterAnalyser, GetFollow)());
+	fsm->addState("GetFollow", new CoreFSMStateClass(TwitterAnalyser, GetFollow)());
 	// after GetFollow, can go to get user data (or pop)
-	fsm->getState("GetUserFollow")->addTransition(mTransitionList["waittransition"]);
+	fsm->getState("GetFollow")->addTransition(mTransitionList["waittransition"]);
 	// GetFollow can also go to NeedUserListDetail or done
-	fsm->getState("GetUserFollow")->addTransition(mTransitionList["userlistdetailtransition"]);
-
+	fsm->getState("GetFollow")->addTransition(mTransitionList["userlistdetailtransition"]);
 
 	auto toinit=getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, RetrieveUserFollow);
 	toinit->mFollowType = followtype;
@@ -87,12 +82,14 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 {
 	SP<CoreFSM> fsm = mFsm;
 
+	// create new fsm block
+	fsm->setCurrentBlock(fsm->addBlock());
+
 	// generic get user data transition
 	SP<CoreFSMTransition> getuserdatatransition = KigsCore::GetInstanceOf("getuserdatatransition", "CoreFSMInternalSetTransition");
-	getuserdatatransition->setValue("TransitionBehavior", "Push");
-	getuserdatatransition->setState("RetrieveFollow");
+	getuserdatatransition->setValue("TransitionBehavior", "PushBlock"); // change block
+	getuserdatatransition->setState("RetrieveFollow",1); // go from block 0 to block 1
 	getuserdatatransition->Init();
-
 
 	// create getFollow transition (Push)
 	SP<CoreFSMTransition> getfollowtransition = KigsCore::GetInstanceOf("getfollowtransition", "CoreFSMInternalSetTransition");
@@ -144,8 +141,6 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	updatestatstransition->setState("UpdateStats");
 	updatestatstransition->Init();
 
-	
-
 	// GetUserDetail can go to UpdateLikesStats, wait (or pop)
 	fsm->getState("GetUserDetail")->addTransition(mTransitionList["waittransition"]);
 	fsm->getState("GetUserDetail")->addTransition(updatestatstransition);
@@ -153,7 +148,6 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	// create UpdateStats state
 	fsm->addState("UpdateStats", new CoreFSMStateClass(TwitterAnalyser, UpdateStats)());
 	// no transition here, only pop
-
 
 	KigsCore::Connect(updatestatstransition.get(), "ExecuteTransition", this, "setupstats", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
@@ -195,11 +189,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 		{
 			auto user = userlist[mCurrentTreatedPanelUserIndex].first;
 			
-			GetUpgrador()->mUserID = user;
+			GetUpgrador()->mForID = user;
 
-			getGetFollowState->userid = user;
-			getGetFollowState->userlist.clear();
-			getGetFollowState->limitCount = -1;
+			getGetFollowState->mForID = user;
+			getGetFollowState->mUserlist.clear();
+			getGetFollowState->mNeededUserCount = 0;
 			getGetFollowState->followtype = GetUpgrador()->mFollowType;
 
 			GetUpgrador()->activateTransition("getfollowtransition");
@@ -214,17 +208,17 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 	}
 	else if (GetUpgrador()->mStateStep == 1)
 	{
-		GetUpgrador()->mUserlist = std::move(getGetFollowState->userlist);
+		GetUpgrador()->mUserlist = std::move(getGetFollowState->mUserlist);
 
 		// if follow were retrieved
 		if (GetUpgrador()->mUserlist.size())
 		{
-			mPanelRetreivedUsers.addUser(GetUpgrador()->mUserID);
+			mPanelRetreivedUsers.addUser(GetUpgrador()->mForID);
 	
 			SP<CoreFSM> fsm = mFsm;
 
 			auto userDetailState = getFSMState(fsm, TwitterAnalyser, GetUserDetail);
-			userDetailState->mUserID = GetUpgrador()->mUserID;
+			userDetailState->mUserID = GetUpgrador()->mForID;
 			userDetailState->nextTransition = "updatestatstransition";
 			GetUpgrador()->activateTransition("getuserdetailtransition");
 
@@ -266,21 +260,21 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveUserFollow))
 	}
 
 	SP<CoreFSM> fsm = mFsm;
-	auto userfollow = ((CoreFSMStateClass(TwitterAnalyser, GetFollow)*)fsm->getState("GetUserFollow"));
+	auto follow = ((CoreFSMStateClass(TwitterAnalyser, GetFollow)*)fsm->getState("GetFollow"));
 
 	if (GetUpgrador()->mStateStep == 0)
 	{
-		userfollow->followtype = GetUpgrador()->mFollowType;
-		userfollow->userid = GetUpgrador()->mUserID;
+		follow->followtype = GetUpgrador()->mFollowType;
+		follow->mForID = GetUpgrador()->mForID;
 
 		GetUpgrador()->mStateStep = 1;
-		GetUpgrador()->activateTransition("getuserfollowtransition");
+		GetUpgrador()->activateTransition("getfollowtransition");
 	}
 	else
 	{
 
 		GetUpgrador()->mUserlist.clear();
-		GetUpgrador()->mUserlist = std::move(userfollow->userlist);
+		GetUpgrador()->mUserlist = std::move(follow->mUserlist);
 
 		GetUpgrador()->activateTransition("getuserdatatransition");
 
