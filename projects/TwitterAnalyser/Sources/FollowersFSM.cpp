@@ -71,8 +71,13 @@ std::string TwitterAnalyser::searchFollowFSM(const std::string& followtype)
 	// GetFollow can also go to NeedUserListDetail or done
 	fsm->getState("GetFollow")->addTransition(mTransitionList["userlistdetailtransition"]);
 
+	// init RetrieveUserFollow parameters
 	auto toinit=getFSMState(mFsm->as<CoreFSM>(), TwitterAnalyser, RetrieveUserFollow);
 	toinit->mFollowType = followtype;
+	toinit->mNeededUserCount = mWantedTotalPanelSize; // maximum count of user to retrieve
+	toinit->mNeededUserCountIncrement = 0;
+	toinit->mNeedMoreUsers = false;
+
 
 	return "RetrieveUserFollow";
 	
@@ -194,7 +199,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFollow))
 			getGetFollowState->mForID = user;
 			getGetFollowState->mUserlist.clear();
 			getGetFollowState->mNeededUserCount = 0;
-			getGetFollowState->followtype = GetUpgrador()->mFollowType;
+			getGetFollowState->mFollowtype = GetUpgrador()->mFollowType;
 
 			GetUpgrador()->activateTransition("getfollowtransition");
 
@@ -253,8 +258,11 @@ void	CoreFSMStopMethod(TwitterAnalyser, RetrieveUserFollow)
 
 DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveUserFollow))
 {
+
+	auto thisUpgrador = GetUpgrador();
+
 	// if an active transition already exist, just activate it
-	if (GetUpgrador()->hasActiveTransition(this))
+	if (thisUpgrador->hasActiveTransition(this))
 	{
 		return false;
 	}
@@ -262,10 +270,14 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveUserFollow))
 	SP<CoreFSM> fsm = mFsm;
 	auto follow = ((CoreFSMStateClass(TwitterAnalyser, GetFollow)*)fsm->getState("GetFollow"));
 
-	if (GetUpgrador()->mStateStep == 0)
+	if (thisUpgrador->mStateStep == 0)
 	{
-		follow->followtype = GetUpgrador()->mFollowType;
-		follow->mForID = GetUpgrador()->mForID;
+		// init GetFollow with my own params
+		follow->mFollowtype = thisUpgrador->mFollowType;
+		follow->mForID = thisUpgrador->mForID;
+		follow->mNeededUserCount = thisUpgrador->mNeededUserCount;
+		follow->mNeededUserCountIncrement = thisUpgrador->mNeededUserCountIncrement;
+		follow->mNeedMoreUsers = thisUpgrador->mNeedMoreUsers;
 
 		GetUpgrador()->mStateStep = 1;
 		GetUpgrador()->activateTransition("getfollowtransition");

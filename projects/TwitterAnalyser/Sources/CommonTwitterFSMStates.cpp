@@ -197,7 +197,8 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 	if (TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName))
 	{
 		hasTweetFile = true;
-		if (GetUpgrador()->mNeededTweetCount < v.size())
+		// if enough tweets or can't get more
+		if ( (GetUpgrador()->mNeededTweetCount && (GetUpgrador()->mNeededTweetCount < v.size())) || GetUpgrador()->mCantGetMoreTweets)
 		{
 			needMoreTweet = false;
 		}
@@ -264,8 +265,9 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetTweets)::manageRetrievedTweets
 	}
 	else
 	{
+		GetUpgrador()->mCantGetMoreTweets = true;
 		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
-		TwitterConnect::randomizeVector(v);
+		//don't randomize tweet vector
 	}
 
 	KigsCore::Disconnect(mTwitterConnect.get(), "TweetRetrieved", this, "manageRetrievedTweets");
@@ -288,9 +290,16 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetUsers))
 	
 	if (GetUpgrador()->mNeedMoreUsers) // this state needs more user
 	{
-		if (GetUpgrador()->mNeededUserCountIncrement)
+		if (GetUpgrador()->mCantGetMoreUsers) // no more users can be retreived
 		{
-			GetUpgrador()->mNeededUserCount += GetUpgrador()->mNeededUserCountIncrement;
+			GetUpgrador()->mNeedMoreUsers = false;
+		}
+		else
+		{
+			if (GetUpgrador()->mNeededUserCountIncrement)
+			{
+				GetUpgrador()->mNeededUserCount += GetUpgrador()->mNeededUserCountIncrement;
+			}
 		}
 	}
 
@@ -489,7 +498,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	UpgradorMethodParentClass::UpgradorUpdate(timer, addParam);
 
 	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->mForID) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->mFollowtype + "_NextCursor.json";
 
 	CoreItemSP nextt = TwitterConnect::LoadJSon(filenamenext_token);
 
@@ -503,7 +512,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	}
 	else
 	{
-		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
+		hasFollowFile = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->mFollowtype);
 	}
 
 	if (GetUpgrador()->mNeededUserCount)
@@ -518,7 +527,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 	if ((!hasFollowFile) || (next_cursor != "-1"))
 	{
 		KigsCore::Connect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
-		mTwitterConnect->launchGetFollow(GetUpgrador()->mForID, GetUpgrador()->followtype, next_cursor);
+		mTwitterConnect->launchGetFollow(GetUpgrador()->mForID, GetUpgrador()->mFollowtype, next_cursor);
 		GetUpgrador()->activateTransition("waittransition");
 		mNeedWait = true;
 	}
@@ -534,10 +543,10 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetFollow))
 void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken)
 {
 	std::string filenamenext_token = "Cache/Users/" + TwitterConnect::GetUserFolderFromID(GetUpgrador()->mForID) + "/";
-	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->followtype + "_NextCursor.json";
+	filenamenext_token += TwitterConnect::GetIDString(GetUpgrador()->mForID) + "_" + GetUpgrador()->mFollowtype + "_NextCursor.json";
 
 	std::vector<u64> v;
-	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
+	bool fexist = TwitterConnect::LoadFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->mFollowtype);
 	v.insert(v.end(), follow.begin(), follow.end());
 
 	if (nexttoken != "-1")
@@ -548,12 +557,13 @@ void	CoreFSMStateClassMethods(TwitterAnalyser, GetFollow)::manageRetrievedFollow
 	}
 	else
 	{
+		GetUpgrador()->mCantGetMoreUsers = true;
 		ModuleFileManager::RemoveFile(filenamenext_token.c_str());
 		TwitterConnect::randomizeVector(v);
 	}
 
 	KigsCore::Disconnect(mTwitterConnect.get(), "FollowRetrieved", this, "manageRetrievedFollow");
-	TwitterConnect::SaveFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->followtype);
+	TwitterConnect::SaveFollowFile(GetUpgrador()->mForID, v, GetUpgrador()->mFollowtype);
 
 	requestDone();
 }
@@ -661,6 +671,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	{
 		return false;
 	}
+
 	std::string username = GetUpgrador()->mUserName;
 
 	if (GetUpgrador()->mUseHashtag)
@@ -673,7 +684,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 
 	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, username))
 	{
-		if (!GetUpgrador()->mUseHashtag)
+		if (!GetUpgrador()->mUseHashtag) // filter tweet 
 		{
 			TwitterConnect::FilterTweets(GetUpgrador()->mUserID, GetUpgrador()->mTweets, GetUpgrador()->mExcludeRetweets, GetUpgrador()->mExcludeReplies);
 		}
@@ -682,16 +693,17 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 			GetUpgrador()->activateTransition("managetweettransition");
 			return false;
 		}
-		else
+		else // all retrieved tweets were treated ?
 		{
-			if (getTweetsState->mNeededTweetCount < GetUpgrador()->mTweets.size()) // cant' retrieve more tweets
+			if (getTweetsState->mCantGetMoreTweets) // cant' retrieve more tweets
 			{
-				GetUpgrador()->activateTransition("donetransition");
+				// TODO : probably can check if we can retreive more users per tweet here (before going to done state)
+				GetUpgrador()->activateTransition("donetransition"); 
 				return false;
 			}
 			else
 			{
-				getTweetsState->mNeededTweetCount += 50;
+				getTweetsState->mNeededTweetCount += getTweetsState->mNeededTweetCountIncrement;
 			}
 		}
 	}

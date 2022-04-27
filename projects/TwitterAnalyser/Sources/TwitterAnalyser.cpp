@@ -176,7 +176,7 @@ void	TwitterAnalyser::ProtectedInit()
 	{
 	case dataType::Likers:
 		lastState = searchLikersFSM();
-		SetMemberFromParam(mMaxUsersPerTweet, "MaxLikersPerTweet");
+		SetMemberFromParam(mMaxUsersPerTweet, "MaxUsersPerTweet");
 		break;
 	case dataType::Followers:
 		lastState = searchFollowFSM("followers");
@@ -186,7 +186,6 @@ void	TwitterAnalyser::ProtectedInit()
 		break;
 	case dataType::Favorites:
 		lastState = searchFavoritesFSM();
-		//SetMemberFromParam(mMaxLikersPerTweet, "MaxLikersPerTweet");
 		break;
 	case dataType::RTted:
 		lastState = searchRetweetedFSM();

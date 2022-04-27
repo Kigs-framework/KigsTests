@@ -3,13 +3,16 @@
 #include "CoreFSMState.h"
 #include "CoreFSM.h"
 
+
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetTweets)
 public:
 	std::string							mUserName="";
 	std::string							mHashTag = "";
 	u64									mUserID=-1;
 	u32									mNeededTweetCount=100;
+	u32									mNeededTweetCountIncrement = 50;
 	bool								mSearchTweets=false;
+	bool								mCantGetMoreTweets = false;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
@@ -108,7 +111,7 @@ END_DECLARE_COREFSMSTATE()
 
 START_INHERITED_COREFSMSTATE(TwitterAnalyser, GetFollow, GetUsers)
 public:
-	std::string						followtype;
+	std::string						mFollowtype;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedFollow(std::vector<u64>& follow, const std::string& nexttoken);
@@ -125,7 +128,7 @@ public:
 	u64									mUserID=0;
 	bool								mUseHashtag = false;
 	u32									mCurrentTreatedTweetIndex = 0;
-	// for each tweet, first => indicated liker or RTter count , second => real lier or RTter retrieved
+	// for each tweet, first => indicated liker or RTter count , second => real liker or RTter retrieved
 	std::map<u64, std::pair<u32,u32>>	mTweetRetrievedUserCount;
 	std::vector<TwitterConnect::Twts>	mTweets;
 protected:
