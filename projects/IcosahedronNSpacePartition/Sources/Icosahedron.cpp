@@ -1,9 +1,8 @@
 #include "Icosahedron.h"
 
-Icosahedron::Icosahedron(u32 subdivisionLevel) : mSubdivisionLevel(subdivisionLevel)
+Icosahedron::Icosahedron()
 {
-	memset(mFaceFlag, 0, 20 * sizeof(u32));
-	constructLevel0();
+	construct();
 }
 
 u32		Icosahedron::getNormalFlag(const v3f& tst)
@@ -16,10 +15,18 @@ u32		Icosahedron::getNormalFlag(const v3f& tst)
 			flag |= 1 << i;
 		}
 	}
+
+	auto& f = mFaces[flag];
+
+	auto& m=mBarycentricMatrix[flag];
+
+	Vector3D barycentriccoords(tst);
+	m.TransformVector(&barycentriccoords);
+
 	return flag;
 }
 
-void	Icosahedron::constructLevel0()
+void	Icosahedron::construct()
 {
 	float phi = 0.5f * (1.0f + sqrtf(5.0f));
 
@@ -72,9 +79,9 @@ void	Icosahedron::constructLevel0()
 
 	// flag edges according to octan cell
 
-	// 2 bit flag per coord
-	//  <0   0   >0  
-	//  10   0   01
+	// 3 bit flag per coord
+	//  <0    0    >0  
+	//  100  010   001
 	u32	edgeFlags[30];
 	memset(edgeFlags, 0, 30 * sizeof(u32));
 
@@ -88,17 +95,25 @@ void	Icosahedron::constructLevel0()
 		{
 			if (center[i] < 0.0f)
 			{
-				edgeFlags[edgeIndex] |= 2 << (i << 1);
+				edgeFlags[edgeIndex] |= 4 << (i * 3);
 			}
 			else if (center[i] > 0.0f)
 			{
-				edgeFlags[edgeIndex] |= 1 << (i << 1);
+				edgeFlags[edgeIndex] |= 1 << (i * 3);
+			}
+			else
+			{
+				edgeFlags[edgeIndex] |= 2 << (i * 3);
 			}
 		}
 		edgeIndex++;
 	}
 
 	setUpFaces();
+
+	// count bits set in 3 bits mask
+	//				 0 1 2 3 4 5 6 7
+	u32 bitsset[8] = {0,1,1,2,1,2,2,3};
 
 	// flag faces using "or" of each vertice flag
 	size_t faceindex = 0;
@@ -109,10 +124,46 @@ void	Icosahedron::constructLevel0()
 			u32 ew;
 			u32 ei = unpackEdgeInfos(e, ew);
 
-			mFaceFlag[faceindex] |= edgeFlags[ei];
+			f.mFlags |= edgeFlags[ei];
 		}
+
+		// count bit set
+		u32 bset = 0;
+		for (size_t i = 0; i < 3; i++)
+		{
+			bset += bitsset[(f.mFlags >> (i * 3)) & 7];
+		}
+
+		bset <<= 24;
+
+		f.mFlags |= bset;
+
 		faceindex++;
 	}
+
+	// sort faces according to flags
+	sortFaces([](const faceStruct& a, const faceStruct& b)->bool {
+		if (a.mFlags < b.mFlags)
+			return true;
+		return false;
+		});
+
+
+	// compute barycentric coordinate conversion matrix for each face (using {0,0,0} as last tetraedron point)
+	
+	for (size_t faceIndex = 0;faceIndex<mFaces.size(); faceIndex++)
+	{
+		v3f* p = getTriangleVertices(faceIndex);
+
+		auto& m = mBarycentricMatrix[faceIndex];
+
+		m.e[0][0] = p[0].x;	m.e[0][1] = p[1].x;	m.e[0][2] = p[2].x;
+		m.e[1][0] = p[0].y;	m.e[1][1] = p[1].y;	m.e[1][2] = p[2].y;
+		m.e[2][0] = p[0].z;	m.e[2][1] = p[1].z;	m.e[2][2] = p[2].z;
+
+		m = Inv(m);
+	}
+	
 }
 
 std::vector<std::vector<v3f>>	Icosahedron::getFaces() const

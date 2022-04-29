@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <algorithm>
+#include <numeric>
 #include "TecLibs/Tec3D.h"
 
 class GenericMesh
@@ -8,6 +10,10 @@ public:
 	struct faceStruct
 	{
 		std::vector<u32>	mEdges;
+		// user defined general flags
+		u32					mFlags;
+
+
 	};
 
 	struct edgeStruct
@@ -16,11 +22,15 @@ public:
 		u32							mV[2];
 		// two faces
 		u32							mF[2];
+		// user defined general flags
+		u32							mFlags;
 	};
 
 	struct verticeStruct
 	{
 		v3f							mVerticePos;
+		// user defined general flags
+		u32							mFlags;
 		// list of edges (bit 31 gives edge direction)
 		std::vector<u32>			mEdges;
 
@@ -111,8 +121,54 @@ public:
 
 	edgeStruct* getNextEdge(edgeStruct* currentE, u32& ei, u32& ew) const;
 
+	// sort faces, edges or vertices, maintaining other structures coherency
+	template<typename T>
+	void	sortFaces(T sortfunc)
+	{
+		auto p = sort_permutation(mFaces, sortfunc);
+
+		std::vector<size_t>	invp(p.size());
+		for (size_t i = 0; i < invp.size(); i++)
+		{
+			invp[p[i]] = i;
+		}
+
+		// manage face permutation in edges
+		for (auto& e : mEdges)
+		{
+			e.mF[0] = invp[e.mF[0]];
+			e.mF[1] = invp[e.mF[1]];
+		}
+
+		mFaces = apply_permutation(mFaces, p);
+	}
+
+	v3f*	getTriangleVertices(u32 faceIndex);
+
 protected:
 
+	template <typename T>
+	std::vector<T> apply_permutation(
+		const std::vector<T>& vec,
+		const std::vector<std::size_t>& p)
+	{
+		std::vector<T> sorted_vec(vec.size());
+		std::transform(p.begin(), p.end(), sorted_vec.begin(),
+			[&](std::size_t i) { return vec[i]; });
+		return sorted_vec;
+	}
+
+	template <typename T, typename Compare>
+	std::vector<std::size_t> sort_permutation(
+		const std::vector<T>& vec,
+		Compare& compare)
+	{
+		std::vector<std::size_t> p(vec.size());
+		std::iota(p.begin(), p.end(), 0);
+		std::sort(p.begin(), p.end(),
+			[&](std::size_t i, std::size_t j) { return compare(vec[i], vec[j]); });
+		return p;
+	}
 
 	std::vector<verticeStruct>		mVertices;
 	std::vector<edgeStruct>			mEdges;

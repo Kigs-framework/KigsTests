@@ -23,11 +23,18 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 	pathManager->AddToPath(".", "xml");
 
 
-	mIcosahedron = new Icosahedron(0);
+	mIcosahedron = new Icosahedron();
 
-	for (size_t i = 0; i < 100; i++)
+	/*for (size_t i = 0; i < 100; i++)
 	{
 		v3f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
+		tstN.Normalize();
+		mIcosahedron->getNormalFlag(tstN);
+	}*/
+
+	for (size_t i = 0; i < 8; i++)
+	{
+		v3f tstN((i&1)?-1.0f:1.0f, (i & 2) ? -1.0f: 1.0f, (i & 4) ? -1.0f: 1.0f);
 		tstN.Normalize();
 		mIcosahedron->getNormalFlag(tstN);
 	}

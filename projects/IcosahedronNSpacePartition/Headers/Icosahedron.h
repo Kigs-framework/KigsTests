@@ -10,7 +10,7 @@ class Icosahedron : public GenericMesh
 {
 public:
 
-	Icosahedron(u32 subdivisionLevel = 0);
+	Icosahedron();
 
 	std::vector<std::pair<v3f, v3f>>	getEdges() const;
 	std::vector<std::pair<v3f, std::vector<v3f>>>	getVertices() const;
@@ -20,11 +20,9 @@ public:
 
 protected:
 
-	void	constructLevel0();
+	// construct icosahedron
+	void	construct();
 
-
-	u32	mSubdivisionLevel;
-
-	u32	mFaceFlag[20];
-
+	// barycentric coordinates for each faces
+	Matrix3x3	mBarycentricMatrix[20];
 };

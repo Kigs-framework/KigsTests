@@ -18,6 +18,7 @@ void GenericMesh::setUpFaces()
 			{
 				// add new face 
 				faceStruct toAdd;
+				toAdd.mFlags = 0;
 				size_t tindex = mFaces.size();
 
 				// follow edges  
@@ -49,4 +50,32 @@ GenericMesh::edgeStruct*  GenericMesh::getNextEdge(edgeStruct* currentE, u32& ei
 	ei = unpackEdgeInfos(ein, ew);
 
 	return (GenericMesh::edgeStruct*) & mEdges[ei];
+}
+
+
+v3f* GenericMesh::getTriangleVertices(u32 faceIndex)
+{
+	v3f tvertices[3];
+	
+	const auto& f = mFaces[faceIndex];
+	if (f.mEdges.size() != 3)
+	{
+		// TODO error management here ?
+		return tvertices;
+	}
+
+	size_t i = 0;
+	for (auto e : f.mEdges)
+	{
+		u32 ew;
+		u32 ei = unpackEdgeInfos(e, ew);
+
+		const auto& edge = mEdges[ei];
+
+		tvertices[i] = mVertices[edge.mV[ew]].mVerticePos;
+
+		i++;
+	}
+
+	return tvertices;
 }
