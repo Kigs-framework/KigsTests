@@ -17,16 +17,6 @@ ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
 END_DECLARE_COREFSMSTATE()
 
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveLikers)
-public:
-	unsigned int					mStateStep = 0;
-	TwitterAnalyser::UserList		mUserlist;
-protected:
-STARTCOREFSMSTATE_WRAPMETHODS();
-	void	copyUserList(TwitterAnalyser::UserList& touserlist);
-ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
-END_DECLARE_COREFSMSTATE()
-
 // retrieve favorites
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveFavorites)
 public:
@@ -501,73 +491,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveFavorites))
 	return false;
 }
 
-void	CoreFSMStartMethod(TwitterAnalyser, RetrieveLikers)
-{
 
-}
-void	CoreFSMStopMethod(TwitterAnalyser, RetrieveLikers)
-{
-
-}
-
-DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveLikers))
-{
-	// if an active transition already exist, just activate it
-	if (GetUpgrador()->hasActiveTransition(this))
-	{
-		return false;
-	}
-
-	SP<CoreFSM> fsm = mFsm;
-
-	auto tweetsState = fsm->getStackedState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
-
-	if (tweetsState->mCurrentTreatedTweetIndex < tweetsState->mTweets.size())
-	{
-		auto& currentTweet = tweetsState->mTweets[tweetsState->mCurrentTreatedTweetIndex];
-		if (currentTweet.mLikeCount)
-		{
-			auto getLikersState = getFSMState(fsm, TwitterAnalyser, GetLikers);
-
-			if (GetUpgrador()->mStateStep == 0)
-			{
-				getLikersState->mForID = currentTweet.mTweetID;
-				GetUpgrador()->mStateStep = 1;
-				GetUpgrador()->activateTransition("getlikerstransition");
-			}
-			else if (GetUpgrador()->mStateStep == 1)
-			{
-				GetUpgrador()->mStateStep = 2;
-				GetUpgrador()->mUserlist = std::move(getLikersState->mUserlist);
-				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, GetUpgrador()->mUserlist.size() };
-				GetUpgrador()->activateTransition("getuserdatatransition");
-			}
-			else
-			{
-				GetUpgrador()->mStateStep = 0;
-				tweetsState->mCurrentTreatedTweetIndex++;
-			}
-		}
-		else
-		{
-			GetUpgrador()->mStateStep = 0;
-			tweetsState->mCurrentTreatedTweetIndex++;
-		}
-	}
-	else
-	{
-		GetUpgrador()->mStateStep = 0;
-		// need more tweets
-		GetUpgrador()->popState();
-	}
-
-	return false;
-}
-
-void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveLikers)::copyUserList(TwitterAnalyser::UserList& touserlist)
-{
-	touserlist = std::move(GetUpgrador()->mUserlist);
-}
 
 void	CoreFSMStartMethod(TwitterAnalyser, RetrieveSomeTweets)
 {

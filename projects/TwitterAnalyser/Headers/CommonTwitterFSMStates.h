@@ -46,6 +46,31 @@ COREFSMSTATE_WITHOUT_METHODS();
 END_DECLARE_COREFSMSTATE()
 
 
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveLikers)
+public:
+	unsigned int					mStateStep = 0;
+	TwitterAnalyser::UserList		mUserlist;
+protected:
+STARTCOREFSMSTATE_WRAPMETHODS();
+	void	copyUserList(TwitterAnalyser::UserList& touserlist);
+ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
+END_DECLARE_COREFSMSTATE()
+
+
+// same state to get likers/RTters/posters
+// first retrieve tweets
+// then retrieve some actors per tweet
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveTweetActors)
+public:
+	unsigned int					mStateStep = 0;
+	// limit number of actor to retrieve per tweet
+	unsigned int					mMaxActorPerTweet = 0;
+	TwitterAnalyser::UserList		mUserlist;
+protected:
+COREFSMSTATE_WITHOUT_METHODS();
+END_DECLARE_COREFSMSTATE()
+
+
 // retrieve likes
 START_INHERITED_COREFSMSTATE(TwitterAnalyser, GetLikers, GetUsers)
 STARTCOREFSMSTATE_WRAPMETHODS();
