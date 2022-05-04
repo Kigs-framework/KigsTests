@@ -51,8 +51,37 @@ std::string TwitterAnalyser::searchLikersFSM()
 		fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitUser)());
 	}
 
-	// go to RetrieveTweets
+	// go to RetrieveTweetActors
+	SP<CoreFSMTransition> retrievetweetactorstransition = KigsCore::GetInstanceOf("retrievetweetactorstransition", "CoreFSMInternalSetTransition");
+	retrievetweetactorstransition->setState("RetrieveTweetActors");
+	retrievetweetactorstransition->Init();
+
+	// Init can go to Wait or GetTweets
+	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
+	fsm->getState("Init")->addTransition(retrievetweetactorstransition);
+
+	auto retrievetweetactorstate = new CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors)();
+	// init state
+	retrievetweetactorstate->mActorType = "Likers";
+	retrievetweetactorstate->mMaxActorPerTweet = mMaxUsersPerTweet;
+
+	fsm->addState("RetrieveTweetActors", retrievetweetactorstate);
+
+
+	// transition to GetLikers (push)
+	SP<CoreFSMTransition> getactorstransition = KigsCore::GetInstanceOf("getactorstransition", "CoreFSMInternalSetTransition");
+	getactorstransition->setValue("TransitionBehavior", "Push");
+	getactorstransition->setState("GetLikers");
+	getactorstransition->Init();
+
+	// transition to GetTweets (push)
+	SP<CoreFSMTransition> gettweetstransition = KigsCore::GetInstanceOf("gettweetstransition", "CoreFSMInternalSetTransition");
+	gettweetstransition->setValue("TransitionBehavior", "Push");
+	gettweetstransition->setState("GetTweets");
+	gettweetstransition->Init();
+	
 	SP<CoreFSMTransition> retrievetweetstransition = KigsCore::GetInstanceOf("retrievetweetstransition", "CoreFSMInternalSetTransition");
+	retrievetweetstransition->setValue("TransitionBehavior", "Push");
 	retrievetweetstransition->setState("RetrieveTweets");
 	retrievetweetstransition->Init();
 
@@ -65,60 +94,31 @@ std::string TwitterAnalyser::searchLikersFSM()
 			retrievetweetsState->mExcludeRetweets = true; // don't take retweets into account here
 			retrievetweetsState->mExcludeReplies = false; // take replies into account here
 		});
-
-	// Init can go to Wait or GetTweets
-	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
-	fsm->getState("Init")->addTransition(retrievetweetstransition);
-
 	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
-
-	// transition to RetrieveLikers (push)
-	SP<CoreFSMTransition> managetweettransition = KigsCore::GetInstanceOf("managetweettransition", "CoreFSMInternalSetTransition");
-	managetweettransition->setValue("TransitionBehavior", "Push");
-	managetweettransition->setState("RetrieveLikers");
-	managetweettransition->Init();
-
-	KigsCore::Connect(managetweettransition.get(), "ExecuteTransition", this, "setRetrieveLikersState", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
-		{
-			auto retrieveLikersState = getFSMState(fsm, TwitterAnalyser, RetrieveLikers);
-			retrieveLikersState->mStateStep = 0;
-		});
-
-	SP<CoreFSMTransition> gettweetstransition = KigsCore::GetInstanceOf("gettweetstransition", "CoreFSMInternalSetTransition");
-	gettweetstransition->setValue("TransitionBehavior", "Push");
-	gettweetstransition->setState("GetTweets");
-	gettweetstransition->Init();
-	
-	// can go to get tweets or managetweet or done
 	fsm->getState("RetrieveTweets")->addTransition(gettweetstransition);
-	fsm->getState("RetrieveTweets")->addTransition(managetweettransition);
-	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["donetransition"]);
-	fsm->getState("RetrieveTweets")->addTransition(mTransitionList["userlistdetailtransition"]);
 
-
-	// transition to GetLikers (push)
-	SP<CoreFSMTransition> getlikerstransition = KigsCore::GetInstanceOf("getlikerstransition", "CoreFSMInternalSetTransition");
-	getlikerstransition->setValue("TransitionBehavior", "Push");
-	getlikerstransition->setState("GetLikers");
-	getlikerstransition->Init();
-
-	fsm->addState("RetrieveLikers", new CoreFSMStateClass(TwitterAnalyser, RetrieveLikers)());
-	// can go to get likers or pop
-	fsm->getState("RetrieveLikers")->addTransition(getlikerstransition);
-	fsm->getState("RetrieveLikers")->addTransition(mTransitionList["userlistdetailtransition"]);
-	// when enough likers, pop
-	fsm->getState("RetrieveLikers")->addTransition(mTransitionList["popwhendone"]);
+	// can go to retrieve tweets, get actors or done (or manage actors in analyse block)
+	fsm->getState("RetrieveTweetActors")->addTransition(getactorstransition);
+	fsm->getState("RetrieveTweetActors")->addTransition(retrievetweetstransition);
+	fsm->getState("RetrieveTweetActors")->addTransition(mTransitionList["donetransition"]);
+	fsm->getState("RetrieveTweetActors")->addTransition(mTransitionList["userlistdetailtransition"]);
 
 	// create GetLikers state
-	fsm->addState("GetLikers", new CoreFSMStateClass(TwitterAnalyser, GetLikers)());
-	// after GetLikers, can go to get user data (or pop)
+
+	auto getlikersstate = new CoreFSMStateClass(TwitterAnalyser, GetLikers)();
+	getlikersstate->mNeededUserCount = 0; // get them all
+
+	fsm->addState("GetLikers", getlikersstate);
+	// after GetLikers, can wait or pop
 	fsm->getState("GetLikers")->addTransition(mTransitionList["waittransition"]);
 
-	// get likes can also go to NeedUserListDetail
-	fsm->getState("GetLikers")->addTransition(mTransitionList["userlistdetailtransition"]);
+	auto gettweetsstate = new CoreFSMStateClass(TwitterAnalyser, GetTweets)();
+	// create GetTweets state
+	fsm->addState("GetTweets", gettweetsstate);
+	// after GetTweets, can wait or pop
+	fsm->getState("GetTweets")->addTransition(mTransitionList["waittransition"]);
 
-	
-	return "RetrieveLikers";
+	return "RetrieveTweetActors";
 }
 
 std::string TwitterAnalyser::searchFavoritesFSM()
@@ -261,7 +261,7 @@ void	TwitterAnalyser::analyseFavoritesFSM(const std::string& lastState)
 
 void	TwitterAnalyser::analyseLikersFSM(const std::string& lastState)
 {
-	SP<CoreFSM> fsm = mFsm;
+	/*SP<CoreFSM> fsm = mFsm;
 
 	// create new fsm block
 	fsm->setCurrentBlock(fsm->addBlock());
@@ -360,7 +360,7 @@ void	TwitterAnalyser::analyseLikersFSM(const std::string& lastState)
 			updateState->mUserlist = likersState->mUserlist;
 
 		});
-
+		*/
 }
 
 

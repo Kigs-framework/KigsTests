@@ -95,6 +95,22 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, Wait))
 	return false;
 }
 
+void	CoreFSMStartMethod(TwitterAnalyser, BaseStepState)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, BaseStepState)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, BaseStepState))
+{
+
+	return false;
+}
+
+
 void	CoreFSMStartMethod(TwitterAnalyser, GetUserListDetail)
 {
 
@@ -193,12 +209,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetTweets))
 	bool needMoreTweet=true;
 	bool hasTweetFile=false;
 
-	std::vector<TwitterConnect::Twts>	v;
-	if (TwitterConnect::LoadTweetsFile(v, GetUpgrador()->mUserName))
+	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, GetUpgrador()->mUserName))
 	{
 		hasTweetFile = true;
 		// if enough tweets or can't get more
-		if ( (GetUpgrador()->mNeededTweetCount && (GetUpgrador()->mNeededTweetCount < v.size())) || GetUpgrador()->mCantGetMoreTweets)
+		if ( (GetUpgrador()->mNeededTweetCount && (GetUpgrador()->mNeededTweetCount <= GetUpgrador()->mTweets.size())) || GetUpgrador()->mCantGetMoreTweets)
 		{
 			needMoreTweet = false;
 		}
@@ -326,131 +341,131 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 
 	SP<CoreFSM> fsm = mFsm;
 
-	switch(GetUpgrador()->mStateStep)
+	switch (GetUpgrador()->mStateStep)
 	{
 	case 0:
-	// get tweets and go to state step 1
+		// get tweets and go to state step 1
 	{
-		GetUpgrador()->activateTransition("retrieveTweetTransition");
+		GetUpgrador()->activateTransition("retrievetweetstransition");
 		GetUpgrador()->mStateStep = 1;
+		GetUpgrador()->mCanGetMoreActors = false;
 	}
 	break;
 	case 1:
+	// for each retrieved tweet, get actors
 	{
-		// check if 
-	}
-
-
-
-	/*
-	if (tweetsState->mCurrentTreatedTweetIndex < tweetsState->mTweets.size())
-	{
-		auto& currentTweet = tweetsState->mTweets[tweetsState->mCurrentTreatedTweetIndex];
-		if (currentTweet.mLikeCount)
+		auto tweetsState = fsm->getState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
+		if (GetUpgrador()->mCurrentTreatedTweetIndex < tweetsState->mTweets.size())
 		{
-			auto getLikersState = getFSMState(fsm, TwitterAnalyser, GetLikers);
-
-			
-				getLikersState->mForID = currentTweet.mTweetID;
-				GetUpgrador()->mStateStep = 1;
-				GetUpgrador()->activateTransition("getlikerstransition");
-			}
-			else if (GetUpgrador()->mStateStep == 1)
+			auto& currentTweet = tweetsState->mTweets[GetUpgrador()->mCurrentTreatedTweetIndex];
+			GetUpgrador()->mTreatedActorPerTweet.push_back({ 0,0 });
+			if (	( (currentTweet.mLikeCount) && (GetUpgrador()->mActorType == "Likers") ) 
+				||  ( (currentTweet.mRetweetCount) && (GetUpgrador()->mActorType == "Retweeters"))
+				|| (GetUpgrador()->mActorType == "Posters"))
 			{
+				auto getActorState = fsm->getState("Get"+ GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
+				getActorState->mForID = currentTweet.mTweetID;
 				GetUpgrador()->mStateStep = 2;
-				GetUpgrador()->mUserlist = std::move(getLikersState->mUserlist);
-				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, GetUpgrador()->mUserlist.size() };
-				GetUpgrador()->activateTransition("getuserdatatransition");
+				GetUpgrador()->activateTransition("getactorstransition");
 			}
 			else
 			{
-				GetUpgrador()->mStateStep = 0;
-				tweetsState->mCurrentTreatedTweetIndex++;
+				GetUpgrador()->mCurrentTreatedTweetIndex++;
 			}
+		}
+		else 
+		{
+			// ask for more
+			GetUpgrador()->mStateStep = 3;
+		}
+	}
+	break;
+	case 2:
+		// some likers were retrieved for current tweet
+	{
+		auto getActorState = fsm->getState("Get" + GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
+		std::pair<u32,u32>& currentTreatedActor = GetUpgrador()->mTreatedActorPerTweet[GetUpgrador()->mCurrentTreatedTweetIndex];
+
+		if(currentTreatedActor.first==0)// do it only once per tweet
+		{
+			auto tweetsState = fsm->getState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
+			auto& currentTweet = tweetsState->mTweets[GetUpgrador()->mCurrentTreatedTweetIndex];
+			tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, getActorState->mUserlist.size() };
+		}
+
+		if( (currentTreatedActor.first < getActorState->mUserlist.size()) && ( (currentTreatedActor.second< GetUpgrador()->mMaxActorPerTweet)||(GetUpgrador()->mMaxActorPerTweet==0)) )
+		{
+			if (GetUpgrador()->mUserlist.addUser(getActorState->mUserlist.getList()[currentTreatedActor.first]))
+			{
+				currentTreatedActor.second++;
+				GetUpgrador()->activateTransition("getuserdatatransition");
+			}
+			currentTreatedActor.first++;
 		}
 		else
-		{
-			GetUpgrador()->mStateStep = 0;
-			tweetsState->mCurrentTreatedTweetIndex++;
+		{	
+			if (currentTreatedActor.first < getActorState->mUserlist.size())
+			{
+				// it's possible to get more actors for this tweet
+				GetUpgrador()->mCanGetMoreActors = true;
+			}
+			// treat next tweet 
+			GetUpgrador()->mCurrentTreatedTweetIndex++;
+			GetUpgrador()->mStateStep = 1;
 		}
 	}
-	else
+	break;
+
+	case 3:
+		// we need more tweets, more actors per tweet or consider we can't get any more (so everything is done)
 	{
-		GetUpgrador()->mStateStep = 0;
-		// need more tweets
-		GetUpgrador()->popState();
-	}
-	*/
-	return false;
-}
-
-void	CoreFSMStartMethod(TwitterAnalyser, RetrieveLikers)
-{
-
-}
-void	CoreFSMStopMethod(TwitterAnalyser, RetrieveLikers)
-{
-
-}
-
-DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveLikers))
-{
-	// if an active transition already exist, just activate it
-	if (GetUpgrador()->hasActiveTransition(this))
-	{
-		return false;
-	}
-
-	SP<CoreFSM> fsm = mFsm;
-
-	auto tweetsState = fsm->getStackedState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
-
-	if (tweetsState->mCurrentTreatedTweetIndex < tweetsState->mTweets.size())
-	{
-		auto& currentTweet = tweetsState->mTweets[tweetsState->mCurrentTreatedTweetIndex];
-		if (currentTweet.mLikeCount)
+		auto tweetsState = fsm->getState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
+		// need more tweets ?
+		if (tweetsState->mCanGetMore)
 		{
-			auto getLikersState = getFSMState(fsm, TwitterAnalyser, GetLikers);
+			tweetsState->mAskMore = true;
+			GetUpgrador()->mStateStep = 0;
+		}
+		// need more users per tweet ?
+		else
+		{
+			if ( (GetUpgrador()->mMaxActorPerTweet) && (GetUpgrador()->mCanGetMoreActors))
+			{
+				// ask for more actors
+				u32 added = GetUpgrador()->mMaxActorPerTweet / 2;
+				GetUpgrador()->mMaxActorPerTweet += (added>1)?added:2;
 
-			if (GetUpgrador()->mStateStep == 0)
-			{
-				getLikersState->mForID = currentTweet.mTweetID;
+				// restart from first tweet (but ask more actors)
+				GetUpgrador()->mCurrentTreatedTweetIndex=0;
 				GetUpgrador()->mStateStep = 1;
-				GetUpgrador()->activateTransition("getlikerstransition");
-			}
-			else if (GetUpgrador()->mStateStep == 1)
-			{
-				GetUpgrador()->mStateStep = 2;
-				GetUpgrador()->mUserlist = std::move(getLikersState->mUserlist);
-				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, GetUpgrador()->mUserlist.size() };
-				GetUpgrador()->activateTransition("getuserdatatransition");
+				GetUpgrador()->mCanGetMoreActors = false;
 			}
 			else
 			{
+				// I just can't get enough !
 				GetUpgrador()->mStateStep = 0;
-				tweetsState->mCurrentTreatedTweetIndex++;
+
+				if (GetUpgrador()->getTransition("donetransition"))
+				{
+					mUserPanelSize = mValidUserCount;
+				}
+				else
+				{
+					GetUpgrador()->popState();
+				}
 			}
 		}
-		else
-		{
-			GetUpgrador()->mStateStep = 0;
-			tweetsState->mCurrentTreatedTweetIndex++;
-		}
 	}
-	else
-	{
-		GetUpgrador()->mStateStep = 0;
-		// need more tweets
-		GetUpgrador()->popState();
 	}
 
 	return false;
 }
 
-void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveLikers)::copyUserList(TwitterAnalyser::UserList& touserlist)
+void	CoreFSMStateClassMethods(TwitterAnalyser, RetrieveTweetActors)::copyUserList(TwitterAnalyser::UserList& touserlist)
 {
-	touserlist = std::move(GetUpgrador()->mUserlist);
+	touserlist = GetUpgrador()->mUserlist;
 }
+
 
 void	CoreFSMStartMethod(TwitterAnalyser, GetLikers)
 {
@@ -827,29 +842,27 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 	SP<CoreFSM> fsm = mFsm;
 	auto getTweetsState = getFSMState(fsm, TwitterAnalyser, GetTweets);
 
-	if (TwitterConnect::LoadTweetsFile(GetUpgrador()->mTweets, username))
+	if (getTweetsState->mTweets.size())
 	{
+		GetUpgrador()->mTweets = getTweetsState->mTweets;
 		if (!GetUpgrador()->mUseHashtag) // filter tweet 
 		{
 			TwitterConnect::FilterTweets(GetUpgrador()->mUserID, GetUpgrador()->mTweets, GetUpgrador()->mExcludeRetweets, GetUpgrador()->mExcludeReplies);
 		}
-		if (GetUpgrador()->mCurrentTreatedTweetIndex < GetUpgrador()->mTweets.size())
+
+		if (GetUpgrador()->mAskMore)
 		{
-			GetUpgrador()->activateTransition("managetweettransition");
-			return false;
+			GetUpgrador()->mAskMore = false;
+			getTweetsState->mNeededTweetCount += getTweetsState->mNeededTweetCountIncrement;
 		}
-		else // all retrieved tweets were treated ?
+		else
 		{
-			if (getTweetsState->mCantGetMoreTweets) // cant' retrieve more tweets
+			if (getTweetsState->mCantGetMoreTweets)
 			{
-				// TODO : probably can check if we can retreive more users per tweet here (before going to done state)
-				GetUpgrador()->activateTransition("donetransition"); 
-				return false;
+				GetUpgrador()->mCanGetMore = false;
 			}
-			else
-			{
-				getTweetsState->mNeededTweetCount += getTweetsState->mNeededTweetCountIncrement;
-			}
+			GetUpgrador()->popState();
+			return false;
 		}
 	}
 

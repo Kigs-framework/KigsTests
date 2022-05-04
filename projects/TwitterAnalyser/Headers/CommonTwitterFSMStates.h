@@ -4,6 +4,24 @@
 #include "CoreFSM.h"
 
 
+// base state for Step State
+START_DECLARE_COREFSMSTATE(TwitterAnalyser, BaseStepState)
+public:
+	u32		mStateStep = 0;
+protected:
+STARTCOREFSMSTATE_WRAPMETHODS();
+void	nextStep()
+{
+	GetUpgrador()->mStateStep++;
+}
+void	changeStep(u32 step)
+{
+	GetUpgrador()->mStateStep = step;
+}
+ENDCOREFSMSTATE_EMPTYWRAPMETHODS()
+END_DECLARE_COREFSMSTATE()
+
+
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, GetTweets)
 public:
 	std::string							mUserName="";
@@ -13,6 +31,7 @@ public:
 	u32									mNeededTweetCountIncrement = 50;
 	bool								mSearchTweets=false;
 	bool								mCantGetMoreTweets = false;
+	std::vector<TwitterConnect::Twts>	mTweets;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
@@ -46,28 +65,24 @@ COREFSMSTATE_WITHOUT_METHODS();
 END_DECLARE_COREFSMSTATE()
 
 
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveLikers)
+// same state to get likers/RTters/posters
+// first retrieve tweets
+// then retrieve some actors per tweet
+START_INHERITED_COREFSMSTATE(TwitterAnalyser, RetrieveTweetActors, BaseStepState)
 public:
-	unsigned int					mStateStep = 0;
+	// limit number of actor to retrieve per tweet
+	u32								mMaxActorPerTweet = 0;
+	std::string						mActorType = "Likers";
 	TwitterAnalyser::UserList		mUserlist;
+	// first index of current treated actor for this tweet
+	// seconde count of valid treated actors for this tweet
+	std::vector<std::pair<u32,u32>>	mTreatedActorPerTweet;
+	u32								mCurrentTreatedTweetIndex = 0;
+	bool							mCanGetMoreActors = false;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 	void	copyUserList(TwitterAnalyser::UserList& touserlist);
 ENDCOREFSMSTATE_WRAPMETHODS(copyUserList)
-END_DECLARE_COREFSMSTATE()
-
-
-// same state to get likers/RTters/posters
-// first retrieve tweets
-// then retrieve some actors per tweet
-START_DECLARE_COREFSMSTATE(TwitterAnalyser, RetrieveTweetActors)
-public:
-	unsigned int					mStateStep = 0;
-	// limit number of actor to retrieve per tweet
-	unsigned int					mMaxActorPerTweet = 0;
-	TwitterAnalyser::UserList		mUserlist;
-protected:
-COREFSMSTATE_WITHOUT_METHODS();
 END_DECLARE_COREFSMSTATE()
 
 
@@ -152,10 +167,11 @@ public:
 	std::string							mUserName="";
 	u64									mUserID=0;
 	bool								mUseHashtag = false;
-	u32									mCurrentTreatedTweetIndex = 0;
+	bool								mCanGetMore = true;
 	// for each tweet, first => indicated liker or RTter count , second => real liker or RTter retrieved
 	std::map<u64, std::pair<u32,u32>>	mTweetRetrievedUserCount;
 	std::vector<TwitterConnect::Twts>	mTweets;
+	bool								mAskMore=false;
 protected:
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()

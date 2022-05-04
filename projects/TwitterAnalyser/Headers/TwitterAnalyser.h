@@ -105,32 +105,40 @@ protected:
 	{
 	public:
 
-		void	addUser(u64 id)
+		// return true if new one
+		bool	addUser(u64 id)
 		{
+			bool newone = false;
 			auto f = mUserIndexInVector.find(id);
 			if (f == mUserIndexInVector.end())
 			{
 				mUserIndexInVector[id] = mUserList.size();
 				mUserList.push_back({ id,1 });
+				newone = true;
 			}
 			else
 			{
 				(*f).second++;
 			}
+			return newone;
 		}
 
-		void	addUser(const std::pair<u64, u32>& user)
+
+		bool	addUser(const std::pair<u64, u32>& user)
 		{
+			bool newone = false;
 			auto f = mUserIndexInVector.find(user.first);
 			if (f == mUserIndexInVector.end())
 			{
 				mUserIndexInVector[user.first] = mUserList.size();
 				mUserList.push_back(user);
+				newone = true;
 			}
 			else
 			{
 				(*f).second += user.second;
 			}
+			return newone;
 		}
 
 		void	addUsers(const std::vector<u64>& users)

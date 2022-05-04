@@ -75,13 +75,6 @@ void		TwitterAnalyser::commonStatesFSM()
 	donetransition->Init();
 
 	mTransitionList["donetransition"] = donetransition;
-
-	// create GetTweets state (can be use in several cases)
-	fsm->addState("GetTweets", new CoreFSMStateClass(TwitterAnalyser, GetTweets)());
-	// GetTweets can go to Wait or pop
-	fsm->getState("GetTweets")->addTransition(waittransition);
-	// get tweets can also go to NeedUserListDetail
-	fsm->getState("GetTweets")->addTransition(userlistdetailtransition);
 }
 
 

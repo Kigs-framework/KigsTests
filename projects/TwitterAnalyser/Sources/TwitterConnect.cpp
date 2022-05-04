@@ -767,7 +767,7 @@ CoreItemSP	TwitterConnect::RetrieveJSON(CoreModifiable* sender)
 						setValue("Delay", 120.0f); // wait 2 minutes
 						mWaitQuota = true;
 						mWaitQuotaCount++;
-						
+						return nullptr;
 					}
 
 					if (code == 32)
@@ -784,11 +784,10 @@ CoreItemSP	TwitterConnect::RetrieveJSON(CoreModifiable* sender)
 						mTwitterBear.erase(mTwitterBear.begin() + bearerIndex);
 						mAnswer->AddHeader(mTwitterBear[NextBearer()]);
 						mAnswer->setValue("BearerIndex", CurrentBearer());
+						return nullptr;
 					}
 
 				}
-
-				return nullptr;
 			}
 
 			return result;
