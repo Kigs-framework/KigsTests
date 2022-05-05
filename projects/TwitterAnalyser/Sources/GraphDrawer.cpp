@@ -859,34 +859,18 @@ void	GraphDrawer::nextDrawType()
 void	GraphDrawer::drawGeneralStats()
 {
 	char textBuffer[256];
-	if (mTwitterAnalyser->mPanelType == TwitterAnalyser::dataType::Likers)
-	{
-		sprintf(textBuffer, "Treated Likers : %d", mTwitterAnalyser->mTreatedUserCount);
-	}
-	else
-	{
-		sprintf(textBuffer, "Treated Users : %d", mTwitterAnalyser->mTreatedUserCount);
-	}
+	sprintf(textBuffer, "Treated %s : %d", mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mPanelType].c_str(), mTwitterAnalyser->mTreatedUserCount);
+	
 	mMainInterface["TreatedFollowers"]("Text") = textBuffer;
 
-	if (mTwitterAnalyser->mAnalysedType == TwitterAnalyser::dataType::Likers)
-	{
-		sprintf(textBuffer, "Liked user count : %d", (int)mTwitterAnalyser->mInStatsUsers.size());
-	}
-	else
-	{
-		sprintf(textBuffer, "Found followings : %d", (int)mTwitterAnalyser->mInStatsUsers.size());
-	}
+	sprintf(textBuffer, "%s %s count : %d", mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mAnalysedType].c_str(),
+												mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mPanelType].c_str(), 
+												(int)mTwitterAnalyser->mInStatsUsers.size());
+	
 	mMainInterface["FoundFollowings"]("Text") = textBuffer;
 
-	if (mTwitterAnalyser->mPanelType == TwitterAnalyser::dataType::Likers)
-	{
-		sprintf(textBuffer, "Invalid likers count : %d", mTwitterAnalyser->mTreatedUserCount - mTwitterAnalyser->mValidUserCount);
-	}
-	else
-	{
-		sprintf(textBuffer, "Inactive Followers : %d", mTwitterAnalyser->mTreatedUserCount - mTwitterAnalyser->mValidUserCount);
-	}
+	sprintf(textBuffer, "Invalid %s count : %d", mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mPanelType].c_str(), mTwitterAnalyser->mTreatedUserCount - mTwitterAnalyser->mValidUserCount);
+	
 	mMainInterface["FakeFollowers"]("Text") = textBuffer;
 
 	if (!mEverythingDone)

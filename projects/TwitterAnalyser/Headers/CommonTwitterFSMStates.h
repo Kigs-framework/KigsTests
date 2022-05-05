@@ -75,10 +75,12 @@ public:
 	std::string						mActorType = "Likers";
 	TwitterAnalyser::UserList		mUserlist;
 	// first index of current treated actor for this tweet
-	// seconde count of valid treated actors for this tweet
+	// second count of valid treated actors for this tweet
 	std::vector<std::pair<u32,u32>>	mTreatedActorPerTweet;
 	u32								mCurrentTreatedTweetIndex = 0;
 	bool							mCanGetMoreActors = false;
+	bool							mTreatAllActorsTogether=false;
+	u32								mWantedActorCount = 0;
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 	void	copyUserList(TwitterAnalyser::UserList& touserlist);
@@ -180,6 +182,7 @@ END_DECLARE_COREFSMSTATE()
 START_DECLARE_COREFSMSTATE(TwitterAnalyser, UpdateStats)
 public:
 	TwitterAnalyser::UserList		mUserlist;
+	bool							mIsValid = true;
 protected:
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()

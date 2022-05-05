@@ -359,11 +359,11 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 		{
 			auto& currentTweet = tweetsState->mTweets[GetUpgrador()->mCurrentTreatedTweetIndex];
 			GetUpgrador()->mTreatedActorPerTweet.push_back({ 0,0 });
-			if (	( (currentTweet.mLikeCount) && (GetUpgrador()->mActorType == "Likers") ) 
-				||  ( (currentTweet.mRetweetCount) && (GetUpgrador()->mActorType == "Retweeters"))
+			if (((currentTweet.mLikeCount) && (GetUpgrador()->mActorType == "Likers"))
+				|| ((currentTweet.mRetweetCount) && (GetUpgrador()->mActorType == "Retweeters"))
 				|| (GetUpgrador()->mActorType == "Posters"))
 			{
-				auto getActorState = fsm->getState("Get"+ GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
+				auto getActorState = fsm->getState("Get" + GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
 				getActorState->mForID = currentTweet.mTweetID;
 				GetUpgrador()->mStateStep = 2;
 				GetUpgrador()->activateTransition("getactorstransition");
@@ -373,11 +373,12 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 				GetUpgrador()->mCurrentTreatedTweetIndex++;
 			}
 		}
-		else 
+		else
 		{
 			// ask for more
 			GetUpgrador()->mStateStep = 3;
 		}
+		
 	}
 	break;
 	case 2:
@@ -393,12 +394,22 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 			tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, getActorState->mUserlist.size() };
 		}
 
+		if ((GetUpgrador()->mWantedActorCount) && (GetUpgrador()->mUserlist.size() >= GetUpgrador()->mWantedActorCount)) // enough actors where found
+		{
+		
+			GetUpgrador()->mStateStep = 4;
+			break;
+		}
+
 		if( (currentTreatedActor.first < getActorState->mUserlist.size()) && ( (currentTreatedActor.second< GetUpgrador()->mMaxActorPerTweet)||(GetUpgrador()->mMaxActorPerTweet==0)) )
 		{
 			if (GetUpgrador()->mUserlist.addUser(getActorState->mUserlist.getList()[currentTreatedActor.first]))
 			{
 				currentTreatedActor.second++;
-				GetUpgrador()->activateTransition("getuserdatatransition");
+				if (!GetUpgrador()->mTreatAllActorsTogether)
+				{
+					GetUpgrador()->activateTransition("getuserdatatransition");
+				}
 			}
 			currentTreatedActor.first++;
 		}
@@ -451,10 +462,30 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 				}
 				else
 				{
+					if(GetUpgrador()->mTreatAllActorsTogether)
+					{
+						GetUpgrador()->mStateStep = 4;
+						break;
+					}
+
 					GetUpgrador()->popState();
 				}
 			}
 		}
+	}
+	break;
+	case 4:
+	{
+		GetUpgrador()->activateTransition("getuserdatatransition");
+		GetUpgrador()->mStateStep = 5;
+	}
+	break;
+	case 5:
+	{
+		GetUpgrador()->popState();
+		GetUpgrador()->mStateStep = 0;
+		GetUpgrador()->mTreatedActorPerTweet.clear();
+		GetUpgrador()->mCurrentTreatedTweetIndex=0;
 	}
 	}
 
@@ -909,28 +940,31 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateStats))
 
 	const auto& currentData = GetUpgrador()->mUserlist.getList();
 
-	auto& currentUserData = mPerPanelUsersStats[user];
-
-	for (auto f : currentData)
+	if (currentData.size() || GetUpgrador()->mIsValid)
 	{
-		currentUserData.addUser(f.first);
+		auto& currentUserData = mPerPanelUsersStats[user];
 
-		auto alreadyfound = mInStatsUsers.find(f.first);
-		if (alreadyfound != mInStatsUsers.end())
+		for (auto f : currentData)
 		{
-			(*alreadyfound).second.first++;
-		}
-		else
-		{
-			TwitterConnect::UserStruct	toAdd;
+			currentUserData.addUser(f.first);
 
-			mInStatsUsers[f.first] = std::pair<unsigned int, TwitterConnect::UserStruct>(1, toAdd);
+			auto alreadyfound = mInStatsUsers.find(f.first);
+			if (alreadyfound != mInStatsUsers.end())
+			{
+				(*alreadyfound).second.first++;
+			}
+			else
+			{
+				TwitterConnect::UserStruct	toAdd;
+
+				mInStatsUsers[f.first] = std::pair<unsigned int, TwitterConnect::UserStruct>(1, toAdd);
+			}
 		}
+
+		// this one is done
+		mValidUserCount++;
 	}
-
-	// this one is done
 	mCurrentTreatedPanelUserIndex++;
-	mValidUserCount++;
 	mTreatedUserCount++;
 
 	GetUpgrador()->popState();

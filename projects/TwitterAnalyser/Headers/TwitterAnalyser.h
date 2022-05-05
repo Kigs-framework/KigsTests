@@ -34,7 +34,7 @@ public:
 	};
 protected:
 
-
+	std::vector<std::string>	PanelUserName = { "Likers" , "Posters" , "Followers" , "Following", "Favorites" , "Top" , "Retweeters" , "Retweeted"};
 
 	void	requestDone();
 	void	mainUserDone(TwitterConnect::UserStruct& CurrentUserStruct);
