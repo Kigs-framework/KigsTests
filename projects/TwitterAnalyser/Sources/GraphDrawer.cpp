@@ -863,8 +863,8 @@ void	GraphDrawer::drawGeneralStats()
 	
 	mMainInterface["TreatedFollowers"]("Text") = textBuffer;
 
-	sprintf(textBuffer, "%s %s count : %d", mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mAnalysedType].c_str(),
-												mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mPanelType].c_str(), 
+	sprintf(textBuffer, "%s %s count : %d", mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mPanelType].c_str(),
+												mTwitterAnalyser->PanelUserName[(size_t)mTwitterAnalyser->mAnalysedType].c_str(),
 												(int)mTwitterAnalyser->mInStatsUsers.size());
 	
 	mMainInterface["FoundFollowings"]("Text") = textBuffer;

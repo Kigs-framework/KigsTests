@@ -32,6 +32,15 @@ public:
 	bool								mSearchTweets=false;
 	bool								mCantGetMoreTweets = false;
 	std::vector<TwitterConnect::Twts>	mTweets;
+
+	void reset()
+	{
+		mNeededTweetCount = 100;
+		mNeededTweetCountIncrement = 50;
+		mCantGetMoreTweets = false;
+		mTweets.clear();
+	}
+
 protected:
 STARTCOREFSMSTATE_WRAPMETHODS();
 void	manageRetrievedTweets(std::vector<TwitterConnect::Twts>& twtlist, const std::string& nexttoken);
@@ -174,6 +183,7 @@ public:
 	std::map<u64, std::pair<u32,u32>>	mTweetRetrievedUserCount;
 	std::vector<TwitterConnect::Twts>	mTweets;
 	bool								mAskMore=false;
+
 protected:
 COREFSMSTATE_WITHOUT_METHODS()
 END_DECLARE_COREFSMSTATE()

@@ -118,7 +118,7 @@ protected:
 			}
 			else
 			{
-				(*f).second++;
+				mUserList[(*f).second].second ++;
 			}
 			return newone;
 		}
@@ -136,7 +136,7 @@ protected:
 			}
 			else
 			{
-				(*f).second += user.second;
+				mUserList[(*f).second].second+= user.second;
 			}
 			return newone;
 		}

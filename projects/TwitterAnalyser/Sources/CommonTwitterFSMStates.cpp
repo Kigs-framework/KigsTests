@@ -359,12 +359,21 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 		{
 			auto& currentTweet = tweetsState->mTweets[GetUpgrador()->mCurrentTreatedTweetIndex];
 			GetUpgrador()->mTreatedActorPerTweet.push_back({ 0,0 });
+
 			if (((currentTweet.mLikeCount) && (GetUpgrador()->mActorType == "Likers"))
-				|| ((currentTweet.mRetweetCount) && (GetUpgrador()->mActorType == "Retweeters"))
-				|| (GetUpgrador()->mActorType == "Posters"))
+				|| ((currentTweet.mRetweetCount) && (GetUpgrador()->mActorType == "Retweeters")) )
+				
 			{
 				auto getActorState = fsm->getState("Get" + GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
 				getActorState->mForID = currentTweet.mTweetID;
+				GetUpgrador()->mStateStep = 2;
+				GetUpgrador()->activateTransition("getactorstransition");
+			}
+			else if ( (GetUpgrador()->mActorType == "Posters") || (GetUpgrador()->mActorType == "Retweeted"))
+			{
+				auto getActorState = fsm->getState("Get" + GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
+				// store authorID here
+				getActorState->mForID = currentTweet.mAuthorID;
 				GetUpgrador()->mStateStep = 2;
 				GetUpgrador()->activateTransition("getactorstransition");
 			}
@@ -382,7 +391,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 	}
 	break;
 	case 2:
-		// some likers were retrieved for current tweet
+		// some actors were retrieved for current tweet
 	{
 		auto getActorState = fsm->getState("Get" + GetUpgrador()->mActorType)->as<CoreFSMStateClass(TwitterAnalyser, GetUsers)>();
 		std::pair<u32,u32>& currentTreatedActor = GetUpgrador()->mTreatedActorPerTweet[GetUpgrador()->mCurrentTreatedTweetIndex];
@@ -391,7 +400,19 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 		{
 			auto tweetsState = fsm->getState("RetrieveTweets")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)>();
 			auto& currentTweet = tweetsState->mTweets[GetUpgrador()->mCurrentTreatedTweetIndex];
-			tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, getActorState->mUserlist.size() };
+			// different for each actor type
+			if(GetUpgrador()->mActorType == "Likers")
+			{
+				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mLikeCount, getActorState->mUserlist.size() };
+			}
+			else if (GetUpgrador()->mActorType == "Retweeters")
+			{
+				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { currentTweet.mRetweetCount, getActorState->mUserlist.size() };
+			}
+			else if ( (GetUpgrador()->mActorType == "Posters") || (GetUpgrador()->mActorType == "Retweeted"))
+			{
+				tweetsState->mTweetRetrievedUserCount[currentTweet.mTweetID] = { 1, getActorState->mUserlist.size() };
+			}
 		}
 
 		if ((GetUpgrador()->mWantedActorCount) && (GetUpgrador()->mUserlist.size() >= GetUpgrador()->mWantedActorCount)) // enough actors where found
@@ -468,7 +489,7 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 						break;
 					}
 
-					GetUpgrador()->popState();
+					GetUpgrador()->mStateStep = 5;
 				}
 			}
 		}
@@ -482,6 +503,9 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors))
 	break;
 	case 5:
 	{
+
+		auto tweetsState = fsm->getState("GetTweets")->as<CoreFSMStateClass(TwitterAnalyser, GetTweets)>();
+		tweetsState->reset();
 		GetUpgrador()->popState();
 		GetUpgrador()->mStateStep = 0;
 		GetUpgrador()->mTreatedActorPerTweet.clear();
@@ -881,20 +905,34 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, RetrieveTweets))
 			TwitterConnect::FilterTweets(GetUpgrador()->mUserID, GetUpgrador()->mTweets, GetUpgrador()->mExcludeRetweets, GetUpgrador()->mExcludeReplies);
 		}
 
-		if (GetUpgrador()->mAskMore)
+		if (getTweetsState->mNeededTweetCount < getTweetsState->mTweets.size())
 		{
-			GetUpgrador()->mAskMore = false;
-			getTweetsState->mNeededTweetCount += getTweetsState->mNeededTweetCountIncrement;
+			getTweetsState->mNeededTweetCount = getTweetsState->mTweets.size();
+		}
+
+		if (getTweetsState->mCantGetMoreTweets)
+		{
+			GetUpgrador()->mCanGetMore = false;
+			GetUpgrador()->popState();
+			// clean get tweet state
+			getTweetsState->mCantGetMoreTweets = false;
+			getTweetsState->mTweets.clear();
+			return false;
 		}
 		else
 		{
-			if (getTweetsState->mCantGetMoreTweets)
+			if (GetUpgrador()->mAskMore)
 			{
-				GetUpgrador()->mCanGetMore = false;
+				GetUpgrador()->mAskMore = false;
+				getTweetsState->mNeededTweetCount += getTweetsState->mNeededTweetCountIncrement;
 			}
-			GetUpgrador()->popState();
-			return false;
+			else
+			{
+				GetUpgrador()->popState();
+				return false;
+			}
 		}
+		
 	}
 
 	getTweetsState->mUserName = username;
