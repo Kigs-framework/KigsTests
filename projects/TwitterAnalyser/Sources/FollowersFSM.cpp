@@ -99,10 +99,10 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	// create getFollow transition (Push)
 	SP<CoreFSMTransition> getfollowtransition = KigsCore::GetInstanceOf("getfollowtransition", "CoreFSMInternalSetTransition");
 	getfollowtransition->setValue("TransitionBehavior", "Push");
-	getfollowtransition->setState("GetFollow");
+	getfollowtransition->setState("GetFollow",1);
 	getfollowtransition->Init();
 
-	fsm->getState(lastState)->addTransition(getuserdatatransition);
+	fsm->getState(lastState,0)->addTransition(getuserdatatransition);
 
 	// when going to getuserdatatransition, retreive user list from previous state
 	KigsCore::Connect(getuserdatatransition.get(), "ExecuteTransition", this, "setUserList", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
@@ -120,7 +120,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	// create GetUserDetail transition (Push)
 	SP<CoreFSMTransition> getuserdetailtransition = KigsCore::GetInstanceOf("getuserdetailtransition", "CoreFSMInternalSetTransition");
 	getuserdetailtransition->setValue("TransitionBehavior", "Push");
-	getuserdetailtransition->setState("GetUserDetail");
+	getuserdetailtransition->setState("GetUserDetail",1);
 	getuserdetailtransition->Init();
 
 	// getFavorites -> user detail, wait or pop
@@ -143,7 +143,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	// create UpdateStats transition (Push)
 	SP<CoreFSMTransition> updatestatstransition = KigsCore::GetInstanceOf("updatestatstransition", "CoreFSMInternalSetTransition");
 	updatestatstransition->setValue("TransitionBehavior", "Push");
-	updatestatstransition->setState("UpdateStats");
+	updatestatstransition->setState("UpdateStats",1);
 	updatestatstransition->Init();
 
 	// GetUserDetail can go to UpdateLikesStats, wait (or pop)

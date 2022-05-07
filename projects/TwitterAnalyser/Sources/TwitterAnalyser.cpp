@@ -77,6 +77,80 @@ void		TwitterAnalyser::commonStatesFSM()
 	mTransitionList["donetransition"] = donetransition;
 }
 
+std::string	TwitterAnalyser::searchPostersFSM()
+{
+	SP<CoreFSM> fsm = mFsm;
+
+	fsm->addState("Init", new CoreFSMStateClass(TwitterAnalyser, InitHashTag)());
+
+	// go to RetrieveTweetActors
+	SP<CoreFSMTransition> retrievetweetactorstransition = KigsCore::GetInstanceOf("retrievetweetactorstransition", "CoreFSMInternalSetTransition");
+	retrievetweetactorstransition->setState("RetrieveTweetActors");
+	retrievetweetactorstransition->Init();
+
+	// Init can go to Wait or GetTweets
+	fsm->getState("Init")->addTransition(mTransitionList["waittransition"]);
+	fsm->getState("Init")->addTransition(retrievetweetactorstransition);
+
+	auto retrievetweetactorstate = new CoreFSMStateClass(TwitterAnalyser, RetrieveTweetActors)();
+	// init state
+	retrievetweetactorstate->mActorType = "Posters";
+	retrievetweetactorstate->mMaxActorPerTweet = 1;
+
+	fsm->addState("RetrieveTweetActors", retrievetweetactorstate);
+
+
+	// transition to GetRetweeters (push)
+	SP<CoreFSMTransition> getactorstransition = KigsCore::GetInstanceOf("getactorstransition", "CoreFSMInternalSetTransition");
+	getactorstransition->setValue("TransitionBehavior", "Push");
+	getactorstransition->setState("GetPosters");
+	getactorstransition->Init();
+
+	// transition to GetTweets (push)
+	SP<CoreFSMTransition> gettweetstransition = KigsCore::GetInstanceOf("gettweetstransition", "CoreFSMInternalSetTransition");
+	gettweetstransition->setValue("TransitionBehavior", "Push");
+	gettweetstransition->setState("GetTweets");
+	gettweetstransition->Init();
+
+	SP<CoreFSMTransition> retrievetweetstransition = KigsCore::GetInstanceOf("retrievetweetstransition", "CoreFSMInternalSetTransition");
+	retrievetweetstransition->setValue("TransitionBehavior", "Push");
+	retrievetweetstransition->setState("RetrieveTweets");
+	retrievetweetstransition->Init();
+
+	KigsCore::Connect(retrievetweetstransition.get(), "ExecuteTransition", this, "setRetrieveTweetsParams", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
+		{
+			auto retrievetweetsState = getFSMState(fsm, TwitterAnalyser, RetrieveTweets);
+			retrievetweetsState->mUseHashtag = mUseHashTags;
+			retrievetweetsState->mUserID = mPanelRetreivedUsers.getUserStructAtIndex(0).mID;
+			retrievetweetsState->mUserName = mPanelRetreivedUsers.getUserStructAtIndex(0).mName.ToString();
+			retrievetweetsState->mExcludeRetweets = true; // don't take retweets into account here
+			retrievetweetsState->mExcludeReplies = true; // don't take replies into account here
+		});
+	fsm->addState("RetrieveTweets", new CoreFSMStateClass(TwitterAnalyser, RetrieveTweets)());
+	fsm->getState("RetrieveTweets")->addTransition(gettweetstransition);
+
+	// can go to retrieve tweets, get actors or done (or manage actors in analyse block)
+	fsm->getState("RetrieveTweetActors")->addTransition(getactorstransition);
+	fsm->getState("RetrieveTweetActors")->addTransition(retrievetweetstransition);
+	fsm->getState("RetrieveTweetActors")->addTransition(mTransitionList["donetransition"]);
+	fsm->getState("RetrieveTweetActors")->addTransition(mTransitionList["userlistdetailtransition"]);
+
+	// create GetRetweetd state
+
+	auto getactorsstate = new CoreFSMStateClass(TwitterAnalyser, GetPosters)();
+	getactorsstate->mNeededUserCount = 0; // get them all
+
+	// GetRetweeted can just pop
+	fsm->addState("GetPosters", getactorsstate);
+
+	auto gettweetsstate = new CoreFSMStateClass(TwitterAnalyser, GetTweets)();
+	// create GetTweets state
+	fsm->addState("GetTweets", gettweetsstate);
+	// after GetTweets, can wait or pop
+	fsm->getState("GetTweets")->addTransition(mTransitionList["waittransition"]);
+
+	return "RetrieveTweetActors";
+}
 
 void	TwitterAnalyser::ProtectedInit()
 {
@@ -171,6 +245,10 @@ void	TwitterAnalyser::ProtectedInit()
 		lastState = searchLikersFSM();
 		SetMemberFromParam(mMaxUsersPerTweet, "MaxUsersPerTweet");
 		break;
+	case dataType::Posters:
+		if(mUseHashTags)
+			lastState = searchPostersFSM();
+		break;
 	case dataType::Followers:
 		lastState = searchFollowFSM("followers");
 		break;
@@ -264,9 +342,9 @@ void	TwitterAnalyser::initLogos()
 
 		case dataType::Posters: 
 		{
-			// TODO
+			twitterLogo("Dock") = v2f(0.4f, 0.5f);
 			twitterLogo["placeHolder1"]("IsHidden") = true;
-			twitterLogo["placeHolder2"]("IsHidden") = true;
+			twitterLogo["placeHolder2"]("TextureName") = "Writer.png";
 		}
 		break;
 

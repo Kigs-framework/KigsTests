@@ -1009,3 +1009,34 @@ DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, UpdateStats))
 
 	return false;
 }
+
+
+
+void	CoreFSMStartMethod(TwitterAnalyser, GetPosters)
+{
+
+}
+void	CoreFSMStopMethod(TwitterAnalyser, GetPosters)
+{
+
+}
+
+DEFINE_UPGRADOR_UPDATE(CoreFSMStateClass(TwitterAnalyser, GetPosters))
+{
+	// if an active transition already exist, just activate it
+	if (GetUpgrador()->hasActiveTransition(this))
+	{
+		return false;
+	}
+
+	GetUpgrador()->mUserlist.clear();
+	GetUpgrador()->mUserlist.addUser(GetUpgrador()->mForID);
+	
+	// one poster per tweet
+	GetUpgrador()->mCantGetMoreUsers = true;
+
+	GetUpgrador()->popState();
+
+
+	return false;
+}

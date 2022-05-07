@@ -53,6 +53,7 @@ protected:
 
 	std::string	searchFavoritesFSM();
 	std::string	searchLikersFSM();
+	std::string	searchPostersFSM();
 	std::string	searchFollowFSM(const std::string& followtype);
 	std::string	searchRetweetersFSM();
 	std::string	searchRetweetedFSM();
