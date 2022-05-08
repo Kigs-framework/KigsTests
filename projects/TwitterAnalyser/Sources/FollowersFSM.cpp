@@ -105,7 +105,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	fsm->getState(lastState,0)->addTransition(getuserdatatransition);
 
 	// when going to getuserdatatransition, retreive user list from previous state
-	KigsCore::Connect(getuserdatatransition.get(), "ExecuteTransition", this, "setUserList", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
+	KigsCore::Connect(getuserdatatransition.get(), "ExecuteTransition", this, "setUserListblock1", [this](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
 			SimpleCall("copyUserList", mPanelUserList);
 		});
@@ -154,7 +154,7 @@ void	TwitterAnalyser::analyseFollowFSM(const std::string& lastState, const std::
 	fsm->addState("UpdateStats", new CoreFSMStateClass(TwitterAnalyser, UpdateStats)());
 	// no transition here, only pop
 
-	KigsCore::Connect(updatestatstransition.get(), "ExecuteTransition", this, "setupstats", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
+	KigsCore::Connect(updatestatstransition.get(), "ExecuteTransition", this, "setupstatsblock1", [this, fsm](CoreFSMTransition* t, CoreFSMStateBase* from)
 		{
 			// get follow state
 			auto followState = fsm->getState("RetrieveFollow")->as<CoreFSMStateClass(TwitterAnalyser, RetrieveFollow)>();
