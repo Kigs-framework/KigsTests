@@ -53,15 +53,14 @@ GenericMesh::edgeStruct*  GenericMesh::getNextEdge(edgeStruct* currentE, u32& ei
 }
 
 
-v3f* GenericMesh::getTriangleVertices(u32 faceIndex)
+void GenericMesh::getTriangleVertices(u32 faceIndex, v3f* tvertices)
 {
-	v3f tvertices[3];
 	
 	const auto& f = mFaces[faceIndex];
 	if (f.mEdges.size() != 3)
 	{
 		// TODO error management here ?
-		return tvertices;
+		return;
 	}
 
 	size_t i = 0;
@@ -76,6 +75,4 @@ v3f* GenericMesh::getTriangleVertices(u32 faceIndex)
 
 		i++;
 	}
-
-	return tvertices;
 }

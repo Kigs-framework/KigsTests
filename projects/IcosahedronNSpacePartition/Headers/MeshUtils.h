@@ -12,8 +12,6 @@ public:
 		std::vector<u32>	mEdges;
 		// user defined general flags
 		u32					mFlags;
-
-
 	};
 
 	struct edgeStruct
@@ -143,7 +141,7 @@ public:
 		mFaces = apply_permutation(mFaces, p);
 	}
 
-	v3f*	getTriangleVertices(u32 faceIndex);
+	void	getTriangleVertices(u32 faceIndex, v3f* v);
 
 protected:
 

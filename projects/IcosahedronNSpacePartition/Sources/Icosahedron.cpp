@@ -137,7 +137,6 @@ void	Icosahedron::construct()
 		bset <<= 24;
 
 		f.mFlags |= bset;
-
 		faceindex++;
 	}
 
@@ -153,13 +152,14 @@ void	Icosahedron::construct()
 	
 	for (size_t faceIndex = 0;faceIndex<mFaces.size(); faceIndex++)
 	{
-		v3f* p = getTriangleVertices(faceIndex);
+		v3f p[3];
+		getTriangleVertices(faceIndex,p);
 
 		auto& m = mBarycentricMatrix[faceIndex];
 
-		m.e[0][0] = p[0].x;	m.e[0][1] = p[1].x;	m.e[0][2] = p[2].x;
-		m.e[1][0] = p[0].y;	m.e[1][1] = p[1].y;	m.e[1][2] = p[2].y;
-		m.e[2][0] = p[0].z;	m.e[2][1] = p[1].z;	m.e[2][2] = p[2].z;
+		m.e[0][0] = p[0].x;	m.e[0][1] = p[0].y;	m.e[0][2] = p[0].z;
+		m.e[1][0] = p[1].x;	m.e[1][1] = p[1].y;	m.e[1][2] = p[1].z;
+		m.e[2][0] = p[2].x;	m.e[2][1] = p[2].y;	m.e[2][2] = p[2].z;
 
 		m = Inv(m);
 	}
