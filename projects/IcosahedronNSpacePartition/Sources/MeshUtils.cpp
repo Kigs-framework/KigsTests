@@ -76,3 +76,12 @@ void GenericMesh::getTriangleVertices(u32 faceIndex, v3f* tvertices)
 		i++;
 	}
 }
+
+void GenericMesh::computeTriangleBarycentricCoordinatesMatrix(Matrix3x3& m, v3f* p)
+{
+	m.e[0][0] = p[0].x;	m.e[0][1] = p[0].y;	m.e[0][2] = p[0].z;
+	m.e[1][0] = p[1].x;	m.e[1][1] = p[1].y;	m.e[1][2] = p[1].z;
+	m.e[2][0] = p[2].x;	m.e[2][1] = p[2].y;	m.e[2][2] = p[2].z;
+
+	m = Inv(m);
+}

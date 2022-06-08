@@ -23,6 +23,23 @@ u32		Icosahedron::getNormalFlag(const v3f& tst)
 	Vector3D barycentriccoords(tst);
 	m.TransformVector(&barycentriccoords);
 
+	for (size_t i = 0; i < 3; i++)
+	{
+		if (barycentriccoords[i] < 0.0)
+		{
+			u32 e = mFaces[flag].mEdges[i];
+			u32 ew;
+			u32 ei = unpackEdgeInfos(e, ew);
+
+			flag=mEdges[ei].mF[1-ew];
+
+			barycentriccoords=tst;
+			mBarycentricMatrix[flag].TransformVector(&barycentriccoords);
+
+			break;
+		}
+	}
+
 	return flag;
 }
 
@@ -119,6 +136,7 @@ void	Icosahedron::construct()
 	size_t faceindex = 0;
 	for (auto& f : mFaces)
 	{
+		
 		for (auto e : f.mEdges)
 		{
 			u32 ew;
@@ -140,6 +158,7 @@ void	Icosahedron::construct()
 		faceindex++;
 	}
 
+
 	// sort faces according to flags
 	sortFaces([](const faceStruct& a, const faceStruct& b)->bool {
 		if (a.mFlags < b.mFlags)
@@ -157,11 +176,7 @@ void	Icosahedron::construct()
 
 		auto& m = mBarycentricMatrix[faceIndex];
 
-		m.e[0][0] = p[0].x;	m.e[0][1] = p[0].y;	m.e[0][2] = p[0].z;
-		m.e[1][0] = p[1].x;	m.e[1][1] = p[1].y;	m.e[1][2] = p[1].z;
-		m.e[2][0] = p[2].x;	m.e[2][1] = p[2].y;	m.e[2][2] = p[2].z;
-
-		m = Inv(m);
+		computeTriangleBarycentricCoordinatesMatrix(m, p);
 	}
 	
 }

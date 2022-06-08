@@ -32,12 +32,16 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 		mIcosahedron->getNormalFlag(tstN);
 	}*/
 
-	for (size_t i = 0; i < 8; i++)
+	/*for (size_t i = 0; i < 8; i++)
 	{
 		v3f tstN((i&1)?-1.0f:1.0f, (i & 2) ? -1.0f: 1.0f, (i & 4) ? -1.0f: 1.0f);
 		tstN.Normalize();
 		mIcosahedron->getNormalFlag(tstN);
-	}
+	}*/
+
+	v3f tstN(1.0f, 1.0f, 0.2f);
+	tstN.Normalize();
+	mIcosahedron->getNormalFlag(tstN);
 
 
 	// Load AppInit, GlobalConfig then launch first sequence

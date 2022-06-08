@@ -143,6 +143,8 @@ public:
 
 	void	getTriangleVertices(u32 faceIndex, v3f* v);
 
+	static void computeTriangleBarycentricCoordinatesMatrix(Matrix3x3& m, v3f* p);
+
 protected:
 
 	template <typename T>
