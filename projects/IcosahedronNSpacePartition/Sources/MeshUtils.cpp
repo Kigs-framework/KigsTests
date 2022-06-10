@@ -53,7 +53,7 @@ GenericMesh::edgeStruct*  GenericMesh::getNextEdge(edgeStruct* currentE, u32& ei
 }
 
 
-void GenericMesh::getTriangleVertices(u32 faceIndex, v3f* tvertices)
+void GenericMesh::getTriangleVertices(u32 faceIndex, SIMDv4f* tvertices)
 {
 	
 	const auto& f = mFaces[faceIndex];
@@ -77,7 +77,7 @@ void GenericMesh::getTriangleVertices(u32 faceIndex, v3f* tvertices)
 	}
 }
 
-void GenericMesh::computeTriangleBarycentricCoordinatesMatrix(Matrix3x3& m, v3f* p)
+void GenericMesh::computeTriangleBarycentricCoordinatesMatrix(Matrix3x3& m, SIMDv4f* p)
 {
 	m.e[0][0] = p[0].x;	m.e[0][1] = p[0].y;	m.e[0][2] = p[0].z;
 	m.e[1][0] = p[1].x;	m.e[1][1] = p[1].y;	m.e[1][2] = p[1].z;

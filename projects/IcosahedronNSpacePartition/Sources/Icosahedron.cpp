@@ -5,42 +5,61 @@ Icosahedron::Icosahedron()
 	construct();
 }
 
-u32		Icosahedron::getNormalFlag(const v3f& tst)
+u32		Icosahedron::getNormalFaceIndex(const SIMDv4f& tst)
 {
-	u32 flag = 0;
-	for (size_t i = 0; i < 3; i++) // the 0 coord index
+	u32 face = signBitToOctan(tst);
+
+	auto& f = mFaces[face];
+	auto& m = mBarycentricMatrix[face];
+
+	SIMDv4f barycentriccoords(tst);
+	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
+
+	u32 signflag = signBitToOctan(barycentriccoords);
+
+	if (signflag)
 	{
-		if (tst[i] < 0.0f)
-		{
-			flag |= 1 << i;
-		}
+		const u32 oppositeEdge[8] = { 0, 1, 2, 0, 0, 0, 0, 0 };
+		u32 e = mFaces[face].mEdges[oppositeEdge[signflag]]; // take opposite edge
+		u32 ew;
+		u32 ei = unpackEdgeInfos(e, ew);
+		face = mEdges[ei].mF[1 - ew];
 	}
 
-	auto& f = mFaces[flag];
+	printf("");
+	return face;
+}
 
-	auto& m=mBarycentricMatrix[flag];
+u32		Icosahedron::getNormalFaceIndex(const SIMDv4f& tst, SIMDv4f& barycentricCoords)
+{
+	u32 face = signBitToOctan(tst);
 
-	Vector3D barycentriccoords(tst);
-	m.TransformVector(&barycentriccoords);
+	auto& f = mFaces[face];
+	auto& m=mBarycentricMatrix[face];
 
-	for (size_t i = 0; i < 3; i++)
+	SIMDv4f barycentriccoords(tst);
+	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
+
+	u32 signflag= signBitToOctan(barycentriccoords);
+
+	if (signflag)
 	{
-		if (barycentriccoords[i] < 0.0)
-		{
-			u32 e = mFaces[flag].mEdges[i];
-			u32 ew;
-			u32 ei = unpackEdgeInfos(e, ew);
+		const u32 oppositeEdge[8] = { 0, 1, 2, 0, 0, 0, 0, 0 };
+		u32 e = mFaces[face].mEdges[oppositeEdge[signflag]]; // take opposite edge
+		u32 ew;
+		u32 ei = unpackEdgeInfos(e, ew);
 
-			flag=mEdges[ei].mF[1-ew];
+		face = mEdges[ei].mF[1 - ew];
 
-			barycentriccoords=tst;
-			mBarycentricMatrix[flag].TransformVector(&barycentriccoords);
-
-			break;
-		}
+		barycentriccoords = tst;
+		mBarycentricMatrix[face].TransformVector((Vector3D*)&barycentriccoords);
+		
 	}
-
-	return flag;
+	
+	barycentricCoords = barycentriccoords;
+	
+	printf("");
+	return face;
 }
 
 void	Icosahedron::construct()
@@ -52,7 +71,7 @@ void	Icosahedron::construct()
 	phi *= OneOnNorm;
 
 	// vertices
-	v3f	toAdd;
+	SIMDv4f	toAdd;
 	size_t verticeIndex = 0;
 	for (size_t i = 0; i < 3; i++) // the 0 coord index
 	{
@@ -106,7 +125,7 @@ void	Icosahedron::construct()
 	for (auto& e : mEdges)
 	{
 		// take edge center
-		v3f center(mVertices[e.mV[0]].mVerticePos+ mVertices[e.mV[1]].mVerticePos);
+		SIMDv4f center(mVertices[e.mV[0]].mVerticePos+ mVertices[e.mV[1]].mVerticePos);
 		
 		for (size_t i = 0; i < 3; i++)
 		{
@@ -171,7 +190,7 @@ void	Icosahedron::construct()
 	
 	for (size_t faceIndex = 0;faceIndex<mFaces.size(); faceIndex++)
 	{
-		v3f p[3];
+		SIMDv4f p[3];
 		getTriangleVertices(faceIndex,p);
 
 		auto& m = mBarycentricMatrix[faceIndex];
@@ -181,13 +200,13 @@ void	Icosahedron::construct()
 	
 }
 
-std::vector<std::vector<v3f>>	Icosahedron::getFaces() const
+std::vector<std::vector<SIMDv4f>>	Icosahedron::getFaces() const
 {
-	std::vector<std::vector<v3f>> result;
+	std::vector<std::vector<SIMDv4f>> result;
 
 	for (auto& f : mFaces)
 	{
-		std::vector<v3f> vlist;
+		std::vector<SIMDv4f> vlist;
 		for (auto e : f.mEdges)
 		{
 			u32 ew;
@@ -202,9 +221,9 @@ std::vector<std::vector<v3f>>	Icosahedron::getFaces() const
 }
 
 
-std::vector<std::pair<v3f, v3f>>	Icosahedron::getEdges() const
+std::vector<std::pair<SIMDv4f, SIMDv4f>>	Icosahedron::getEdges() const
 {
-	std::vector<std::pair<v3f, v3f>> result;
+	std::vector<std::pair<SIMDv4f, SIMDv4f>> result;
 
 	for (auto& e : mEdges)
 	{
@@ -214,13 +233,13 @@ std::vector<std::pair<v3f, v3f>>	Icosahedron::getEdges() const
 	return result;
 }
 
-std::vector<std::pair<v3f, std::vector<v3f>>>	Icosahedron::getVertices() const
+std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>>	Icosahedron::getVertices() const
 {
-	std::vector<std::pair<v3f, std::vector<v3f>>> result;
+	std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>> result;
 
 	for (auto& v : mVertices)
 	{
-		std::pair<v3f, std::vector<v3f>> toAdd;
+		std::pair<SIMDv4f, std::vector<SIMDv4f>> toAdd;
 		toAdd.first = v.mVerticePos;
 
 		for (auto ein : v.mEdges)

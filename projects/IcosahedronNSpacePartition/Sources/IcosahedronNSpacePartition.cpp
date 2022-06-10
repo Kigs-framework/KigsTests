@@ -25,23 +25,24 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 
 	mIcosahedron = new Icosahedron();
 
-	/*for (size_t i = 0; i < 100; i++)
+	for (size_t i = 0; i < 1000; i++)
 	{
-		v3f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
-		tstN.Normalize();
-		mIcosahedron->getNormalFlag(tstN);
-	}*/
+		SIMDv4f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
+		SIMDv4f result;
+		//tstN.Normalize();
+		mIcosahedron->getNormalFaceIndex(tstN, result);
+	}
 
 	/*for (size_t i = 0; i < 8; i++)
 	{
 		v3f tstN((i&1)?-1.0f:1.0f, (i & 2) ? -1.0f: 1.0f, (i & 4) ? -1.0f: 1.0f);
 		tstN.Normalize();
-		mIcosahedron->getNormalFlag(tstN);
+		mIcosahedron->getNormalFaceIndex(tstN);
 	}*/
 
-	v3f tstN(1.0f, 1.0f, 0.2f);
-	tstN.Normalize();
-	mIcosahedron->getNormalFlag(tstN);
+	SIMDv4f tstN(0.2f, 1.0f, 1.0f);
+	//tstN.Normalize();
+	mIcosahedron->getNormalFaceIndex(tstN);
 
 
 	// Load AppInit, GlobalConfig then launch first sequence
@@ -57,7 +58,7 @@ void	IcosahedronNSpacePartition::drawEdges() const
 	for (size_t i = 0; i < edgeList.size(); i++)
 	{
 		auto& e = edgeList[i];
-		dd::line(e.first, e.second, color);
+		dd::line(e.first.xyz, e.second.xyz, color);
 	}
 	
 #endif
@@ -94,7 +95,7 @@ void	IcosahedronNSpacePartition::drawFaces() const
 				R = currentcolor;
 
 				v3f color(R, G, B);
-				dd::line(vlist[j], vlist[(j+1)%vlist.size()], color, 0, false);
+				dd::line(vlist[j].xyz, vlist[(j+1)%vlist.size()].xyz, color, 0, false);
 				ecolor += 0.5f;
 			}
 		}
@@ -136,7 +137,7 @@ void	IcosahedronNSpacePartition::drawVertices() const
 				R = currentcolor;
 
 				v3f color(R, G, B);
-				dd::line(e.first, v, color,0,false);
+				dd::line(e.first.xyz, v.xyz, color,0,false);
 				ecolor+=0.5f;
 			}
 		}
