@@ -5,62 +5,6 @@ Icosahedron::Icosahedron()
 	construct();
 }
 
-u32		Icosahedron::getNormalFaceIndex(const SIMDv4f& tst)
-{
-	u32 face = signBitToOctan(tst);
-
-	auto& f = mFaces[face];
-	auto& m = mBarycentricMatrix[face];
-
-	SIMDv4f barycentriccoords(tst);
-	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
-
-	u32 signflag = signBitToOctan(barycentriccoords);
-
-	if (signflag)
-	{
-		const u32 oppositeEdge[8] = { 0, 1, 2, 0, 0, 0, 0, 0 };
-		u32 e = mFaces[face].mEdges[oppositeEdge[signflag]]; // take opposite edge
-		u32 ew;
-		u32 ei = unpackEdgeInfos(e, ew);
-		face = mEdges[ei].mF[1 - ew];
-	}
-
-	printf("");
-	return face;
-}
-
-u32		Icosahedron::getNormalFaceIndex(const SIMDv4f& tst, SIMDv4f& barycentricCoords)
-{
-	u32 face = signBitToOctan(tst);
-
-	auto& f = mFaces[face];
-	auto& m=mBarycentricMatrix[face];
-
-	SIMDv4f barycentriccoords(tst);
-	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
-
-	u32 signflag= signBitToOctan(barycentriccoords);
-
-	if (signflag)
-	{
-		const u32 oppositeEdge[8] = { 0, 1, 2, 0, 0, 0, 0, 0 };
-		u32 e = mFaces[face].mEdges[oppositeEdge[signflag]]; // take opposite edge
-		u32 ew;
-		u32 ei = unpackEdgeInfos(e, ew);
-
-		face = mEdges[ei].mF[1 - ew];
-
-		barycentriccoords = tst;
-		mBarycentricMatrix[face].TransformVector((Vector3D*)&barycentriccoords);
-		
-	}
-	
-	barycentricCoords = barycentriccoords;
-	
-	printf("");
-	return face;
-}
 
 void	Icosahedron::construct()
 {
@@ -186,17 +130,7 @@ void	Icosahedron::construct()
 		});
 
 
-	// compute barycentric coordinate conversion matrix for each face (using {0,0,0} as last tetraedron point)
 	
-	for (size_t faceIndex = 0;faceIndex<mFaces.size(); faceIndex++)
-	{
-		SIMDv4f p[3];
-		getTriangleVertices(faceIndex,p);
-
-		auto& m = mBarycentricMatrix[faceIndex];
-
-		computeTriangleBarycentricCoordinatesMatrix(m, p);
-	}
 	
 }
 

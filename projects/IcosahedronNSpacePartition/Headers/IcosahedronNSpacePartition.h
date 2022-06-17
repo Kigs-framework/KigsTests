@@ -3,7 +3,7 @@
 #include <DataDrivenBaseApplication.h>
 
 
-class Icosahedron;
+class ClassificationIcosahedron;
 class Scene3D;
 
 class IcosahedronNSpacePartition : public DataDrivenBaseApplication
@@ -30,7 +30,7 @@ protected:
 	void	ProtectedCloseSequence(const kstl::string& sequence) override;
 
 
-	Icosahedron* mIcosahedron=nullptr;
+	ClassificationIcosahedron* mIcosahedron=nullptr;
 
 	SmartPointer<Scene3D>		mScene3D=nullptr;
 };

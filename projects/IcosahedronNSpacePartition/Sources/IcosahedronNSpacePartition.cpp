@@ -2,7 +2,7 @@
 #include <FilePathManager.h>
 #include <NotificationCenter.h>
 #include "Scene3D.h"
-#include "Icosahedron.h"
+#include "ClassificationIcosahedron.h"
 #include "GLSLDebugDraw.h"
 
 IMPLEMENT_CLASS_INFO(IcosahedronNSpacePartition);
@@ -23,7 +23,7 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 	pathManager->AddToPath(".", "xml");
 
 
-	mIcosahedron = new Icosahedron();
+	mIcosahedron = new ClassificationIcosahedron();
 
 	for (size_t i = 0; i < 1000; i++)
 	{
