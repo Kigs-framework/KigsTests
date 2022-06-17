@@ -41,9 +41,16 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 	}*/
 
 	SIMDv4f tstN(0.2f, 1.0f, 1.0f);
+	tstN *= 5.0f;
+	SIMDv4f bary;
 	//tstN.Normalize();
-	mIcosahedron->getNormalFaceIndex(tstN);
+	u32 findex=mIcosahedron->getNormalFaceIndex(tstN,bary);
+	
+	bary.NormalizeBarycentricCoords();
 
+	v3f tstnormal = mIcosahedron->getNormal(findex, bary);
+
+	float tstnormalNorm = Norm(tstnormal);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();

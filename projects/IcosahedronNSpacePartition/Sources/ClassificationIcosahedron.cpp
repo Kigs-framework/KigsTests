@@ -97,3 +97,21 @@ void	ClassificationIcosahedron::populate(std::vector<v3f> vertices, std::vector<
 
 
 }
+
+// test func
+v3f	ClassificationIcosahedron::getNormal(u32 faceindex, SIMDv4f barycoords)
+{
+	auto& f = mFaces[faceindex];
+	SIMDv4f n(0.0f,0.0f,0.0f);
+
+	u32 index=0;
+	for (auto ein : f.mEdges)
+	{
+		u32 ew;
+		u32 ei = unpackEdgeInfos(ein, ew);
+
+		n += mVertices[mEdges[ei].mV[ew]].mVerticePos * barycoords[index++];
+	}
+
+	return n.xyz;
+}

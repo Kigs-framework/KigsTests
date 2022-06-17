@@ -19,6 +19,8 @@ public:
 		return result;
 	}
 
+	v3f	getNormal(u32 faceindex, SIMDv4f barycoords);
+
 	void	populate(std::vector<v3f> vertices, std::vector<u32> indices);
 
 protected:
