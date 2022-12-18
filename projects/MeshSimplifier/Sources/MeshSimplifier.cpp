@@ -53,18 +53,18 @@ SmartPointer<ModernMesh>	MeshSimplifier::getCube(u32 flag,u32 debugflag)
 	SmartPointer<ModernMesh> Mesh = KigsCore::GetInstanceOf("cube_"+std::to_string(flag), "ModernMesh");
 
 	Mesh->StartMeshBuilder();
-	auto description = MakeCoreVector();
+	auto description = MakeCoreMap();
 
-	auto vertices_desc = MakeCoreNamedVector("vertices");
-	description->set("", vertices_desc);
+	auto vertices_desc = MakeCoreVector();
+	description->set("vertices", vertices_desc);
 
-	auto ndesc = MakeCoreNamedVector("generate_normals");
-	description->set("", ndesc);
+	auto ndesc = MakeCoreVector();
+	description->set("generate_normals", ndesc);
 
-	auto cdesc = MakeCoreNamedVector("colors");
-	description->set("", cdesc);
+	auto cdesc = MakeCoreVector();
+	description->set("colors", cdesc);
 
-	Mesh->StartMeshGroup((CoreVector*)description.get());
+	Mesh->StartMeshGroup((CoreMap<std::string>*)description.get());
 	Mesh->setValue("Optimize", false);
 
 
@@ -187,15 +187,15 @@ SmartPointer<ModernMesh>	MeshSimplifier::buildMesh(const std::vector<u32>& indic
 	SmartPointer<ModernMesh> Mesh = KigsCore::GetInstanceOf(meshName, "ModernMesh");
 
 	Mesh->StartMeshBuilder();
-	auto description = MakeCoreVector();
+	auto description = MakeCoreMap();
 
-	auto vertices_desc = MakeCoreNamedVector("vertices");
-	description->set("", vertices_desc);
+	auto vertices_desc = MakeCoreVector();
+	description->set("vertices", vertices_desc);
 
-	auto ndesc = MakeCoreNamedVector("generate_normals");
-	description->set("", ndesc);
+	auto ndesc = MakeCoreVector();
+	description->set("generate_normals", ndesc);
 	
-	Mesh->StartMeshGroup((CoreVector*)description.get());
+	Mesh->StartMeshGroup((CoreMap<std::string>*)description.get());
 	Mesh->setValue("Optimize", false);
 
 	/*for (size_t i = 0; i < indices.size(); i += 3)
@@ -404,7 +404,7 @@ void	MeshSimplifier::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
-void	MeshSimplifier::ProtectedInitSequence(const kstl::string& sequence)
+void	MeshSimplifier::ProtectedInitSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -414,7 +414,7 @@ void	MeshSimplifier::ProtectedInitSequence(const kstl::string& sequence)
 		cam->Upgrade("OrbitCameraUp");
 	}
 }
-void	MeshSimplifier::ProtectedCloseSequence(const kstl::string& sequence)
+void	MeshSimplifier::ProtectedCloseSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{

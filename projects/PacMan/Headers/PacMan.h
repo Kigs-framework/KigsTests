@@ -21,8 +21,8 @@ protected:
 	void	GameOver();
 	void	LevelWon();
 	
-	void	ProtectedInitSequence(const kstl::string& sequence) override;
-	void	ProtectedCloseSequence(const kstl::string& sequence) override;
+	void	ProtectedInitSequence(const std::string& sequence) override;
+	void	ProtectedCloseSequence(const std::string& sequence) override;
 
 	CMSP		mMainInterface=nullptr;
 	GameLoop*	mGameLoop = nullptr;

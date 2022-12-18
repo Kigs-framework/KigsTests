@@ -18,7 +18,7 @@ public:
 
 protected:
 	WRAP_METHODS(UpdateKeyboard)
-	void UpdateKeyboard(kstl::vector<KeyEvent>& keys);
+	void UpdateKeyboard(std::vector<KeyEvent>& keys);
 
 	// direction and time of last keyboard set
 	std::pair<double, int>	mKeyDirection;

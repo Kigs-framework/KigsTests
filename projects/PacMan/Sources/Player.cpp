@@ -6,7 +6,7 @@
 
 IMPLEMENT_CLASS_INFO(Player)
 
-Player::Player(const kstl::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
+Player::Player(const std::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
 {
 
 }

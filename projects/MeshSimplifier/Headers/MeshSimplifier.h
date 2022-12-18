@@ -19,8 +19,8 @@ protected:
 	void NotifyUpdate(const unsigned int /* labelid */) override;
 
 	
-	void	ProtectedInitSequence(const kstl::string& sequence) override;
-	void	ProtectedCloseSequence(const kstl::string& sequence) override;
+	void	ProtectedInitSequence(const std::string& sequence) override;
+	void	ProtectedCloseSequence(const std::string& sequence) override;
 
 	void	rebuildMesh();
 

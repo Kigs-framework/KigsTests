@@ -56,7 +56,7 @@ void	PacMan::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
-void	PacMan::ProtectedInitSequence(const kstl::string& sequence)
+void	PacMan::ProtectedInitSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -64,7 +64,7 @@ void	PacMan::ProtectedInitSequence(const kstl::string& sequence)
 		mGameLoop = new GameLoop(mMainInterface);
 	}
 }
-void	PacMan::ProtectedCloseSequence(const kstl::string& sequence)
+void	PacMan::ProtectedCloseSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{

@@ -55,7 +55,7 @@ void	Arbres::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
-void	Arbres::ProtectedInitSequence(const kstl::string& sequence)
+void	Arbres::ProtectedInitSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -64,7 +64,7 @@ void	Arbres::ProtectedInitSequence(const kstl::string& sequence)
 		showHideControls(false);
 	}
 }
-void	Arbres::ProtectedCloseSequence(const kstl::string& sequence)
+void	Arbres::ProtectedCloseSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{

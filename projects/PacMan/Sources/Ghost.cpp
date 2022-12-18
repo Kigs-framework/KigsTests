@@ -10,7 +10,7 @@
 
 IMPLEMENT_CLASS_INFO(Ghost)
 
-Ghost::Ghost(const kstl::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
+Ghost::Ghost(const std::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
 {
 
 }
