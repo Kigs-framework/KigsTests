@@ -6,6 +6,11 @@
 #include "ModuleThread.h"
 #include "Thread.h"
 
+using namespace Kigs;
+using namespace Kigs::File;
+using namespace Kigs::Draw2D;
+using namespace Kigs::Thread;
+
 //#define REALLY_SIMPLE
 
 volatile bool	Arbres::mIsLocked=true;
@@ -46,7 +51,7 @@ void	Arbres::ProtectedClose()
 {
 	if (mThread)
 	{
-		SP<Thread> toKill = mThread;
+		SP<Thread::Thread> toKill = mThread;
 		toKill->Kill();
 		mThread = nullptr;
 
@@ -545,7 +550,7 @@ void	Arbres::setupAI()
 	clearVisited();
 	mAI->init(&mLabyrinthe[mStartPos.y][mStartPos.x], mStartPos, &mLabyrinthe[mExitPos.y][mExitPos.x], mExitPos);
 	clearVisited();
-	SP<Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
+	SP<Thread::Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
 	mThread = aithread;
 	aithread->setMethod(this, "launchAI");
 	aithread->Init();
@@ -558,7 +563,7 @@ void	Arbres::setupLabyrinthe(u32 tryOpeningCount,u32 removerandomwalls)
 	clearLabyrinthe(); 
 	mTryOpeningCount = tryOpeningCount;
 	mRemoveRandomWalls = removerandomwalls;
-	SP<Thread> labythread = KigsCore::GetInstanceOf("labythread", "Thread");
+	SP<Thread::Thread> labythread = KigsCore::GetInstanceOf("labythread", "Thread");
 	mThread = labythread;
 	labythread->setMethod(this, "launchLaby");
 	labythread->Init();

@@ -4,6 +4,8 @@
 #include "CoreBaseApplication.h"
 #include "NotificationCenter.h"
 
+using namespace Kigs;
+
 IMPLEMENT_CLASS_INFO(Player)
 
 Player::Player(const std::string& name, CLASS_NAME_TREE_ARG) : CharacterBase(name, PASS_CLASS_NAME_TREE_ARG)
@@ -31,8 +33,8 @@ void	Player::InitModifiable()
 		setCurrentPos(v2f(13.0f, 23.0f));
 		mDestPos = v2i(13, 23);
 
-		auto theInputModule = KigsCore::GetModule<ModuleInput>();
-		KeyboardDevice* theKeyboard = theInputModule->GetKeyboard();
+		auto theInputModule = KigsCore::GetModule<Input::ModuleInput>();
+		Input::KeyboardDevice* theKeyboard = theInputModule->GetKeyboard();
 		KigsCore::Connect(theKeyboard, "KeyboardEvent", this, "UpdateKeyboard");
 
 		mKeyDirection = { 0.0,-1 };

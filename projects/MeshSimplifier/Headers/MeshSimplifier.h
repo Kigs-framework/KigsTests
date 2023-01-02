@@ -1,64 +1,72 @@
 #pragma once
 
-#include <DataDrivenBaseApplication.h>
+#include "DataDrivenBaseApplication.h"
 #include "ModernMesh.h"
 
-
-class MeshSimplification;
-class MeshSimplifier : public DataDrivenBaseApplication
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(MeshSimplifier, DataDrivenBaseApplication, Core);
-	DECLARE_CONSTRUCTOR(MeshSimplifier);
 
-protected:
-	void	ProtectedInit() override;
-	void	ProtectedUpdate() override;
-	void	ProtectedClose() override;
+	using namespace Kigs::DDriven;
+	using namespace Kigs::Draw;
+	namespace Utils
+	{
+		class MeshSimplification;
+	}
+	class MeshSimplifier : public DataDrivenBaseApplication
+	{
+	public:
+		DECLARE_CLASS_INFO(MeshSimplifier, DataDrivenBaseApplication, Core);
+		DECLARE_CONSTRUCTOR(MeshSimplifier);
 
-	void NotifyUpdate(const unsigned int /* labelid */) override;
+	protected:
+		void	ProtectedInit() override;
+		void	ProtectedUpdate() override;
+		void	ProtectedClose() override;
 
-	
-	void	ProtectedInitSequence(const std::string& sequence) override;
-	void	ProtectedCloseSequence(const std::string& sequence) override;
+		void NotifyUpdate(const unsigned int /* labelid */) override;
 
-	void	rebuildMesh();
 
-	MeshSimplification*	mMeshSimplification=nullptr;
-	std::vector<u32>				mMeshVertexIndices;
-	std::vector<v3f>				mMeshVertices;
+		void	ProtectedInitSequence(const std::string& sequence) override;
+		void	ProtectedCloseSequence(const std::string& sequence) override;
 
-	SmartPointer<Scene3D>		mScene3D;
-	SmartPointer<Node3D>		mMeshNode;
-	SP<Node3D>					mRootEnvNode;
-	SmartPointer<Node3D>		mDebugCubeNode;
-	SmartPointer<Material>		mCubeMaterial;
-	
-	v3f							mRecenterTranslate;
+		void	rebuildMesh();
 
-	SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName);
+		Utils::MeshSimplification* mMeshSimplification = nullptr;
+		std::vector<u32>				mMeshVertexIndices;
+		std::vector<v3f>				mMeshVertices;
 
-	SmartPointer<ModernMesh>	getCube(u32 flag,u32 debugflag);
+		SmartPointer<Scene3D>		mScene3D;
+		SmartPointer<Node3D>		mMeshNode;
+		SP<Node3D>					mRootEnvNode;
+		SmartPointer<Node3D>		mDebugCubeNode;
+		SmartPointer<Material>		mCubeMaterial;
 
-	std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
+		v3f							mRecenterTranslate;
 
-	maInt						mDisplayCubeCount = BASE_ATTRIBUTE(DisplayCubeCount, 100000);
-	maInt						mDisplayVerticeCount = BASE_ATTRIBUTE(DisplayVerticeCount, 100000);
-	maInt						mDisplayEdgeCount = BASE_ATTRIBUTE(DisplayEdgeCount, 100000);
-	maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1,1,1);
-	maInt						mSelectedVerticeIndex = BASE_ATTRIBUTE(SelectedVerticeIndex, 0);
-	maInt						mSelectedEdgeIndex = BASE_ATTRIBUTE(SelectedEdgeIndex, 0);
-	maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
-	maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
-	maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
-	maBool						mShowVertices = BASE_ATTRIBUTE(ShowVertices, false);
-	maFloat						mPrecision = BASE_ATTRIBUTE(Precision, 0.02f);
-	void						showEnveloppe(bool show);
-	void						moveDebugCube();
+		SmartPointer<ModernMesh>	buildMesh(const std::vector<u32>& indices, const std::vector<v3f>& vertices, const std::string& meshName);
 
-	void						drawEdges();
-	void						drawEnveloppeVertices();
+		SmartPointer<ModernMesh>	getCube(u32 flag, u32 debugflag);
 
-	bool						mConstructMesh = true;
-	bool						mConstructEnveloppe = true;
-};
+		std::map<u32, SmartPointer<ModernMesh>>	mOctreeCubes;
+
+		maInt						mDisplayCubeCount = BASE_ATTRIBUTE(DisplayCubeCount, 100000);
+		maInt						mDisplayVerticeCount = BASE_ATTRIBUTE(DisplayVerticeCount, 100000);
+		maInt						mDisplayEdgeCount = BASE_ATTRIBUTE(DisplayEdgeCount, 100000);
+		maVect3DF					mDebugCubePos = BASE_ATTRIBUTE(DebugCubePos, 1, 1, 1);
+		maInt						mSelectedVerticeIndex = BASE_ATTRIBUTE(SelectedVerticeIndex, 0);
+		maInt						mSelectedEdgeIndex = BASE_ATTRIBUTE(SelectedEdgeIndex, 0);
+		maBool						mShowObject = BASE_ATTRIBUTE(ShowObject, true);
+		maBool						mShowEnveloppe = BASE_ATTRIBUTE(ShowEnveloppe, true);
+		maBool						mShowEdges = BASE_ATTRIBUTE(ShowEdges, false);
+		maBool						mShowVertices = BASE_ATTRIBUTE(ShowVertices, false);
+		maFloat						mPrecision = BASE_ATTRIBUTE(Precision, 0.02f);
+		void						showEnveloppe(bool show);
+		void						moveDebugCube();
+
+		void						drawEdges();
+		void						drawEnveloppeVertices();
+
+		bool						mConstructMesh = true;
+		bool						mConstructEnveloppe = true;
+	};
+}

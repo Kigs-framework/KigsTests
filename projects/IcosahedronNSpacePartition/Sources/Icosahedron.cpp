@@ -1,5 +1,7 @@
 #include "Icosahedron.h"
 
+using namespace Kigs;
+
 Icosahedron::Icosahedron()
 {
 	construct();

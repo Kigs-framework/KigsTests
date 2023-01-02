@@ -2,32 +2,35 @@
 
 #include "DataDrivenBaseApplication.h"
 
-
-class GameLoop;
-
-class PacMan : public DataDrivenBaseApplication
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(PacMan, DataDrivenBaseApplication, Core);
-	DECLARE_CONSTRUCTOR(PacMan);
+	class GameLoop;
+	using namespace Kigs::DDriven;
 
-	WRAP_METHODS(GameOver, LevelWon);
+	class PacMan : public DataDrivenBaseApplication
+	{
+	public:
+		DECLARE_CLASS_INFO(PacMan, DataDrivenBaseApplication, Core);
+		DECLARE_CONSTRUCTOR(PacMan);
 
-protected:
-	void	ProtectedInit() override;
-	void	ProtectedUpdate() override;
-	void	ProtectedClose() override;
+		WRAP_METHODS(GameOver, LevelWon);
 
-	void	GameOver();
-	void	LevelWon();
-	
-	void	ProtectedInitSequence(const std::string& sequence) override;
-	void	ProtectedCloseSequence(const std::string& sequence) override;
+	protected:
+		void	ProtectedInit() override;
+		void	ProtectedUpdate() override;
+		void	ProtectedClose() override;
 
-	CMSP		mMainInterface=nullptr;
-	GameLoop*	mGameLoop = nullptr;
+		void	GameOver();
+		void	LevelWon();
 
-	maInt	mScore = BASE_ATTRIBUTE(Score,0);
-	maInt	mLives = BASE_ATTRIBUTE(Lives,3);
-	maFloat mSpeedCoef = BASE_ATTRIBUTE(SpeedCoef, 1.0f);
-};
+		void	ProtectedInitSequence(const std::string& sequence) override;
+		void	ProtectedCloseSequence(const std::string& sequence) override;
+
+		CMSP		mMainInterface = nullptr;
+		GameLoop* mGameLoop = nullptr;
+
+		maInt	mScore = BASE_ATTRIBUTE(Score, 0);
+		maInt	mLives = BASE_ATTRIBUTE(Lives, 3);
+		maFloat mSpeedCoef = BASE_ATTRIBUTE(SpeedCoef, 1.0f);
+	};
+}

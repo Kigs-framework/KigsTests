@@ -1,5 +1,7 @@
 #include "ClassificationIcosahedron.h"
 
+using namespace Kigs;
+
 ClassificationIcosahedron::ClassificationIcosahedron() : Icosahedron()
 {
 	// compute barycentric coordinate conversion matrix for each face (using {0,0,0} as last tetraedron point)

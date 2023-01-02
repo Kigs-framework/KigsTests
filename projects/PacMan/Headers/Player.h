@@ -4,26 +4,30 @@
 #include "CharacterBase.h"
 #include "KeyboardDevice.h"
 
-class Player : public CharacterBase
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(Player, CharacterBase, PacMan);
-	DECLARE_CONSTRUCTOR(Player);
 
-	void	InitModifiable() override;
+	class Player : public CharacterBase
+	{
+	public:
+		DECLARE_CLASS_INFO(Player, CharacterBase, PacMan);
+		DECLARE_CONSTRUCTOR(Player);
 
-	void Update(const Timer& timer, void* addParam) override;
+		void	InitModifiable() override;
 
-	void	startHunting();
+		void Update(const Time::Timer& timer, void* addParam) override;
 
-protected:
-	WRAP_METHODS(UpdateKeyboard)
-	void UpdateKeyboard(std::vector<KeyEvent>& keys);
+		void	startHunting();
 
-	// direction and time of last keyboard set
-	std::pair<double, int>	mKeyDirection;
+	protected:
+		WRAP_METHODS(UpdateKeyboard)
+			void UpdateKeyboard(std::vector<KeyEvent>& keys);
 
-	void	manageDeathState();
-	double  mDeathTime = -1.0;
-};
+		// direction and time of last keyboard set
+		std::pair<double, int>	mKeyDirection;
 
+		void	manageDeathState();
+		double  mDeathTime = -1.0;
+	};
+
+}

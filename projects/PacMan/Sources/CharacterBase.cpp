@@ -2,6 +2,8 @@
 #include "Board.h"
 #include "Timer.h"
 
+using namespace Kigs;
+
 IMPLEMENT_CLASS_INFO(CharacterBase)
 
 CharacterBase::CharacterBase(const std::string& name, CLASS_NAME_TREE_ARG) : CoreModifiable(name, PASS_CLASS_NAME_TREE_ARG)
@@ -37,7 +39,7 @@ void	CharacterBase::initAtPos(const v2i& pos)
 }
 
 // return true if is at dest
-bool	CharacterBase::moveToDest(const Timer& timer,v2f& newpos)
+bool	CharacterBase::moveToDest(const Time::Timer& timer,v2f& newpos)
 {
 	double dt = timer.GetDt(this);
 	if (dt > 0.1)

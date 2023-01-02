@@ -7,6 +7,9 @@
 #include "CoreBaseApplication.h"
 #include "CharacterBase.h"
 
+using namespace Kigs;
+using namespace Kigs::Draw2D;
+
 std::string ghostNames[4] = { "inky","clyde","pinky","blinky" };
 
 Case				Board::mErrorCase;

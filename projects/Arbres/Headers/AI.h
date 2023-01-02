@@ -2,6 +2,7 @@
 #include "Case.h"
 #include <map>
 #include <set>
+
 // base class for AI
 class AI
 {

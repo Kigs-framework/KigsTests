@@ -1,7 +1,7 @@
 #include "GameLoop.h"
 #include "Core.h"
 
-
+using namespace Kigs;
 
 void	GameLoop::update()
 {

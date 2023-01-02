@@ -1,6 +1,8 @@
 #include "AI.h"
 #include "Arbres.h"
 
+using namespace Kigs;
+
 void AI::init(Case* start, v2i startPos, Case* end, v2i endPos)
 {
 	// just add start Case to the path

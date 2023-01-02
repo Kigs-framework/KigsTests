@@ -4,6 +4,9 @@
 #include "Board.h"
 #include "Timer.h"
 
+using namespace Kigs;
+using namespace Kigs::Fsm;
+
 #define DEFAULT_SPEED	4.0f
 #define LOW_SPEED		2.0f
 #define HIGH_SPEED		5.0f

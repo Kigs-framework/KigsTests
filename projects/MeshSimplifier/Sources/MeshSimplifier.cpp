@@ -1,10 +1,14 @@
-#include <MeshSimplifier.h>
-#include <FilePathManager.h>
-#include <NotificationCenter.h>
+#include "MeshSimplifier.h"
+#include "FilePathManager.h"
+#include "NotificationCenter.h"
 #include "MeshSimplification.h"
 #include "Scene3D.h"
 #include "Material.h"
 #include "GLSLDebugDraw.h"
+
+using namespace Kigs;
+using namespace Kigs::Utils;
+using namespace Kigs::File;
 
 bool	importRaw3DFile(const char* fname, std::vector<u32>& indices, std::vector<v3f>& vertices)
 {

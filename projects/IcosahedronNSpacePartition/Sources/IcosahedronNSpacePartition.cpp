@@ -5,6 +5,9 @@
 #include "ClassificationIcosahedron.h"
 #include "GLSLDebugDraw.h"
 
+using namespace Kigs;
+using namespace Kigs::File;
+
 IMPLEMENT_CLASS_INFO(IcosahedronNSpacePartition);
 
 IMPLEMENT_CONSTRUCTOR(IcosahedronNSpacePartition)

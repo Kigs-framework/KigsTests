@@ -2,100 +2,109 @@
 
 #include "DataDrivenBaseApplication.h"
 #include "Case.h"
-class UIItem;
+
 class AI;
-
-class Arbres : public DataDrivenBaseApplication
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(Arbres, DataDrivenBaseApplication, Core);
-	DECLARE_CONSTRUCTOR(Arbres);
 
-	static bool	isLocked()
+	namespace Draw2D
 	{
-		return mIsLocked;
+		class UIItem;
 	}
+	using namespace DDriven;
 
-	static void	unlock()
+	class Arbres : public DataDrivenBaseApplication
 	{
-		mIsLocked=false;
-	}
+	public:
+		DECLARE_CLASS_INFO(Arbres, DataDrivenBaseApplication, Core);
+		DECLARE_CONSTRUCTOR(Arbres);
 
-	static void lock()
-	{
-		mIsLocked = true;
-	}
-
-	static void waitMainThread()
-	{
-		while (isLocked())
+		static bool	isLocked()
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			return mIsLocked;
 		}
-		lock();
-	}
 
-protected:
-	void	ProtectedInit() override;
-	void	ProtectedUpdate() override;
-	void	ProtectedClose() override;
+		static void	unlock()
+		{
+			mIsLocked = false;
+		}
 
-	void	ProtectedInitSequence(const std::string& sequence) override;
-	void	ProtectedCloseSequence(const std::string& sequence) override;
+		static void lock()
+		{
+			mIsLocked = true;
+		}
 
-	// Labyrinthe managment
+		static void waitMainThread()
+		{
+			while (isLocked())
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			}
+			lock();
+		}
 
-	void	generateLabyrinthe();
-	void	initGraphicLabyrinthe();
-	void	loadLabyrinthe();
-	void	initLabyrinthe();
-	void	openMoreWallsLabyrinthe(u32 tryOpeningCount);
-	void	removeRandomWalls(u32 tryOpeningCount);
-	void	clearLabyrinthe();
-	void	clearVisited();
-	bool	mLabyrintheCanBeShow = false;
-	void	setupLabyrinthe(u32 tryOpeningCount, u32 removerandomwalls);
+	protected:
+		void	ProtectedInit() override;
+		void	ProtectedUpdate() override;
+		void	ProtectedClose() override;
 
-	u32		mTryOpeningCount = 0;
-	u32		mRemoveRandomWalls = 0;
+		void	ProtectedInitSequence(const std::string& sequence) override;
+		void	ProtectedCloseSequence(const std::string& sequence) override;
 
-	void	drawLabyrinthe();
+		// Labyrinthe managment
 
-	v2i		mLabyrintheSize;
-	v2i		mStartPos;
-	v2i		mExitPos;
-	Case**	mLabyrinthe=nullptr;
+		void	generateLabyrinthe();
+		void	initGraphicLabyrinthe();
+		void	loadLabyrinthe();
+		void	initLabyrinthe();
+		void	openMoreWallsLabyrinthe(u32 tryOpeningCount);
+		void	removeRandomWalls(u32 tryOpeningCount);
+		void	clearLabyrinthe();
+		void	clearVisited();
+		bool	mLabyrintheCanBeShow = false;
+		void	setupLabyrinthe(u32 tryOpeningCount, u32 removerandomwalls);
 
-	std::vector<SP<UIItem>>	mGraphicCases;
-	CMSP					mMainInterface;
-	SP<UIItem>				mLabyBG;
+		u32		mTryOpeningCount = 0;
+		u32		mRemoveRandomWalls = 0;
 
-	AI*						mAI = nullptr;
-	bool					mPathFound = false;
-	bool					mIsPlaying = false;
+		void	drawLabyrinthe();
 
-	void	launchAI();
-	void	step();
-	void	play();
-	void	firstfound();
-	void	bestfound();
-	void	dijkstra();
-	void	astar();
+		v2i		mLabyrintheSize;
+		v2i		mStartPos;
+		v2i		mExitPos;
+		Case** mLabyrinthe = nullptr;
 
-	float	mCurrentFrequency = 4.0f;
+		std::vector<SP<Draw2D::UIItem>>	mGraphicCases;
+		CMSP							mMainInterface;
+		SP<Draw2D::UIItem>				mLabyBG;
 
-	void	speedup();
-	void	speeddown();
+		AI* mAI = nullptr;
+		bool					mPathFound = false;
+		bool					mIsPlaying = false;
 
-	void	showHideControls(bool show);
-	void	showHideAI(bool show);
+		void	launchAI();
+		void	step();
+		void	play();
+		void	firstfound();
+		void	bestfound();
+		void	dijkstra();
+		void	astar();
 
-	void	setupAI();
-	void	launchLaby();
+		float	mCurrentFrequency = 4.0f;
 
-	WRAP_METHODS(step,play,launchAI, firstfound, bestfound, dijkstra, astar, speedup,speeddown, launchLaby);
+		void	speedup();
+		void	speeddown();
 
-	CMSP	mThread;
-	static volatile bool	mIsLocked;
+		void	showHideControls(bool show);
+		void	showHideAI(bool show);
 
-};
+		void	setupAI();
+		void	launchLaby();
+
+		WRAP_METHODS(step, play, launchAI, firstfound, bestfound, dijkstra, astar, speedup, speeddown, launchLaby);
+
+		CMSP	mThread;
+		static volatile bool	mIsLocked;
+
+	};
+}

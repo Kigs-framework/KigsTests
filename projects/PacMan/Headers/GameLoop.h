@@ -4,26 +4,28 @@
 #include "Board.h"
 #include "Ghost.h"
 
-
-class GameLoop
+namespace Kigs
 {
-protected:
-
-	CMSP			mMainInterface;
-
-	Board* mBoard = nullptr;
-
-public:
-
-	GameLoop(CMSP linterface);
-
-	~GameLoop()
+	class GameLoop
 	{
-		delete mBoard;
-		mBoard = nullptr;
-	}
+	protected:
 
-	void	update();
+		CMSP			mMainInterface;
 
-	void	reset(float speedcoef);
-};
+		Board* mBoard = nullptr;
+
+	public:
+
+		GameLoop(CMSP linterface);
+
+		~GameLoop()
+		{
+			delete mBoard;
+			mBoard = nullptr;
+		}
+
+		void	update();
+
+		void	reset(float speedcoef);
+	};
+}
