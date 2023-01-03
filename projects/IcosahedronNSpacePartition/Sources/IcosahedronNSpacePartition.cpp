@@ -5,6 +5,9 @@
 #include "ClassificationIcosahedron.h"
 #include "GLSLDebugDraw.h"
 
+using namespace Kigs;
+using namespace Kigs::File;
+
 IMPLEMENT_CLASS_INFO(IcosahedronNSpacePartition);
 
 IMPLEMENT_CONSTRUCTOR(IcosahedronNSpacePartition)
@@ -173,7 +176,7 @@ void	IcosahedronNSpacePartition::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
-void	IcosahedronNSpacePartition::ProtectedInitSequence(const kstl::string& sequence)
+void	IcosahedronNSpacePartition::ProtectedInitSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -183,7 +186,7 @@ void	IcosahedronNSpacePartition::ProtectedInitSequence(const kstl::string& seque
 		cam->Upgrade("OrbitCameraUp");
 	}
 }
-void	IcosahedronNSpacePartition::ProtectedCloseSequence(const kstl::string& sequence)
+void	IcosahedronNSpacePartition::ProtectedCloseSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{

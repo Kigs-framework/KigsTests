@@ -3,6 +3,11 @@
 #include <string>
 #include "TecLibs/Tec3D.h"
 
+namespace Kigs
+{
+	class Arbres;
+}
+
 class Case
 {
 
@@ -52,7 +57,7 @@ public:
 		mVisit=visit;
 	}
 
-	friend class Arbres;
+	friend class Kigs::Arbres;
 
 	const std::vector<std::pair<Case*, NeighbourPos>>& getNeighbors()
 	{

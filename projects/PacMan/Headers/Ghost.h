@@ -4,56 +4,60 @@
 #include "CoreFSMState.h"
 #include "CharacterBase.h"
 
-class Board;
-
-class Ghost : public CharacterBase
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(Ghost, CharacterBase, PacMan);
-	DECLARE_CONSTRUCTOR(Ghost);
+	class Board;
 
-	void	InitModifiable() override;
-
-	template<typename T>
-	friend class Upgrador;
-
-	bool isHunted()
+	class Ghost : public CharacterBase
 	{
-		return mIsHunted;
-	}
+	public:
+		DECLARE_CLASS_INFO(Ghost, CharacterBase, PacMan);
+		DECLARE_CONSTRUCTOR(Ghost);
 
-	void setHunted(bool h)
-	{
-		mIsHunted = h;
-	}
-protected:
+		void	InitModifiable() override;
 
-	void	checkForNewDirectionNeed();
-	void	chooseNewDirection(int prevdirection, int prevdirweight=1);
+		template<typename T>
+		friend class Upgrador;
 
-	maString mName = BASE_ATTRIBUTE(Name, "");
+		bool isHunted()
+		{
+			return mIsHunted;
+		}
 
-	bool	mIsHunted = false;
-};
+		void setHunted(bool h)
+		{
+			mIsHunted = h;
+		}
+	protected:
 
+		void	checkForNewDirectionNeed();
+		void	chooseNewDirection(int prevdirection, int prevdirweight = 1);
 
-START_DECLARE_COREFSMSTATE(Ghost, Appear)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
+		maString mName = BASE_ATTRIBUTE(Name, "");
 
-START_DECLARE_COREFSMSTATE(Ghost, FreeMove)
-COREFSMSTATE_METHODS(seePacMan)
-END_DECLARE_COREFSMSTATE()
+		bool	mIsHunted = false;
+	};
+	using namespace Kigs::Core;
+	using namespace Kigs::Fsm;
 
-START_DECLARE_COREFSMSTATE(Ghost, Hunting)
-v2i	mPacmanSeenPos;
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
+	START_DECLARE_COREFSMSTATE(Ghost, Appear)
+		COREFSMSTATE_WITHOUT_METHODS()
+		END_DECLARE_COREFSMSTATE()
 
-START_DECLARE_COREFSMSTATE(Ghost, Hunted)
-COREFSMSTATE_METHODS(checkDead)
-END_DECLARE_COREFSMSTATE()
+		START_DECLARE_COREFSMSTATE(Ghost, FreeMove)
+		COREFSMSTATE_METHODS(seePacMan)
+		END_DECLARE_COREFSMSTATE()
 
-START_DECLARE_COREFSMSTATE(Ghost, Die)
-COREFSMSTATE_WITHOUT_METHODS()
-END_DECLARE_COREFSMSTATE()
+		START_DECLARE_COREFSMSTATE(Ghost, Hunting)
+		v2i	mPacmanSeenPos;
+	COREFSMSTATE_WITHOUT_METHODS()
+		END_DECLARE_COREFSMSTATE()
+
+		START_DECLARE_COREFSMSTATE(Ghost, Hunted)
+		COREFSMSTATE_METHODS(checkDead)
+		END_DECLARE_COREFSMSTATE()
+
+		START_DECLARE_COREFSMSTATE(Ghost, Die)
+		COREFSMSTATE_WITHOUT_METHODS()
+		END_DECLARE_COREFSMSTATE()
+}

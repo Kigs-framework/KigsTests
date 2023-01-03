@@ -1,62 +1,67 @@
 #pragma once
 #include "CoreModifiable.h"
 
-class Case
+namespace Kigs
 {
-protected:
+	using namespace Core;
 
-	u32		mInitType;
-	u32		mCurrentType;
-	CMSP	mGraphicRep =nullptr;
-public:
-
-	Case() : mInitType(-1), mCurrentType(-1)
+	class Case
 	{
+	protected:
 
-	}
+		u32		mInitType;
+		u32		mCurrentType;
+		CMSP	mGraphicRep = nullptr;
+	public:
 
-	Case(u32 initType) : mInitType(initType), mCurrentType(initType)
-	{
-
-	}
-
-	void setInitType(u32 initType)
-	{
-		if (mInitType != (u32)-1) // already set
+		Case() : mInitType(-1), mCurrentType(-1)
 		{
-			return;
-		}
-		mInitType = initType;
-		mCurrentType = initType;
-	}
 
-	void setType(u32 cType)
-	{
-		if (mCurrentType == (u32)-1) 
+		}
+
+		Case(u32 initType) : mInitType(initType), mCurrentType(initType)
 		{
-			// ERROR
-			return;
+
 		}
-		mCurrentType = cType;
-	}
 
-	u32 getType() const
-	{
-		return mCurrentType;
-	}
+		void setInitType(u32 initType)
+		{
+			if (mInitType != (u32)-1) // already set
+			{
+				return;
+			}
+			mInitType = initType;
+			mCurrentType = initType;
+		}
 
-	void reset()
-	{
-		mCurrentType = mInitType;
-	}
+		void setType(u32 cType)
+		{
+			if (mCurrentType == (u32)-1)
+			{
+				// ERROR
+				return;
+			}
+			mCurrentType = cType;
+		}
 
-	void	setGraphicRepresentation(CMSP rep)
-	{
-		mGraphicRep = rep;
-	}
+		u32 getType() const
+		{
+			return mCurrentType;
+		}
 
-	CMSP getGraphicRepresentation()
-	{
-		return mGraphicRep;
-	}
-};
+		void reset()
+		{
+			mCurrentType = mInitType;
+		}
+
+		void	setGraphicRepresentation(CMSP rep)
+		{
+			mGraphicRep = rep;
+		}
+
+		CMSP getGraphicRepresentation()
+		{
+			return mGraphicRep;
+		}
+	};
+}

@@ -6,6 +6,8 @@
 #include "CoreFSM.h"
 #include "Player.h"
 
+using namespace Kigs;
+
 IMPLEMENT_CLASS_INFO(PacMan);
 
 IMPLEMENT_CONSTRUCTOR(PacMan)
@@ -20,7 +22,7 @@ void	PacMan::ProtectedInit()
 	// lets say that the update will sleep 1ms
 	SetUpdateSleepTime(1);
 
-	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
+	SP<File::FilePathManager> pathManager = KigsCore::Singleton < File::FilePathManager > ();
 	pathManager->AddToPath(".", "xml");
 
 	initCoreFSM();
@@ -56,7 +58,7 @@ void	PacMan::ProtectedClose()
 	DataDrivenBaseApplication::ProtectedClose();
 }
 
-void	PacMan::ProtectedInitSequence(const kstl::string& sequence)
+void	PacMan::ProtectedInitSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -64,7 +66,7 @@ void	PacMan::ProtectedInitSequence(const kstl::string& sequence)
 		mGameLoop = new GameLoop(mMainInterface);
 	}
 }
-void	PacMan::ProtectedCloseSequence(const kstl::string& sequence)
+void	PacMan::ProtectedCloseSequence(const std::string& sequence)
 {
 	if (sequence == "sequencemain")
 	{
@@ -94,7 +96,7 @@ void	PacMan::GameOver()
 void	PacMan::LevelWon()
 {
 	float increaseSpeed = mSpeedCoef;
-	increaseSpeed *= 1.1;
+	increaseSpeed *= 1.1f;
 	mSpeedCoef = increaseSpeed;
 	mGameLoop->reset(mSpeedCoef);
 }

@@ -5,21 +5,25 @@
 #include "TecLibs/Tec3D.h"
 #include "MeshUtils.h"
 
-// manage icosahedron (faces, vertices...)
-class Icosahedron : public GenericMesh
+namespace Kigs
 {
-public:
 
-	Icosahedron();
+	// manage icosahedron (faces, vertices...)
+	class Icosahedron : public GenericMesh
+	{
+	public:
 
-	std::vector<std::pair<SIMDv4f, SIMDv4f>>				getEdges() const;
-	std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>>	getVertices() const;
-	std::vector<std::vector<SIMDv4f>>						getFaces() const;
+		Icosahedron();
 
-protected:
+		std::vector<std::pair<SIMDv4f, SIMDv4f>>				getEdges() const;
+		std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>>	getVertices() const;
+		std::vector<std::vector<SIMDv4f>>						getFaces() const;
 
-	// construct icosahedron
-	void	construct();
+	protected:
+
+		// construct icosahedron
+		void	construct();
 
 
-};
+	};
+}

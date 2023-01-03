@@ -3,114 +3,119 @@
 #include "CoreModifiable.h"
 #include "UI/UIItem.h"
 
-class Board;
-
-const v2i	movesVector[4] = { {1,0},{0,1},{-1,0},{0,-1} };
-
-class CharacterBase : public CoreModifiable
+namespace Kigs
 {
-public:
-	DECLARE_ABSTRACT_CLASS_INFO(CharacterBase, CoreModifiable, PacMan);
-	DECLARE_CONSTRUCTOR(CharacterBase);
+	using namespace Core;
 
-	void	initAtPos(const v2i& pos);
+	class Board;
 
-	void	setCurrentPos(const v2f& pos);
+	const v2i	movesVector[4] = { {1,0},{0,1},{-1,0},{0,-1} };
 
-	const v2f& getCurrentPos()
+	class CharacterBase : public CoreModifiable
 	{
-		return mCurrentPos;
-	}
+	public:
+		DECLARE_ABSTRACT_CLASS_INFO(CharacterBase, CoreModifiable, PacMan);
+		DECLARE_CONSTRUCTOR(CharacterBase);
 
-	void	setBoard(Board* b)
-	{
-		mBoard = b;
-	}
+		void	initAtPos(const v2i& pos);
 
-	Board* getBoard()
-	{
-		return mBoard;
-	}
+		void	setCurrentPos(const v2f& pos);
 
-	void	setGraphicRepresentation(CMSP rep)
-	{
-		mGraphicRepresentation = rep;
-	}
-
-	CMSP getGraphicRepresentation()
-	{
-		return mGraphicRepresentation;
-	}
-
-	bool	isDead()
-	{
-		return mIsDead;
-	}
-
-	void	setDead(bool d=true)
-	{
-		mIsDead = d;
-	}
-
-	v2i getRoundPos()
-	{
-		return v2i(round(mCurrentPos.x), round(mCurrentPos.y));
-	}
-
-	// return current and dest pos if not the same
-	std::vector<v2i>	getPoses()
-	{
-		std::vector<v2i> result;
-		v2i cpos = getRoundPos();
-		result.push_back(cpos);
-		if (cpos != mDestPos)
+		const v2f& getCurrentPos()
 		{
-			result.push_back(mDestPos);
+			return mCurrentPos;
 		}
-		return result;
-	}
 
-	v2i getDestPos()
-	{
-		return mDestPos;
-	}
+		void	setBoard(Board* b)
+		{
+			mBoard = b;
+		}
 
-	void setSpeed(float s)
-	{
-		mSpeed = s;
-	}
-	void	setSpeedCoef(float sc)
-	{
-		mSpeedCoef = sc;
-	}
+		Board* getBoard()
+		{
+			return mBoard;
+		}
 
-	int getDirection()
-	{
-		return mDirection;
-	}
+		void	setGraphicRepresentation(CMSP rep)
+		{
+			mGraphicRepresentation = rep;
+		}
 
-	void	setDestPos(const v2i& dp)
-	{
-		mDestPos = dp;
-	}
+		CMSP getGraphicRepresentation()
+		{
+			return mGraphicRepresentation;
+		}
 
-	virtual ~CharacterBase();
+		bool	isDead()
+		{
+			return mIsDead;
+		}
 
-protected:
-	
-	// return true if is at dest
-	bool		moveToDest(const Timer& timer, v2f& newpos);
+		void	setDead(bool d = true)
+		{
+			mIsDead = d;
+		}
+
+		v2i getRoundPos()
+		{
+			return v2i(round(mCurrentPos.x), round(mCurrentPos.y));
+		}
+
+		// return current and dest pos if not the same
+		std::vector<v2i>	getPoses()
+		{
+			std::vector<v2i> result;
+			v2i cpos = getRoundPos();
+			result.push_back(cpos);
+			if (cpos != mDestPos)
+			{
+				result.push_back(mDestPos);
+			}
+			return result;
+		}
+
+		v2i getDestPos()
+		{
+			return mDestPos;
+		}
+
+		void setSpeed(float s)
+		{
+			mSpeed = s;
+		}
+		void	setSpeedCoef(float sc)
+		{
+			mSpeedCoef = sc;
+		}
+
+		int getDirection()
+		{
+			return mDirection;
+		}
+
+		void	setDestPos(const v2i& dp)
+		{
+			mDestPos = dp;
+		}
+
+		virtual ~CharacterBase();
+
+	protected:
+
+		// return true if is at dest
+		bool		moveToDest(const Time::Timer& timer, v2f& newpos);
 
 
-	v2f			mCurrentPos;
-	Board*		mBoard = nullptr;
-	SP<UIItem>	mGraphicRepresentation;
+		v2f			mCurrentPos;
+		Board* mBoard = nullptr;
+		SP<Draw2D::UIItem>	mGraphicRepresentation;
 
-	bool		mIsDead = false;
-	// -1 for no move direction, 
-	int			mDirection=-1;
-	v2i			mDestPos;
+		bool		mIsDead = false;
+		// -1 for no move direction, 
+		int			mDirection = -1;
+		v2i			mDestPos;
 
-	float		mSpeed = 4.0f;
-	float		mSpeedCoef = 1.0;
-};
+		float		mSpeed = 4.0f;
+		float		mSpeedCoef = 1.0;
+	};
+}

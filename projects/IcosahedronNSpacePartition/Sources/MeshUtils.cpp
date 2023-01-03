@@ -1,5 +1,7 @@
 #include "MeshUtils.h"
 
+using namespace Kigs;
+
 void GenericMesh::setUpFaces()
 {
 

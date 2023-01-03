@@ -1,36 +1,43 @@
 #pragma once
 
-#include <DataDrivenBaseApplication.h>
+#include "DataDrivenBaseApplication.h"
 
-
-class ClassificationIcosahedron;
-class Scene3D;
-
-class IcosahedronNSpacePartition : public DataDrivenBaseApplication
+namespace Kigs
 {
-public:
-	DECLARE_CLASS_INFO(IcosahedronNSpacePartition, DataDrivenBaseApplication, Core);
-	DECLARE_CONSTRUCTOR(IcosahedronNSpacePartition);
 
-protected:
+	namespace Scene
+	{
+		class Scene3D;
+	}
+	using namespace Kigs::DDriven;
+	class ClassificationIcosahedron;
 
-	maInt	mSelectedVertice = BASE_ATTRIBUTE(SelectedVertice,-1);
-	maInt	mSelectedFace = BASE_ATTRIBUTE(SelectedFace, -1);
+	class IcosahedronNSpacePartition : public DataDrivenBaseApplication
+	{
+	public:
+		DECLARE_CLASS_INFO(IcosahedronNSpacePartition, DataDrivenBaseApplication, Core);
+		DECLARE_CONSTRUCTOR(IcosahedronNSpacePartition);
 
-	void	drawEdges() const;
-	void	drawVertices() const;
-	void	drawFaces() const;
+	protected:
 
-	void	ProtectedInit() override;
-	void	ProtectedUpdate() override;
-	void	ProtectedClose() override;
+		maInt	mSelectedVertice = BASE_ATTRIBUTE(SelectedVertice, -1);
+		maInt	mSelectedFace = BASE_ATTRIBUTE(SelectedFace, -1);
 
-	
-	void	ProtectedInitSequence(const kstl::string& sequence) override;
-	void	ProtectedCloseSequence(const kstl::string& sequence) override;
+		void	drawEdges() const;
+		void	drawVertices() const;
+		void	drawFaces() const;
+
+		void	ProtectedInit() override;
+		void	ProtectedUpdate() override;
+		void	ProtectedClose() override;
 
 
-	ClassificationIcosahedron* mIcosahedron=nullptr;
+		void	ProtectedInitSequence(const std::string& sequence) override;
+		void	ProtectedCloseSequence(const std::string& sequence) override;
 
-	SmartPointer<Scene3D>		mScene3D=nullptr;
-};
+
+		ClassificationIcosahedron* mIcosahedron = nullptr;
+
+		SmartPointer<Scene::Scene3D>		mScene3D = nullptr;
+	};
+}
