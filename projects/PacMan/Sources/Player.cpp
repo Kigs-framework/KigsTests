@@ -103,7 +103,7 @@ void Player::UpdateKeyboard(std::vector<KeyEvent>& keys)
 
 
 
-void Player::Update(const Timer& timer, void* addParam)
+void Player::Update(const Time::Timer& timer, void* addParam)
 {
 	if (mIsDead)
 	{
