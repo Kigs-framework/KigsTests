@@ -31,7 +31,7 @@ namespace Kigs
 			// list of edges (bit 31 gives edge direction)
 			std::vector<u32>			mEdges;
 
-			SIMDv4f						mVerticePos;
+			v4f						mVerticePos;
 			// user defined general flags
 			u32							mFlags;
 
@@ -70,7 +70,7 @@ namespace Kigs
 
 		};
 
-		void	addVertice(const SIMDv4f& v) // don't check if vertice already exist
+		void	addVertice(const v4f& v) // don't check if vertice already exist
 		{
 			verticeStruct toAdd;
 			toAdd.mVerticePos = v;
@@ -145,9 +145,9 @@ namespace Kigs
 			mFaces = apply_permutation(mFaces, p);
 		}
 
-		void	getTriangleVertices(u32 faceIndex, SIMDv4f* v);
+		void	getTriangleVertices(u32 faceIndex, v4f* v);
 
-		static void computeTriangleBarycentricCoordinatesMatrix(Matrix3x3& m, SIMDv4f* p);
+		static void computeTriangleBarycentricCoordinatesMatrix(Maths::Matrix3x3& m, v4f* p);
 
 	protected:
 

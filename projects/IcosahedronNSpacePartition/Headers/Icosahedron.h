@@ -15,9 +15,9 @@ namespace Kigs
 
 		Icosahedron();
 
-		std::vector<std::pair<SIMDv4f, SIMDv4f>>				getEdges() const;
-		std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>>	getVertices() const;
-		std::vector<std::vector<SIMDv4f>>						getFaces() const;
+		std::vector<std::pair<v4f, v4f>>				getEdges() const;
+		std::vector<std::pair<v4f, std::vector<v4f>>>	getVertices() const;
+		std::vector<std::vector<v4f>>						getFaces() const;
 
 	protected:
 

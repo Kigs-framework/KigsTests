@@ -17,7 +17,7 @@ void	Icosahedron::construct()
 	phi *= OneOnNorm;
 
 	// vertices
-	SIMDv4f	toAdd;
+	v4f	toAdd;
 	size_t verticeIndex = 0;
 	for (size_t i = 0; i < 3; i++) // the 0 coord index
 	{
@@ -71,7 +71,7 @@ void	Icosahedron::construct()
 	for (auto& e : mEdges)
 	{
 		// take edge center
-		SIMDv4f center(mVertices[e.mV[0]].mVerticePos+ mVertices[e.mV[1]].mVerticePos);
+		v4f center(mVertices[e.mV[0]].mVerticePos+ mVertices[e.mV[1]].mVerticePos);
 		
 		for (size_t i = 0; i < 3; i++)
 		{
@@ -136,13 +136,13 @@ void	Icosahedron::construct()
 	
 }
 
-std::vector<std::vector<SIMDv4f>>	Icosahedron::getFaces() const
+std::vector<std::vector<v4f>>	Icosahedron::getFaces() const
 {
-	std::vector<std::vector<SIMDv4f>> result;
+	std::vector<std::vector<v4f>> result;
 
 	for (auto& f : mFaces)
 	{
-		std::vector<SIMDv4f> vlist;
+		std::vector<v4f> vlist;
 		for (auto e : f.mEdges)
 		{
 			u32 ew;
@@ -157,9 +157,9 @@ std::vector<std::vector<SIMDv4f>>	Icosahedron::getFaces() const
 }
 
 
-std::vector<std::pair<SIMDv4f, SIMDv4f>>	Icosahedron::getEdges() const
+std::vector<std::pair<v4f, v4f>>	Icosahedron::getEdges() const
 {
-	std::vector<std::pair<SIMDv4f, SIMDv4f>> result;
+	std::vector<std::pair<v4f, v4f>> result;
 
 	for (auto& e : mEdges)
 	{
@@ -169,13 +169,13 @@ std::vector<std::pair<SIMDv4f, SIMDv4f>>	Icosahedron::getEdges() const
 	return result;
 }
 
-std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>>	Icosahedron::getVertices() const
+std::vector<std::pair<v4f, std::vector<v4f>>>	Icosahedron::getVertices() const
 {
-	std::vector<std::pair<SIMDv4f, std::vector<SIMDv4f>>> result;
+	std::vector<std::pair<v4f, std::vector<v4f>>> result;
 
 	for (auto& v : mVertices)
 	{
-		std::pair<SIMDv4f, std::vector<SIMDv4f>> toAdd;
+		std::pair<v4f, std::vector<v4f>> toAdd;
 		toAdd.first = v.mVerticePos;
 
 		for (auto ein : v.mEdges)

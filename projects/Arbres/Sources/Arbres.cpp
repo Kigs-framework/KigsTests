@@ -552,7 +552,7 @@ void	Arbres::setupAI()
 	clearVisited();
 	SP<Thread::Thread> aithread = KigsCore::GetInstanceOf("aithread", "Thread");
 	mThread = aithread;
-	aithread->setMethod(this, "launchAI");
+	aithread->setMethod(this->SharedFromThis(), "launchAI");
 	aithread->Init();
 }
 
@@ -565,7 +565,7 @@ void	Arbres::setupLabyrinthe(u32 tryOpeningCount,u32 removerandomwalls)
 	mRemoveRandomWalls = removerandomwalls;
 	SP<Thread::Thread> labythread = KigsCore::GetInstanceOf("labythread", "Thread");
 	mThread = labythread;
-	labythread->setMethod(this, "launchLaby");
+	labythread->setMethod(this->SharedFromThis(), "launchLaby");
 	labythread->Init();
 }
 

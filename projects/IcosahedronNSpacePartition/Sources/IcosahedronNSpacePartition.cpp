@@ -30,8 +30,8 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 
 	for (size_t i = 0; i < 1000; i++)
 	{
-		SIMDv4f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
-		SIMDv4f result;
+		v4f tstN((rand() & 255)-127, (rand() & 255) - 127, (rand() & 255) - 127);
+		v4f result;
 		//tstN.Normalize();
 		mIcosahedron->getNormalFaceIndex(tstN, result);
 	}
@@ -43,9 +43,9 @@ void	IcosahedronNSpacePartition::ProtectedInit()
 		mIcosahedron->getNormalFaceIndex(tstN);
 	}*/
 
-	SIMDv4f tstN(0.2f, 1.0f, 1.0f);
+	v4f tstN(0.2f, 1.0f, 1.0f);
 	tstN *= 5.0f;
-	SIMDv4f bary;
+	v4f bary;
 	//tstN.Normalize();
 	u32 findex=mIcosahedron->getNormalFaceIndex(tstN,bary);
 	
