@@ -28,19 +28,19 @@
 		<Inst N="Camera" T="Camera">
 			<Attr N="VerticalFOV" V="26.991467"/>
 			<Attr N="FarPlane" V="1000.0"/>
-			<Attr N="UpVector" V="{0.000000,1.000000,0.000000}"/>
-			<Attr N="ViewVector" V="{0.000000,0.0,-1.000000}"/>
+			<Attr N="UpVector" V="[0.000000,1.000000,0.000000]"/>
+			<Attr N="ViewVector" V="[0.000000,0.0,-1.000000]"/>
 			<Attr N="RenderingScreen" V="RenderingScreen:theRenderingScreen"/>
 			<Attr N="MaskForInputManager" V="65535" Dyn="true" T="uint" />
-			<Attr N="Position" V="{0,0,50}" />
-			<Attr N="ClearColor" V="{0.1,0.1,0.8}"/>
+			<Attr N="Position" V="[0,0,50]" />
+			<Attr N="ClearColor" V="[0.1,0.1,0.8]"/>
 		</Inst>
 		<Inst N="Light3" T="Node3D">
-			<Attr T="array" N="LocalMatrix" V="{0.145546,0.916476,0.372676,-0.555358,-0.236060,0.797404,0.818776,-0.323027,0.474615,5.596245,4.244546,8.113862}" Dyn="yes"/>
+			<Attr T="array" N="LocalMatrix" V="[0.145546,0.916476,0.372676,-0.555358,-0.236060,0.797404,0.818776,-0.323027,0.474615,5.596245,4.244546,8.113862]" Dyn="yes"/>
 			<Inst N="Light.002" T="Light">
-				<Attr N="SpecularColor" V="{0.5,0.5,0.5}"/>
-				<Attr N="DiffuseColor" V="{0.9,0.9,0.9}"/>
-				<Attr N="AmbientColor" V="{0.3,0.3,0.3}"/>
+				<Attr N="SpecularColor" V="[0.5,0.5,0.5]"/>
+				<Attr N="DiffuseColor" V="[0.9,0.9,0.9]"/>
+				<Attr N="AmbientColor" V="[0.3,0.3,0.3]"/>
 				<Attr N="LightType" V="DIRECTIONAL"/>
 			</Inst>
 		</Inst>
@@ -51,17 +51,17 @@
 	</Inst>
 	
 	<Inst N="UILayer" T="UI2DLayer">
-	<Attr N="Size" V="{1280,800}"/>
+	<Attr N="Size" V="[1280,800]"/>
 	<Attr N="Priority" V="50"/>
 	<Attr N="RenderingScreen" V="RenderingScreen:theRenderingScreen"/>
 		<Inst N="Interface" T="UIItem">
-			<Attr N="Size" V="{1280,800}"/>
+			<Attr N="Size" V="[1280,800]"/>
 			<Inst N="background" T="UIPanel">
-				<Attr N="Size" V="{1280,800}"/>
+				<Attr N="Size" V="[1280,800]"/>
 				<Attr N="Priority" V="50"/>
-				<Attr N="Anchor" V="{0.500000,0.500000}"/>
-				<Attr N="Dock" V="{0.500000,0.500000}"/>
-				<Attr N="Color" V="{0.0, 0.2, 0.4, 1.0}"/>
+				<Attr N="Anchor" V="[0.500000,0.500000]"/>
+				<Attr N="Dock" V="[0.500000,0.500000]"/>
+				<Attr N="Color" V="[0.0, 0.2, 0.4, 1.0]"/>
 			</Inst>
 		</Inst>
 	</Inst>

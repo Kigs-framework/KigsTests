@@ -32,7 +32,7 @@ void	Ghost::InitModifiable()
 		mGraphicRepresentation->setValue("TextureName", ghostName);
 		mGraphicRepresentation->setValue("Anchor", v2f(0.5f, 0.5f));
 		mGraphicRepresentation->setValue("Priority", 15);
-		mGraphicRepresentation->setValue("PreScale", "{1.2,1.2}");
+		mGraphicRepresentation->setValue("PreScale", "[1.2,1.2]");
 		mBoard->getGraphicInterface()->addItem(mGraphicRepresentation);
 		mGraphicRepresentation->Init();
 
