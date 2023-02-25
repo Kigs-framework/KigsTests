@@ -24,7 +24,7 @@ void	PacMan::ProtectedInit()
 
 	SP<File::FilePathManager> pathManager = KigsCore::Singleton < File::FilePathManager > ();
 	pathManager->AddToPath(".", "xml");
-
+	pathManager->AddToPath(".", "kpkg");
 	initCoreFSM();
 
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), Ghost, Ghost, PacMan);

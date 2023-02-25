@@ -24,22 +24,8 @@
     <Xml Include="..\..\Android\assets\AppInit.xml">
       <Filter>Assets</Filter>
     </Xml>
-    <Xml Include="..\..\Android\assets\LaunchScreen.xml">
-      <Filter>Assets</Filter>
-    </Xml>
-    <Xml Include="..\..\Android\assets\Screen_Main.xml">
-      <Filter>Assets</Filter>
-    </Xml>
   </ItemGroup>
   <ItemGroup>
-    <Font Include="..\..\Android\assets\Calibri.ttf">
-      <Filter>Assets</Filter>
-    </Font>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\Android\assets\Logo.png">
-      <Filter>Assets</Filter>
-    </Image>
     <Image Include="Assets\Generated\SmallTile.scale-100.png">
       <Filter>Assets\Generated</Filter>
     </Image>
@@ -177,8 +163,9 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="PacManPackaging_TemporaryKey.pfx">
-      <Filter>Packaging</Filter>
+    <None Include="Packaging_TemporaryKey.pfx" />
+    <None Include="..\..\Android\assets\PacMan_assets.kpkg">
+      <Filter>Assets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

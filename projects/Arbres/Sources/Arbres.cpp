@@ -33,6 +33,7 @@ void	Arbres::ProtectedInit()
 
 	SP<FilePathManager> pathManager = KigsCore::Singleton<FilePathManager>();
 	pathManager->AddToPath(".", "xml");
+	pathManager->AddToPath(".", "json");
 
 	CoreCreateModule(ModuleThread, nullptr);
 
