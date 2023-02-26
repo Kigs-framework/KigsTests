@@ -11,31 +11,31 @@ namespace Kigs
 		ClassificationIcosahedron();
 
 		// return face index and barycentric coords (not normalised)
-		u32		getNormalFaceIndex(const SIMDv4f& tst, SIMDv4f& barycentricCoords);
+		u32		getNormalFaceIndex(const v4f& tst, v4f& barycentricCoords);
 		// return only face index
-		u32		getNormalFaceIndex(const SIMDv4f& tst);
+		u32		getNormalFaceIndex(const v4f& tst);
 
-		inline u32		signBitToOctan(const SIMDv4f& tst)
+		inline u32		signBitToOctan(const v4f& tst)
 		{
 			// combine sign bit of x,y,z coordinates to get octan
 			u32 result = (((*(u32*)&tst.x) >> 31) & 1) | (((*(u32*)&tst.y) >> 30) & 2) | (((*(u32*)&tst.z) >> 29) & 4);
 			return result;
 		}
 
-		v3f	getNormal(u32 faceindex, SIMDv4f barycoords);
+		v3f	getNormal(u32 faceindex, v4f barycoords);
 
 		void	populate(std::vector<v3f> vertices, std::vector<u32> indices);
 
 	protected:
 		// barycentric coordinates matrix for each faces (TODO: use SIMD)
-		Matrix3x3		mBarycentricMatrix[20];
+		Maths::Matrix3x3		mBarycentricMatrix[20];
 
 		// input / output data
 
 		struct nStruct
 		{
-			SIMDv4f		mNormal;		//	not normalized triangle normal
-			SIMDv4f		mBaryCoords;	//  normal bary coordinates in icosahedron face 
+			v4f		mNormal;		//	not normalized triangle normal
+			v4f		mBaryCoords;	//  normal bary coordinates in icosahedron face 
 			u32			mTIndices;		//	original triangle indice
 			u32			mFlag;			//  flag giving icosahedron face index
 		};

@@ -24,7 +24,7 @@ void	PacMan::ProtectedInit()
 
 	SP<File::FilePathManager> pathManager = KigsCore::Singleton < File::FilePathManager > ();
 	pathManager->AddToPath(".", "xml");
-
+	pathManager->AddToPath(".", "kpkg");
 	initCoreFSM();
 
 	DECLARE_FULL_CLASS_INFO(KigsCore::Instance(), Ghost, Ghost, PacMan);
@@ -83,12 +83,12 @@ void	PacMan::GameOver()
 	gameovertxt->setValue("Text", "Game Over");
 	gameovertxt->setValue("Dock", v2f(0.5f,0.5f));
 	gameovertxt->setValue("Anchor", v2f(0.5f, 0.5f));
-	gameovertxt->setValue("Size", "{-1, -1}");
+	gameovertxt->setValue("Size", "[-1, -1]");
 	gameovertxt->setValue("Font", "Calibri.ttf");
 	gameovertxt->setValue("FontSize",72);
 	gameovertxt->setValue("MaxWidth", 1000);
 	gameovertxt->setValue("TextAlignment", 1);
-	gameovertxt->setValue("Color", "{0.8, 1.0, 1.0}");
+	gameovertxt->setValue("Color", "[0.8, 1.0, 1.0]");
 
 	mMainInterface->addItem(gameovertxt);
 	gameovertxt->Init();

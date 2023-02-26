@@ -1,13 +1,14 @@
 #include "ClassificationIcosahedron.h"
 
 using namespace Kigs;
+using namespace Kigs::Maths;
 
 ClassificationIcosahedron::ClassificationIcosahedron() : Icosahedron()
 {
 	// compute barycentric coordinate conversion matrix for each face (using {0,0,0} as last tetraedron point)
 	for (size_t faceIndex = 0; faceIndex < mFaces.size(); faceIndex++)
 	{
-		SIMDv4f p[3];
+		v4f p[3];
 		getTriangleVertices(faceIndex, p);
 
 		auto& m = mBarycentricMatrix[faceIndex];
@@ -17,14 +18,14 @@ ClassificationIcosahedron::ClassificationIcosahedron() : Icosahedron()
 }
 
 
-u32		ClassificationIcosahedron::getNormalFaceIndex(const SIMDv4f& tst)
+u32		ClassificationIcosahedron::getNormalFaceIndex(const v4f& tst)
 {
 	u32 face = signBitToOctan(tst);
 
 	auto& f = mFaces[face];
 	auto& m = mBarycentricMatrix[face];
 
-	SIMDv4f barycentriccoords(tst);
+	v4f barycentriccoords(tst);
 	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
 
 	u32 signflag = signBitToOctan(barycentriccoords);
@@ -41,14 +42,14 @@ u32		ClassificationIcosahedron::getNormalFaceIndex(const SIMDv4f& tst)
 	return face;
 }
 
-u32		ClassificationIcosahedron::getNormalFaceIndex(const SIMDv4f& tst, SIMDv4f& barycentricCoords)
+u32		ClassificationIcosahedron::getNormalFaceIndex(const v4f& tst, v4f& barycentricCoords)
 {
 	u32 face = signBitToOctan(tst);
 
 	auto& f = mFaces[face];
 	auto& m = mBarycentricMatrix[face];
 
-	SIMDv4f barycentriccoords(tst);
+	v4f barycentriccoords(tst);
 	m.TransformVector((Vector3D*)&barycentriccoords.xyz);
 
 	u32 signflag = signBitToOctan(barycentriccoords);
@@ -86,8 +87,8 @@ void	ClassificationIcosahedron::populate(std::vector<v3f> vertices, std::vector<
 		v3f& p2 = vertices[indices[t+1]];
 		v3f& p3 = vertices[indices[t+2]];
 
-		SIMDv4f	v1(p2 - p1);
-		SIMDv4f	v2(p3 - p1);
+		v4f	v1(p2 - p1);
+		v4f	v2(p3 - p1);
 
 		mNormals[nindex].mNormal.CrossProduct(v1, v2);
 		mNormals[nindex].mFlag =getNormalFaceIndex(mNormals[nindex].mNormal, mNormals[nindex].mBaryCoords);
@@ -101,10 +102,10 @@ void	ClassificationIcosahedron::populate(std::vector<v3f> vertices, std::vector<
 }
 
 // test func
-v3f	ClassificationIcosahedron::getNormal(u32 faceindex, SIMDv4f barycoords)
+v3f	ClassificationIcosahedron::getNormal(u32 faceindex, v4f barycoords)
 {
 	auto& f = mFaces[faceindex];
-	SIMDv4f n(0.0f,0.0f,0.0f);
+	v4f n(0.0f,0.0f,0.0f,0.0f);
 
 	u32 index=0;
 	for (auto ein : f.mEdges)

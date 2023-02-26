@@ -175,10 +175,17 @@
     <Image Include="Assets\Generated\StoreLogo.scale-400.png">
       <Filter>Assets\Generated</Filter>
     </Image>
+    <Image Include="..\..\Android\assets\Down.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="..\..\Android\assets\Up.png">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ArbresPackaging_TemporaryKey.pfx">
-      <Filter>Packaging</Filter>
+    <None Include="Packaging_TemporaryKey.pfx" />
+    <None Include="..\..\Android\assets\laby.json">
+      <Filter>Assets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

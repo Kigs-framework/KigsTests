@@ -276,13 +276,11 @@ void	MeshSimplifier::ProtectedInit()
 	mCubeMaterial->setValue("BlendEnabled", true);
 	mCubeMaterial->Init();
 
-	mDisplayCubeCount.changeNotificationLevel(Owner);
-	mDebugCubePos.changeNotificationLevel(Owner);
-
-	mShowObject.changeNotificationLevel(Owner);
-	mShowEnveloppe.changeNotificationLevel(Owner);
-
-	mPrecision.changeNotificationLevel(Owner);
+	setOwnerNotification("DisplayCubeCount", true);
+	setOwnerNotification("DebugCubePos", true);
+	setOwnerNotification("ShowObject", true);
+	setOwnerNotification("ShowEnveloppe", true);
+	setOwnerNotification("Precision", true);
 
 	// Load AppInit, GlobalConfig then launch first sequence
 	DataDrivenBaseApplication::ProtectedInit();
@@ -506,19 +504,19 @@ void MeshSimplifier::NotifyUpdate(const unsigned int  labelid )
 	{
 		return;
 	}
-	if ( (labelid == mDisplayCubeCount.getID()) || (labelid == mShowEnveloppe.getID()))
+	if ( (labelid == KigsID("DisplayCubeCount")._id ) || (labelid == KigsID("ShowEnveloppe")._id))
 	{
 		showEnveloppe(mShowEnveloppe);
 	}
-	else if (labelid == mDebugCubePos.getID())
+	else if (labelid == KigsID("DebugCubePos")._id )
 	{
 		moveDebugCube();
 	}
-	else if (labelid == mShowObject.getID())
+	else if (labelid == KigsID("ShowObject")._id )
 	{
 		mMeshNode->setValue("Show", mShowObject);
 	}
-	else if (labelid == mPrecision.getID())
+	else if (labelid == KigsID("Precision")._id )
 	{
 		rebuildMesh();
 	}

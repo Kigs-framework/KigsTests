@@ -1,7 +1,9 @@
 #pragma once
 
+#ifndef BASE_APP_IMPORT
 //! include the real application class file
 #include "PacMan.h"
+#endif
 
 //! yes I want Timer and FileManager to be auto initialized
 #define INIT_DEFAULT_MODULES
@@ -14,8 +16,5 @@
 //! then define it as the application class 
 #define KIGS_APPLICATION_CLASS PacMan
 
-//! for Intel Appup version
-
-#define ADP_APPLICATIONID ADP_DEBUG_APPLICATIONID
 
 

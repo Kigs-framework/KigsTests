@@ -1,4 +1,7 @@
 **/Android/ARM/
+**/Build/UWP/StaticDebug/
+**/Build/UWP/StaticRelease/
+**/Build/UWP/StaticReleaseTools/
 projects/**/Android/assets/**
 projects/**/TmpRessources/**
 **/Ressources/AMLastDone.json
@@ -7,3 +10,5 @@ projects/TwitterAnalyser/Android/TwitterAnalyser.exe.WebView2/**
 projects/TwitterAnalyser/Android/WebScraper.dll
 projects/TwitterAnalyser/Android/WebScraperD.dll
 projects/TwitterAnalyser/Android/WebView2Loader.dll
+**/*.bak
+**/*.*.bak
