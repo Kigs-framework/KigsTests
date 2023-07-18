@@ -1,5 +1,4 @@
 project(projects)
 add_subdirectory(Arbres)
-add_subdirectory(PacMan)
 add_subdirectory(MeshSimplifier)
 add_subdirectory(IcosahedronNSpacePartition)
