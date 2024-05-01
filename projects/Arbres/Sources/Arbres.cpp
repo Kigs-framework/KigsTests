@@ -85,9 +85,9 @@ void	Arbres::generateLabyrinthe()
 
 	// create Case Array
 #ifdef REALLY_SIMPLE
-	mLabyrintheSize.Set(7, 7);
+	mLabyrintheSize = { 7, 7 };
 #else
-	mLabyrintheSize.Set(35, 25);
+	mLabyrintheSize = { 35, 25 };
 #endif
 	mLabyrinthe = new Case * [mLabyrintheSize.y];
 	for (int i = 0; i < mLabyrintheSize.y; i++)
@@ -230,7 +230,7 @@ void	Arbres::generateLabyrinthe()
 		if (mLabyrinthe[posy][1].getType() == Case::CaseType::Slab)
 		{
 			mLabyrinthe[posy][0].setType(Case::CaseType::Start);
-			mStartPos.Set(0, posy);
+			mStartPos = { 0, posy };
 			setpos = true;
 		}
 	}
@@ -241,7 +241,7 @@ void	Arbres::generateLabyrinthe()
 		if (mLabyrinthe[posy][mLabyrintheSize.x-2].getType() == Case::CaseType::Slab)
 		{
 			mLabyrinthe[posy][mLabyrintheSize.x - 1].setType(Case::CaseType::Exit);
-			mExitPos.Set(mLabyrintheSize.x - 1, posy);
+			mExitPos = { mLabyrintheSize.x - 1, posy };
 			setpos = true;
 		}
 	}
@@ -376,11 +376,11 @@ void	Arbres::initLabyrinthe()
 			{
 				if (mLabyrinthe[i][j].getType() == Case::Start)
 				{
-					mStartPos.Set(j, i);
+					mStartPos = v2i (j, i);
 				}
 				if (mLabyrinthe[i][j].getType() == Case::Exit)
 				{
-					mExitPos.Set(j, i);
+					mExitPos = v2i(j, i);
 				}
 				for (int dir = 0; dir < 4; dir++)
 				{
@@ -411,7 +411,7 @@ void	Arbres::drawLabyrinthe() // refresh visit colors
 
 		if (mPathFound)
 		{
-			color.Set(0.5f + 0.3f * sinf(mApplicationTimer->GetTime() * 2.0f), 0.04, 0.04);
+			color = { 0.5f + 0.3f * sinf(mApplicationTimer->GetTime() * 2.0f), 0.04, 0.04 };
 		}
 
 		size_t caseIndex = 0;
@@ -460,7 +460,7 @@ void	Arbres::clearLabyrinthe()
 		delete[] mLabyrinthe;
 	}
 	mLabyrinthe = nullptr;
-	mLabyrintheSize.Set(0.0, 0.0);
+	mLabyrintheSize = v2i(0.0, 0.0);
 
 	if(mLabyBG)
 		mMainInterface->removeItem(mLabyBG);

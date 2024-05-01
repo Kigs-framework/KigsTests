@@ -318,7 +318,7 @@ bool	AStar::run()
 		// prepare compute move cost
 		v2f deltapos(mEndPos);
 		deltapos -= currentNode.mPos;
-		float dist = Norm(deltapos);
+		float dist = length(deltapos);
 		deltapos *= 1.0f / dist;
 
 		// compute cost for all 4 directions
@@ -329,7 +329,7 @@ bool	AStar::run()
 		{
 			v2f fdeltamove(mDeltapos[costIndex]);
 
-			float dotprod = Dot(fdeltamove, deltapos);
+			float dotprod = dot(fdeltamove, deltapos);
 
 			costs[costIndex] = (2.0 - dotprod);
 			costs[costIndex] *= costs[costIndex];

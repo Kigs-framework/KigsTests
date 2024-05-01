@@ -113,7 +113,7 @@ public:
 
 		v2f deltapos(mEndPos);
 		deltapos -= mStartPos;
-		mTotalDist = Norm(deltapos);
+		mTotalDist = length(deltapos);
 
 		WNode toAdd;
 		toAdd.mCase = start;
